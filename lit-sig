@@ -1,0 +1,9 @@
+#!/bin/sh
+# note the space: `-- '.
+cat <<END
+
+Iki,
+Marius Gedminas
+-- 
+END
+python ~/sigs/tools/sig.py ~/sigs/quotes ~/sigs/quotes-lit

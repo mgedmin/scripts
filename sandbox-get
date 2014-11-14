@@ -1,0 +1,3 @@
+#!/bin/sh
+test -d /tmp/sandbox || virtualenv --no-site-packages /tmp/sandbox
+/tmp/sandbox/bin/pip install "$@"

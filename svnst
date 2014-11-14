@@ -1,0 +1,3 @@
+#!/bin/sh
+# svn st without useless junk about externals and whatnot, sorted sanely
+exec svn st "$@"|grep -v '^X\|^Performing\|^  L\|^$'|LC_COLLATE=C sort

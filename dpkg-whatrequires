@@ -1,0 +1,92 @@
+#!/usr/bin/perl -w
+use strict;
+
+my $dpkg_db = "/var/lib/dpkg/status";
+
+(my $progname = $0) =~ s{^.*/}{};
+
+my $raw = 0;
+my $installed_only = 0;
+my $versions = 0;
+for (my $i = 0; $i < @ARGV; ) {
+    if ($ARGV[$i] eq "-h" or $ARGV[$i] eq "--help") {
+	print <<END;
+syntax: $progname [-r] [-i] [-v] package [...]
+-r  output raw results
+-i  consider installed packages only
+-v  show version numbers
+END
+    } elsif ($ARGV[$i] eq "-r") {
+	$raw = 1;
+	splice @ARGV, $i, 1
+    } elsif ($ARGV[$i] eq "-i") {
+	$installed_only = 1;
+	splice @ARGV, $i, 1
+    } elsif ($ARGV[$i] eq "-v") {
+	$versions = 1;
+	splice @ARGV, $i, 1
+    } else {
+	++$i;
+    }
+}
+
+# $results{relates_to_package2}->{package1-ver} == 1
+#   <=> package1-ver relates_to_package2
+my %results;
+
+unless (@ARGV) {
+    die "use $progname [-r] [-i] package [...]\n";
+}
+
+for my $package (@ARGV) {
+    $package =~ s/[.\[\]\\($)?{}|^+]/\\$&/g;
+    $package =~ s/\*/[^, ]*?/g;
+}
+
+open F, "$dpkg_db"
+    or die "cannot open $dpkg_db: $!\n";
+my $pkg = "";
+my $ver = "";
+my $status = "";
+while (<F>) {
+    if (m/^Package:/) {
+	chomp;
+	($pkg = $_) =~ s/^Package:\s*//;
+	$ver = $status = "";
+    } elsif (m/^Version:/) {
+	chomp;
+	($ver = $_) =~ s/^Version:\s*//;
+    } elsif (m/^Status:/) {
+	chomp;
+	($status = $_) =~ s/^Status:\s*//;
+    } elsif (m/^(?:Depends|Recommends|Suggests|Conflicts|Replaces|Provides):/) {
+	next if ($installed_only && $status !~ / installed$/);
+	for my $package (@ARGV) {
+	    if (m/\b$package\b/) {
+		chomp;
+		# Double-check:
+		if (m/^(.*?)(?=:).*?[:,|]\s+(($package)(?:[^,|]*?)?)\s*(?:[,|]|$)/) {
+		    my $reltype = $1;
+		    $reltype = lc $reltype; # strange; can't use lc $1 or all hell breaks loose
+		    $reltype .= " on" if $reltype eq "depends";
+		    $reltype .= " with" if $reltype eq "conflicts";
+		    my $what = $2;
+		    my $pkg2 = $3;
+		    print "$pkg $ver $reltype $what\n" if $raw;
+		    my $optver = $versions ? " ($ver)" : "";
+		    $results{"$reltype $what"}{"$pkg$optver"} = 1;
+		}
+	    }
+	}
+    }
+}
+close F;
+
+unless ($raw) {
+    use Text::Wrap qw/wrap $columns/;
+    $columns = 80;
+    for my $k (sort keys %results) {
+	print "$k:\n";
+	print wrap("  ", "  ", join(" ", sort keys %{$results{$k}})), "\n";
+    }
+}

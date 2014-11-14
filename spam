@@ -1,0 +1,14 @@
+#!/bin/sh
+# In mutt, pipe a message through this script to teach Bayesian filters
+if [ -f ~/.hammiedb ]; then
+    # we have a local spambayes db
+    mutt_dotlock ~/.hammiedb || {
+        echo "$0: could not lock ~/.hammiedb" 1>&2
+        exit 1
+    }
+    /usr/bin/python -Wignore /usr/bin/sb_filter.py -s > /dev/null
+    mutt_dotlock -u ~/.hammiedb
+else
+    # this is probably my laptop; I keep spambayes on a server
+    ssh musmire spam
+fi

@@ -1,0 +1,16 @@
+#!/bin/bash
+infile="$1"
+outfile="${1%.mp4}.mp3"
+echo "Converting $infile -> $outfile"
+ffmpeg -i "$infile" -ab 128k "$outfile"
+echo
+test -x /usr/bin/id3v2 || {
+    echo sudo apt-get install id3v2?
+    sudo apt-get install id3v2
+    echo
+}
+read -p "Artist: " artist
+read -p "Title: " title
+id3v2 -a "$artist" -t "$title" "$outfile"
+echo
+echo "$outfile"

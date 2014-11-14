@@ -1,0 +1,155 @@
+#!/usr/bin/perl -w
+# Shows the route of an Internet mail message
+# Version 0.0.4
+#
+# Copyright (c) 1999, 2000, 2011 Marius Gedminas <marius@gedmin.as>
+#           (c) 2000 Mikko Hänninen <Mikko.Hanninen@iki.fi>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+
+use strict;
+use POSIX qw(mktime);
+
+my ($nr, $host, $timestamp, $lagminus, $lag, $totalminus, $total, $from);
+my $verbose = 1;
+
+format REPORT_TOP =
+     Host                  Date received           Lag        Total lag
+.
+format REPORT_LINE =
+@>>> @<<<<<<<<<<<<<<<<<<<< @<<<<<<<<<<<<<<<<<<<<< @@<<<<<<<< @@<<<<<<<<
+$nr, $host, $timestamp, $lagminus, $lag, $totalminus, $total
+.
+
+format REPORT_LINE_VERBOSE =
+     from @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+          $from
+.
+
+
+# Setup
+my %Months = (
+    Jan => 1,
+    Feb => 2,
+    Mar => 3,
+    Apr => 4,
+    May => 5,
+    Jun => 6,
+    Jul => 7,
+    Aug => 8,
+    Sep => 9,
+    Oct => 10,
+    Nov => 11,
+    Dec => 12,
+    );
+
+# Read headers
+$/ = '';
+my $head = <>;
+$head =~ s/\n\s+/ /g;
+my @headers = split("\n", $head);
+
+# Parse headers
+my @hops;
+for (@headers) {
+  next unless /^Received:/;
+  #my $host = "(unknown)";
+  my $host = "";
+  $host = $1 if /\sby\s+([a-z0-9\-_+.]+)\s/ && $1 ne "uid";
+  my $from = "";
+  $from = $1 if /\sfrom\s+([a-z0-9\-_+.]+(?:\s+[(].+?[)]))\s/;
+  my $time = "(unknown)";
+  $time = $1 if /;\s+(.+)$/;
+  # [Wkd,] <day> <mon> <year> <hr>:<mn>:<se> +<zone> [(<zone>)]
+  my $epoch;
+  if ($time =~ /^ (?:\w+,\s*)?          # Week day
+                 (\d+) \s+              # Day
+                 (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+   # Month
+                 (\d+)\s+               # Year
+                 (\d+):                 # Hour
+                 (\d+):                 # Minute
+                 (\d+)\s+               # Second
+                 ([+-]\d{2})(\d{2})     # Time zone
+               /x) {
+    my ($day, $mon, $year, $hour, $min, $sec, $zone) =
+      ($1, $Months{$2}, $3, $4, $5, $6, $7 * 60 + $8);
+    # Some Y2K stuff
+    $year += 100 if $year < 70;
+    $year -= 1900 if $year >= 1970;
+
+    $epoch = mktime($sec, $min, $hour, $day, $mon-1, $year, 0, 0, 0)
+             - ($zone * 60);
+    $epoch += time()-mktime(gmtime(time()));  # fix value for local timezone
+  }
+  unshift @hops, { HOST => $host, FROM => $from, TIME => $epoch};
+}
+
+
+$~ = 'REPORT_LINE';
+$^ = 'REPORT_TOP';
+
+# Print output
+#print "     Host                  Date received (UTC)     Lag        Total lag\n";
+$nr = 0;
+my ($first, $prev);
+for (@hops) {
+  $host = $_->{HOST};
+  $from = $_->{FROM};
+  my $time = $_->{TIME};
+  $nr++;
+  unless (defined $time) {
+    $timestamp = "(unknown)";
+    $lagminus = $totalminus = ' ';
+    $lag = $total = "";
+    write;
+    next;
+  }
+  $first = $prev = $time unless defined $first;
+
+  my $delta = $time - $prev;
+  my $neg = $delta < 0; $delta = abs($delta);
+  my $delta_h = int($delta / 3600);
+  my $delta_m = int(($delta - $delta_h * 3600) / 60);
+  my $delta_s = ($delta - $delta_h * 3600 - $delta_m * 60);
+
+  my ($sec,$min,$hour,$day,$mon,$year,undef,undef,$dst) = localtime($time);
+  $hour -= $dst;
+
+  $timestamp = sprintf("%4d.%02d.%02d  %02d:%02d:%02d",
+                       1900+$year, $mon+1, $day, $hour, $min, $sec);
+  $lagminus = $neg ? '-' : ' ';
+  $lag = sprintf("%02d:%02d:%02d", $delta_h, $delta_m, $delta_s);
+
+  $delta = $time - $first;
+  $neg = $delta < 0; $delta = abs($delta);
+  $delta_h = int($delta / 3600);
+  $delta_m = int(($delta - $delta_h * 3600) / 60);
+  $delta_s = ($delta - $delta_h * 3600 - $delta_m * 60);
+
+  $totalminus = $neg ? '-' : ' ';
+  $total = sprintf ("%02d:%02d:%02d", $delta_h, $delta_m, $delta_s);
+
+  write;
+
+  if ($verbose && $from) {
+    $~ = 'REPORT_LINE_VERBOSE';
+    write;
+    $~ = 'REPORT_LINE';
+  }
+
+  $prev = $time;
+}
+

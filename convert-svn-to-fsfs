@@ -1,0 +1,29 @@
+#!/bin/sh
+# convert a subversion repository to fsfs
+# usage: convert-svn-to-fsfs /path/to/repository
+repos=${1%/}
+test -z "$repos" && {
+  echo "usage: $0 /path/to/repository" 1>&2
+  exit
+}
+test -f "$repos/format" || {
+  echo "$0: $repos is not a subversion repository" 1>&2
+  exit 1
+}
+test -e "$repos.old" && {
+  echo "$0: $repos.old already exists" 1>&2
+  exit 1
+}
+test "`cat \"$repos/db/fs-type\" 2>/dev/null`" = "fsfs" && {
+  echo "$0: $repos already uses fsfs" 1>&2
+  exit 1
+}
+set -e
+mv "$repos" "$repos.old"
+svnadmin create --fs-type fsfs "$repos"
+svnadmin dump -q "$repos.old" | svnadmin load -q "$repos"
+echo "* $repos converted to fsfs"
+ls "$repos.old/hooks" | grep -v [.]tmpl$ | while read fn; do
+    echo "  copying $fn hook"
+    cp "$repos.old/hooks/$fn" "$repos/hooks/"
+done

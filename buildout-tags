@@ -1,0 +1,104 @@
+#!/bin/bash
+# Build a vim tags file for all the Python packages in the buildout path
+# Assumes . is the directory with a buildout.cfg
+# Note: there is no one true buildout path -- every part has its own.  So
+# we look for a python interpreter in bin/python (or bin/py) and use its path.
+# If that fails, we try to find a bin/test script and scrape the path from it.
+# Should also work with virtualenv (just run it somewhere with a bin/python)
+# Published at https://gist.github.com/mgedmin/5152189
+
+progname=${0##*/}
+
+die() {
+    echo "$progname: $@" 1>&2
+    exit 1
+}
+
+verbose=0
+dry_run=0
+include_js=0
+system_python=0
+scriptname=
+
+for arg; do
+    case "$arg" in
+        -h|--help)
+            echo "Usage: $progname [options] [buildout-generated-script-filename]"
+            echo "Options:"
+            echo "  -v, --verbose              be verbose"
+            echo "  -n, --dry-run              don't run ctags"
+            echo "  -s, --system-python        build tags for system python"
+            echo "  -j, --include-javascript   include JS files in tags"
+            exit 0
+            ;;
+        -v|--verbose)
+            verbose=1
+            ;;
+        -n|--dry-run)
+            dry_run=1
+            ;;
+        -s|--system-python)
+            system_python=1
+            ;;
+        -j|--include-javascript)
+            include_js=1
+            ;;
+        -*)
+            die "Unexpected argument: $arg"
+            ;;
+        *)
+            if [ -z "$scriptname" ]; then
+                scriptname=$arg
+            else
+                die "Unexpected argument: $arg"
+            fi
+            ;;
+    esac
+done
+
+extra_work=
+if [ -n "$scriptname" ] && [ -x "$scriptname" ]; then
+    shebang=$(head -n 1 "$scriptname")
+    python=${shebang:2}
+    extra_work="exec(open('$scriptname').read(), {});"
+elif [ $system_python -ne 0 ]; then
+    python=python
+elif [ -x bin/python ]; then
+    python=bin/python
+elif [ -x bin/py ]; then
+    # some zope.foo buildouts use interpreter = bin/py
+    python=bin/py
+elif [ -x .venv/bin/python ]; then
+    python=.venv/bin/python
+elif [ -x .env/bin/python ]; then
+    python=.env/bin/python
+elif [ -x env/bin/python ]; then
+    python=env/bin/python
+elif [ -x bin/test ]; then
+    shebang=$(head -n 1 bin/test)
+    python=${shebang:2}
+    extra_work="exec(open('bin/test').read(), {});"
+else
+    die "I expect to find a bin/python (or bin/py, or bin/test) here"
+fi
+paths=$($python -c "
+import os, sys
+${extra_work}
+d = set(p for p in sys.path if os.path.isdir(p) and not os.path.isdir(os.path.join(p, 'dist-packages')))
+for p in sys.path:
+    if os.path.isdir(os.path.join(p, 'dist-packages')):
+        d.add(os.path.join(p, '*.py'))
+        for s in os.listdir(p):
+            if os.path.exists(os.path.join(p, s, '__init__.py')):
+                d.add(os.path.join(p, s))
+print('\\n'.join(sorted(d)))
+")
+test -n "$paths" || die "The python path is empty?  Confused."
+test $verbose -ne 0 && echo "$paths"
+opts=
+if [ $include_js -eq 0 ]; then
+    opts="--languages=-JavaScript"
+fi
+if [ $dry_run -eq 0 ]; then
+    ctags-exuberant -R $opts -f .tags.new $paths && mv .tags.new tags || rm .tags.new
+fi

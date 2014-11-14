@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+for fn in "$@"; do
+    test -f $fn.new && {
+        echo "$fn.new exists; relic of failed conversion?"
+        echo "remove $fn.new and try again"
+        exit 1
+    }
+    sqlite $fn .dump | sqlite3 $fn.new
+    chown --reference=$fn $fn.new
+    chmod --reference=$fn $fn.new
+    mv -i $fn $fn.bak
+    mv -i $fn.new $fn
+done

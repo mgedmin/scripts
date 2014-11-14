@@ -1,0 +1,3 @@
+#!/bin/sh
+# "terminal tail", useful with e.g. watch 'ls -lrt | ttail'
+tail -n $((LINES-3)) "$@"

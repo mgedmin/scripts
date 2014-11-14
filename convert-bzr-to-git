@@ -1,0 +1,30 @@
+#!/bin/sh
+# convert a bazaar repository to git
+# don't forget to apt-get install bzr-fastexport
+# usage: convert-bzr-to-git /path/to/bzr/checkout
+# creates a .git repository in place, renames old bzr repo to *.old
+repos=${1%/}
+test -z "$repos" && {
+  echo "usage: $0 /path/to/repository" 1>&2
+  exit
+}
+test -d "$repos/.bzr" || {
+  echo "$0: $repos is not a Bazaar repository" 1>&2
+  exit 1
+}
+test -e "$repos.old" && {
+  echo "$0: $repos.old already exists" 1>&2
+  exit 1
+}
+test -e "$repos.new" && {
+  echo "$0: $repos.new already exists" 1>&2
+  exit 1
+}
+
+set -e
+git init "$repos.new"
+bzr fast-export "$repos" | GIT_DIR="$repos.new/.git" git fast-import
+(cd "$repos.new" && git checkout && git shortlog -se)
+mv "$repos" "$repos.old"
+mv "$repos.new" "$repos"
+echo "* $repos converted to git"

@@ -1,0 +1,4 @@
+#!/bin/sh
+NICE="nice -n 10"
+test -x /usr/bin/ionice && NICE="$NICE ionice -c3"
+$NICE sudo apt-get dist-upgrade -u -f --auto-remove "$@"

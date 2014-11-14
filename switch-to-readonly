@@ -1,0 +1,40 @@
+#!/bin/bash
+# Switch between svn://... and svn+ssh://... in subversion sandboxes
+# Switch between https://github.com/... and git@github.com:... in git checkouts
+if [ -d .svn ]; then
+  url=`svn info $1|grep URL|cut -d ' ' -f 2-`
+  schema=${url%%://*}
+  rest=${url#*://}
+  [ "$schema" != "svn+ssh" ] && {
+    echo "Repository URL doesn't begin with svn+ssh://"
+    exit 1
+  }
+  newurl=svn://$rest
+  newurl=${newurl/#svn:\/\/source.schooltool.org\/svn\/schooltool/http:\/\/source.schooltool.org\/svn}
+  svn switch --relocate $url $newurl $1
+elif [ -e .git ]; then
+  url=`git config remote.origin.url`
+  case "$url" in
+    git@gist.github.com:*)
+      repo=${url##*:}
+      newurl=https://gist.github.com/${repo%.git}
+      ;;
+    git@github.com:*|https://github.com/*.git)
+      repo=${url##*:}
+      newurl=https://github.com/${repo%.git}
+      ;;
+    https://gist.github.com/*.git|https://github.com/*.git)
+      # already editable
+      exit 0
+      ;;
+    *)
+      echo "Don't know the editable URL for $url" 1>&2
+      exit 1
+      ;;
+  esac
+  echo "$url -> $newurl"
+  git config remote.origin.url $newurl
+else
+  echo "This is not a subversion or git working directory." 1>&2
+  exit 1
+fi

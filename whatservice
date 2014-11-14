@@ -1,0 +1,5 @@
+#!/bin/sh
+for i in $*; do
+    grep -w "$i" ~/misc/services /etc/services /usr/share/nmap/nmap-services 2>/dev/null
+done
+

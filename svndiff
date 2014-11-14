@@ -1,0 +1,24 @@
+#!/bin/bash
+# svn diff with nice colours
+# also support shorter syntax
+#   svndiff -c 12345
+# as an alias for
+#   svndiff -r 12344:12345
+# and for convenience allow
+#   svndiff -c r12345
+# to mean the same (handy for copying and pasting revs from svn log)
+args="$@"
+if [ "$1" = "-c" ]; then
+  rev=${2#r}
+  prev=$[$rev - 1]
+  shift 2
+  args="-r $prev:$rev $@"
+fi
+if test -t 1 && test -x /usr/bin/colordiff; then
+    # stdout is a tty
+# -FX is nice, in a way, but has downsides
+##  exec svn diff --diff-cmd diff -x -up $args|colordiff|less -RFX
+    exec svn diff --diff-cmd diff -x -up $args|colordiff|less -R
+else
+    exec svn diff --diff-cmd diff -x -up $args
+fi

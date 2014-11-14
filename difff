@@ -1,0 +1,6 @@
+#!/bin/sh
+if test -t 1 && test -x /usr/bin/colordiff; then
+    colordiff -u "$@" | less -R
+else
+    diff -u "$@"
+fi

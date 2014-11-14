@@ -1,0 +1,2 @@
+#!/bin/sh
+fuser -n tcp 4499 -k

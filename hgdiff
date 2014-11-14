@@ -1,0 +1,9 @@
+#!/bin/bash
+# hg diff with nice colours
+args="$@"
+if test -t 1 && test -x /usr/bin/colordiff; then
+    # stdout is a tty
+    exec hg diff $args|colordiff|less -R
+else
+    exec hg diff $args
+fi

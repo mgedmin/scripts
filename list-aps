@@ -1,0 +1,4 @@
+#!/bin/sh
+sudo true
+echo "Scanning..."
+sudo iwlist wlan0 scan|grep 'ESSID\|Channel:\|Quality'

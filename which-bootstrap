@@ -1,0 +1,37 @@
+#!/bin/sh
+filename=${1:-bootstrap.py}
+test -f "$filename" || {
+    echo "there is no $filename here"
+    exit 1
+}
+checksum=$(sha1sum "$filename")
+case "$checksum" in
+    0b63906b1c5d2eccbc9f727b0c1374c7c29f06a2*)
+        echo "you've got the obsolete v1.x bootstrap.py"
+        # was the current one for a loong time, until mid Oct 2013
+        ;;
+    2e4e6663df3de8b5ff1545a80acc3bca31d1fcaf*)
+        # new v1 since mid Oct 2013
+        echo "you've got the latest v1.x bootstrap.py"
+        echo "http://downloads.buildout.org/1/bootstrap.py"
+        ;;
+    357f2fe2684c54339fb78ff447d8cbc127071633*)
+        echo "you've got the obsolete v2.0 bootstrap.py"
+        ;;
+    ffbd56cd335be4bbab184eb8fc98f45fde41deec*)
+        echo "you've got the latest v2.1 bootstrap.py"
+        echo "http://downloads.buildout.org/2.1/bootstrap.py"
+        ;;
+    99a678df153dac9c5546f43cd55b5f27e0b07172*)
+        echo "you've got an older v2.2 bootstrap.py"
+        echo "http://downloads.buildout.org/2/bootstrap.py"
+        ;;
+    043f0eac56878b0d25f028aba170f73b6d7d5bf6*)
+        echo "you've got the latest v2.2.5 bootstrap.py"
+        echo "http://downloads.buildout.org/2/bootstrap.py"
+        ;;
+    *)
+        echo "you've got some obsolete bootstrap.py probably"
+        exit 1
+        ;;
+esac

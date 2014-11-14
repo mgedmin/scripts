@@ -1,0 +1,124 @@
+#!/usr/bin/perl -w
+use strict;
+
+sub fmtsize($)
+{
+    my $size = shift;
+    my $unit = "b";
+    if ($size >= 1024) {
+	$size /= 1024;
+	$unit = "Kb";
+    }
+    if ($size >= 1024) {
+	$size /= 1024;
+	$unit = "Mb";
+    }
+    if ($size >= 1024) {
+	$size /= 1024;
+	$unit = "Gb";
+    }
+    return sprintf "%.1f $unit", $size;
+}
+
+sub fmttime($)
+{
+    my $secs = shift;
+    my $days = int($secs / (24*3600)); $secs %= 24*3600;
+    return ($days ? "${days}d " : "") .
+           sprintf "%d:%02d:%02d", $secs / 3600, $secs % 3600 / 60, $secs % 60;
+}
+
+sub fmtspeed($)
+{
+    my $speed = shift;
+    my $unit = "b";
+    if ($speed >= 1024) {
+	$speed /= 1024;
+	$unit = "Kb";
+    }
+    if ($speed >= 1024) {
+	$speed /= 1024;
+	$unit = "Mb";
+    }
+    if ($speed >= 1024) {
+	$speed /= 1024;
+	$unit = "Gb";
+    }
+    return sprintf "%.1f $unit/s", $speed;
+}
+
+my $last_str_len = 0;
+
+sub do_print {
+    my $str = join('', @_);
+    my $str_len = length $str;
+    print "\r$str";
+    print " " x ($last_str_len - $str_len) if ($str_len < $last_str_len);
+    $last_str_len = $str_len;
+}
+
+my $filename = $ARGV[0];
+die "usage: $0 filename [expected-size]\n" unless $filename;
+my $exp_size = $ARGV[1];
+if (defined $exp_size) {
+    $exp_size =~ y/_,//d;
+    if ($exp_size =~ s/\s*[gG][bB]?$//) {
+	$exp_size *= 1024*1024*1024;
+    } elsif ($exp_size =~ s/\s*[mM][bB]?$//) {
+	$exp_size *= 1024*1024;
+    } elsif ($exp_size =~ s/\s*[kK][bB]?$//) {
+	$exp_size *= 1024;
+    } else {
+	$exp_size =~ s/\s*[bB]$//;
+    }
+    $exp_size = int($exp_size);
+    undef $exp_size if $exp_size <= 0;
+}
+
+my $firstsize = -s $filename;
+my $firsttime = time;
+my $lastsize = $firstsize;
+my $lasttime = $firsttime;
+
+$| = 1;
+
+if (!defined $firstsize) {
+    print "$filename does not exist.\n";
+    exit 0;
+}
+print "$filename\n";
+my $perc = "";
+my $size = -s $filename;
+if (defined $exp_size && defined $size) {
+    $perc = sprintf("%.1f%% ", $size * 100 / $exp_size);
+}
+do_print $perc, fmtsize($firstsize);
+
+for(;;) {
+    my $size = -s $filename;
+    if (!defined $size) {
+	print "\n$filename does not exist\n";
+	exit 0;
+    }
+    my $time = time;
+    my $delta_t = $time - $lasttime;
+    my $delta = $size - $lastsize;
+    if (($delta != 0 && $delta_t != 0)
+	|| $delta_t > 30) {  # stalled for 30 seconds...
+	my $sp_cur = $delta / $delta_t;
+	my $sp_avg = ($size - $firstsize) / ($time - $firsttime);
+	my $perc = "";
+	if (defined $exp_size) {
+	    $perc = sprintf("%.1f%% ", $size * 100 / $exp_size);
+	}
+	my $eta = "";
+	if (defined $exp_size && $sp_avg != 0) {
+	    $eta = " ETA: " . fmttime(($exp_size - $size) / $sp_avg);
+	}
+	do_print $perc, fmtsize($size), " (",
+	    fmtspeed($sp_cur), " cur, ", fmtspeed($sp_avg), " avg)$eta";
+	$lastsize = $size;
+	$lasttime = $time;
+    }
+    sleep(2);
+}

@@ -1,0 +1,12 @@
+#!/bin/bash
+# svn log with paging
+if test -t 1; then
+    # stdout is a tty
+    if test -x /usr/bin/spc && test -f ~/.spcrc/spcrc-svn_log; then
+        exec svn log "$@" | spc -t svn_log | less -R
+    else
+        exec svn log "$@" | less -R
+    fi
+else
+    exec svn log "$@"
+fi

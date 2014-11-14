@@ -1,0 +1,5 @@
+#!/bin/sh
+# syntax: reniceall PRIORITY cmdname ...
+PRI=$1
+shift
+sudo renice $PRI `pgrep "$@"`

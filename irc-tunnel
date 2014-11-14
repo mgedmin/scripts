@@ -1,0 +1,3 @@
+#!/bin/sh
+fuser -n tcp 6667 -k
+ssh -o ControlMaster=no -Nf -L 6667:localhost:7777 -L 7777:localhost:7777 fridge

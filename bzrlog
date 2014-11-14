@@ -1,0 +1,12 @@
+#!/bin/sh
+# bzr log with paging
+if test -t 1; then
+    # stdout is a tty
+    if test -x /usr/bin/spc && test -f ~/.spcrc/spcrc-bzr_log; then
+        exec bzr log "$@" | spc -t bzr_log | less -R
+    else
+        exec bzr log "$@" | less -R
+    fi
+else
+    exec bzr log "$@"
+fi

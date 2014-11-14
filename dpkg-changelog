@@ -1,0 +1,116 @@
+#!/usr/bin/perl -w
+# dpkg-changelog version 0.1.2
+# Copyright (c) 2001 Marius Gedminas <mgedmin@delfi.lt>
+# This program is Free Software licenced under GNU GPL v2+ et cetera.
+#
+# Show the changelog of an installed package.
+# 
+# Usage:
+#   dpkg-changelog [-a|-c] <package>
+#
+# Options
+#   -a		show a menu of all files
+#   -c		show a menu of all changelogs (files matching *changelog*
+#  (no options)	show a menu of all Debian changelog (*changelog.Debian*) but
+# 		if none found show all changelogs (like -c)
+#
+# When only one item is present, menu is not shown at all
+#
+# $Id: dpkg-changelog.pl,v 1.2 2001/04/24 21:46:43 mg Exp $
+use strict;
+
+# Configuration
+my $dpkgdir = "/var/lib/dpkg/info";
+my $pager = $ENV{PAGER} || "less";
+
+# Cmdline processing
+(my $progname = $0) =~ s{^.*/}{};
+
+my $all_changelogs = 0;
+my $all_files = 0;
+if (@ARGV > 0 && $ARGV[0] eq "-a") {
+    $all_files = 1;
+    shift @ARGV;
+} elsif (@ARGV > 0 && $ARGV[0] eq "-c") {
+    $all_changelogs = 1;
+    shift @ARGV;
+}
+
+my $fnprefix = $ARGV[0]
+    or die "use $progname [-a|-c] package\n";
+
+# Find all matching files
+chdir($dpkgdir)
+    or die "can't chdir to $dpkgdir: $!\n";
+my @fn = glob("${fnprefix}*.list");
+if (@fn == 0) {
+    die "no packages match $fnprefix\n";
+}
+s/\.list$// for @fn;
+
+# Choose one
+my $choice = 0;
+if (@fn > 1) {
+    print "$fnprefix is ambiguous:\n";
+    my $n = 0;
+    print ++$n, ") $_\n" for @fn;
+    for(;;) {
+	print "select one: [$n] ";
+	$choice = <STDIN>;
+	print("\n"), exit if !defined $choice;
+	chomp($choice);
+	$choice =~ s/\s+$//;
+	$choice =~ s/^\s+//;
+	$choice = $n, last if $choice eq "";
+	next if ($choice !~ /^\d+$/);
+	last if ($choice > 0 && $choice <= $n);
+    }
+    $choice--;
+}
+my $fn=$fn[$choice];
+print "--- $fn ---\n";
+
+# Check for changelogs inside
+my @files = `dpkg -L "$fn"`;
+chomp for @files;
+my @changelogs;
+if ($all_files) {
+    @changelogs = @files;
+} else {
+    @changelogs = grep m'/changelog.Debian', @files	if !$all_changelogs;
+    @changelogs = grep m'/changelog', @files		if @changelogs == 0;
+}
+if (@changelogs == 0) {
+    print "no changelogs found\nfull listing of files follows:\n",
+          join("\n", @files), "\n";
+    exit 1;
+}
+$choice = 0;
+if (@changelogs > 1) {
+    print "changelogs found:\n";
+    my $n = 0;
+    printf "%3d) $_\n", ++$n for @changelogs;
+    for(;;) {
+	print "select one: [$n] ";
+	$choice = <STDIN>;
+	print("\n"), exit if !defined $choice;
+	chomp($choice);
+	$choice =~ s/\s+$//;
+	$choice =~ s/^\s+//;
+	$choice = $n, last if $choice eq "";
+	next if ($choice !~ /^\d+$/);
+	last if ($choice > 0 && $choice <= $n);
+    }
+    $choice--;
+}
+my $changelog = $changelogs[$choice];
+
+# Do we need gunzip?
+my $gunzip = "";
+if ($changelog =~ /\.gz$/) {
+    $gunzip = "| gunzip";
+}
+
+# Execute
+system("(echo \"--- $fn ---\"; echo \"$changelog\"; echo; cat \"$changelog\" $gunzip) | $pager");
+

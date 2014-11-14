@@ -1,0 +1,18 @@
+#!/bin/bash
+# hg log with paging -- OBSOLETED by enabling the pager extension in ~/.hgrc
+# with
+#   [extensions]
+#   pager =
+#   [pager]
+#   pager = less -FRSX
+# also you probably want
+#   [extensions]
+#   color =
+
+args="$@"
+if test -t 1; then
+    # stdout is a tty
+    exec hg log --color=always $args|less -R
+else
+    exec hg log $args
+fi

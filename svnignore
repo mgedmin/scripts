@@ -1,0 +1,9 @@
+#!/bin/sh
+for name in "$@"; do
+    name="${name%/}"
+    dir="`dirname "$name"`"
+    name="${name##*/}"
+    echo "ignoring $name in $dir"
+    svn propset svn:ignore "`svn propget svn:ignore $dir|grep -v ^$; echo "$name"`" $dir
+    svn up -N $dir
+done

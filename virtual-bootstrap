@@ -1,0 +1,32 @@
+#!/bin/bash
+if [ "${0##*/}" == "virtual-bootstrap-py3" ]; then
+    python=python3
+elif [ "${0##*/}" == "virtual-bootstrap-py34" ]; then
+    python=python3.4
+elif [ "${0##*/}" == "virtual-bootstrap-py33" ]; then
+    python=python3.3
+else
+    python=python2.7
+fi
+
+if [ -n "$(netstat -tnl | grep ':3128 ')" ]; then
+    export http_proxy=http://localhost:3128
+    echo "Using a local Squid proxy."
+fi
+set -e
+set -x
+rm -rf develop-eggs .installed.cfg python
+if [ -f .git/info/exclude ]; then
+    if ! grep -q "^python/$" .git/info/exclude; then
+        echo "python/" >> .git/info/exclude
+    fi
+fi
+virtualenv -p ${python} python
+python/bin/pip install -U setuptools
+if [ -f bootstrap.py ]; then
+    python/bin/python bootstrap.py
+else
+    python/bin/pip install -U zc.buildout
+    python/bin/buildout bootstrap
+fi
+bin/buildout "$@"

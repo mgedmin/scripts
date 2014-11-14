@@ -1,0 +1,6 @@
+#!/bin/sh
+if [ -n "$SSH_AGENT_PID" ]; then
+    # See if ssh-agent has any identities, and if not, add some
+    ssh-add -l > /dev/null || ssh-add
+fi
+exec /usr/bin/ssh "$@"

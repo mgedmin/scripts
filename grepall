@@ -1,0 +1,85 @@
+#!/bin/bash
+# A script to make recursive greps easier.  Examples:
+#
+#   grepall foo
+#
+#     locates 'foo' in all files in the directory tree, recursively starting
+#     from the current directory (but ignoring .svn/.bzr subdirs).
+#
+#   grepall -name '*.txt' -- foo
+#
+#     locates 'foo' in all files named '*.txt' in the directory tree.
+#
+# Usage: grepall [[dir] [find-args ...] --] [grep-options] pattern
+#
+# find-args is spliced into the middle of a complicated find expression, so
+# it might not do what you want if you attempt something more complicated
+# than a bunch of and-ed tests.
+
+
+findargs=()
+grepargs=()
+for arg in "$@"; do
+    if [ "$arg" = -- ]; then
+        findargs=("${grepargs[@]}")
+        grepargs=()
+    else
+        grepargs+=("$arg")
+    fi
+done
+
+paths=()
+set -- "${findargs[@]}"
+while true; do
+    case "$1" in
+        -*|!|"")
+            break
+            ;;
+        *)
+            paths+=("$1")
+            shift
+            ;;
+    esac
+done
+
+find "${paths[@]}" \
+     '(' -name '.svn' -o \
+         -name '.bzr' -o \
+         -name '.git' -o \
+         -name '.hg' -o \
+         -name 'junk' -o \
+         -name 'build' -o \
+         -name 'coverage' -o \
+         -name 'ftest-coverage' -o \
+         -name 'htmlcov' -o \
+         -name 'dist' ')' -prune -o \
+     '(' -type f \
+         '!' -name '*.min.js' \
+         '!' -name '*.py[co]' \
+         '!' -name '*.fs' \
+         '!' -name 'Data.fs.*' \
+         '!' -name '*.index' \
+         '!' -name '*.lock' \
+         '!' -name '*.tmp' \
+         '!' -name '*.png' \
+         '!' -name '*.jpg' \
+         '!' -name '*.jpeg' \
+         '!' -name '*.gif' \
+         '!' -name '*.bmp' \
+         '!' -name '*.ico' \
+         '!' -name '*.psd' \
+         '!' -name '*.ps' \
+         '!' -name '*.pdf' \
+         '!' -name '*.pickle' \
+         '!' -name '*.zip' \
+         '!' -name '*.gz' \
+         '!' -name '*.so' \
+         '!' -name '*.[od]' \
+         '!' -name '*.sw[po]' \
+         '!' -name '.#*'  \
+         '!' -name '*~'  \
+         '!' -name '.installed.cfg'  \
+         '!' -name 'ID'  \
+         '!' -iname 'tags' \
+         "$@" ')' \
+    -exec grep --color=auto -nH "${grepargs[@]}" {} +

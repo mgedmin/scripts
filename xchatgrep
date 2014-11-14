@@ -1,0 +1,35 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 regexp channel-or-nickname [...]"
+    exit
+fi
+
+args=()
+while true; do
+    case "$1" in
+        -*)
+            args+=($1)
+            shift
+            ;;
+        *)
+            args+=($1)
+            shift
+            break
+            ;;
+    esac
+done
+cd ~/.xchat2/xchatlogs
+if [ $# -eq 0 ]; then
+    args+=(*)
+fi
+for arg; do
+    args+=(*$arg*)
+done
+## echo + grep "${args[@]}"
+##grep --color=always "${args[@]}"|less -R
+
+tmpdir=$(mktemp -d -t xchatgrep-XXXXXX) || exit 1
+grep -n "${args[@]}" > "$tmpdir/results"
+test -s "$tmpdir/results" && vim +"cfile $tmpdir/results" +cw
+rm -r "$tmpdir"

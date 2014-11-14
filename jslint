@@ -1,0 +1,9 @@
+#!/bin/sh
+jslint=$HOME/tmp/jslint.js
+test -f $jslint || wget -O $jslint http://www.jslint.com/rhino/jslint.js
+test -x /usr/bin/rhino || { echo "apt-get install rhino please" 1>&2; exit 1; }
+
+for filename; do
+  escaped_filename=`echo $filename|sed -e 's/\\//\\\\\\//g'`
+  rhino $jslint $filename | sed -e "s/^Lint at line \([0-9]\+\) character \([0-9]\+\):/$escaped_filename:\1:\2:/"
+done

@@ -1,0 +1,12 @@
+#!/bin/sh
+NICE="nice -n 10"
+test -x /usr/bin/ionice && NICE="$NICE ionice -c3"
+if [ -x /usr/bin/apt ]; then
+    $NICE sudo apt update &&\
+    $NICE sudo apt upgrade -d -u -y
+    $NICE sudo apt full-upgrade -d -u -y --force-yes
+else
+    $NICE sudo apt-get update &&\
+    $NICE sudo apt-get upgrade -d -u -y
+    $NICE sudo apt-get dist-upgrade -d -u -y --force-yes
+fi

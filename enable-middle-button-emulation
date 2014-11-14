@@ -1,0 +1,2 @@
+#!/bin/sh
+xinput set-int-prop pointer:'Logitech USB Receiver' 'Evdev Middle Button Emulation' 8 1

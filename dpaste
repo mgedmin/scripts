@@ -1,0 +1,8 @@
+#!/bin/sh
+export http_proxy=
+cat "$@" | curl -F 'content=<-' -F format=url https://dpaste.de/api/
+# incidentally, if you intend to curl the stuff, be sure to adjust the URL to
+# https://dpaste.de/.../raw/
+# (change protocol to https and append /raw/)
+# also note that dpaste discards trailing newlines, aargh
+# I should submit a patch...

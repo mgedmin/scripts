@@ -1,0 +1,2 @@
+#!/bin/sh
+ls -rt ~/Pictures/Ekrano*.png|tail -n 1

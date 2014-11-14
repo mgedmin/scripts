@@ -1,0 +1,2 @@
+#!/bin/sh
+apt-show-versions |grep "No available version in archive"|cut -f 1 -d ' '|sort

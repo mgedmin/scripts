@@ -1,0 +1,15 @@
+#!/bin/sh
+# usage: veryniceall processname
+pgrep -l "$@"
+echo -n "Change sched priority to IDLE? [y/n/pid] "
+read ans
+case "$ans" in
+    y)
+        echo chrt -p --idle 0 $(pgrep "$@")
+        chrt -p --idle 0 $(pgrep "$@")
+        ;;
+    [0-9]*)
+        echo chrt -p --idle 0 $ans
+        chrt -p --idle 0 $ans
+        ;;
+esac

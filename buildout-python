@@ -1,0 +1,76 @@
+#!/bin/bash
+# Launch a Python interpreter with all buildout packages in sys.path.
+# Assumes . is the directory with a buildout.cfg
+# Note: there is no one true buildout path -- every part has its own.  So
+# we look for a python interpreter in bin/python (or bin/py) and use its path.
+# If that fails, we try to find a bin/test script and scrape the path from it.
+# Should also work with virtualenv (just run it somewhere with a bin/python)
+# Based on buildout-tags, which lives at https://gist.github.com/mgedmin/5152189
+
+progname=${0##*/}
+
+die() {
+    echo "$progname: $@" 1>&2
+    exit 1
+}
+
+verbose=0
+dry_run=0
+system_python=0
+scriptname=
+grepargs=()
+
+for arg; do
+    case "$arg" in
+        -h|--help)
+            echo "Usage: $progname [-v|--verbose] [-n|--dry-run] [-s|--system-python] [--script=buildout-generated-script-filename] grep arguments"
+            exit 0
+            ;;
+        -v|--verbose)
+            verbose=1
+            ;;
+        -n|--dry-run)
+            dry_run=1
+            ;;
+        -s|--system-python)
+            system_python=1
+            ;;
+        --script=*)
+            scriptname=${arg#--script=}
+            ;;
+        *)
+            grepargs+=("$arg")
+            ;;
+    esac
+done
+
+extra_work=
+if [ -n "$scriptname" ] && [ -x "$scriptname" ]; then
+    shebang=$(head -n 1 "$scriptname")
+    python=${shebang:2}
+    extra_work="exec(open('$scriptname').read(), {});"
+elif [ $system_python -ne 0 ]; then
+    python=python
+elif [ -x bin/python ]; then
+    python=bin/python
+elif [ -x bin/py ]; then
+    # some zope.foo buildouts use interpreter = bin/py
+    python=bin/py
+elif [ -x .venv/bin/python ]; then
+    python=.venv/bin/python
+elif [ -x .env/bin/python ]; then
+    python=.env/bin/python
+elif [ -x env/bin/python ]; then
+    python=env/bin/python
+elif [ -x bin/test ]; then
+    shebang=$(head -n 1 bin/test)
+    python=${shebang:2}
+    extra_work="exec(open('bin/test').read(), {});"
+else
+    die "I expect to find a bin/python (or bin/py, or bin/test) here"
+fi
+startup=
+if [ -n "$PYTHONSTARTUP" ]; then
+    startup="execfile('$PYTHONSTARTUP'); "
+fi
+$python -i -c "${startup}${extra_work}"

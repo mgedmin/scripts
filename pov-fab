@@ -1,0 +1,2 @@
+#!/bin/sh
+fab -f ~/src/pov-admin/fabfile.py "$@"

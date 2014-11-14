@@ -1,0 +1,29 @@
+#!/bin/sh
+# convert a mercurial repository to git
+# don't forget to apt-get install hg-fast-export
+# usage: convert-hg-to-git /path/to/hg/checkout
+# creates a .git repository in place, renames old hg repo to *.old
+repos=${1%/}
+test -z "$repos" && {
+  echo "usage: $0 /path/to/repository" 1>&2
+  exit
+}
+test -d "$repos/.hg" || {
+  echo "$0: $repos is not a Mercurial repository" 1>&2
+  exit 1
+}
+test -e "$repos.old" && {
+  echo "$0: $repos.old already exists" 1>&2
+  exit 1
+}
+test -e "$repos.new" && {
+  echo "$0: $repos.new already exists" 1>&2
+  exit 1
+}
+
+set -e
+git init "$repos.new"
+(cd "$repos.new" && hg-fast-export -r "../${repos##*/}" && git checkout && git shortlog -se)
+mv "$repos" "$repos.old"
+mv "$repos.new" "$repos"
+echo "* $repos converted to git"

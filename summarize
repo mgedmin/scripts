@@ -1,0 +1,109 @@
+#!/usr/bin/perl -w
+# Summarize log files and logcheck mail messages
+# Copyright (c) 2002, 2009 Marius Gedminas <marius@gedmin.as>
+# GPL.
+#
+# $Id: summarize.pl,v 1.8 2002/11/10 21:16:44 mg Exp $
+
+# One day these will become cmdline options
+my $do_iptables = 1;
+my $totals = 1;
+my $colorize = 0;
+my $spawn_pager = 1;
+my $pager = "less -S -M";
+$pager .= " -R" if $colorize;
+
+if ($spawn_pager && -t STDOUT) {
+    open STDOUT, "|$pager" or die "Cannot spawn $pager: $!\n";
+}
+
+my @lines;
+while (<>) {
+  # Skip e-mail headers
+  if (/^From[: ]|^Return-Path:/) {
+      local $/ = "\n\n";
+      <>;
+      next;
+  }
+  # Skip logcheck titles
+  next if /^Security Violations/ ||
+	  /^Possible Security Violations/ ||
+	  /^Unusual System Events/ ||
+	  /^System Events/ ||
+	  /^=-=-=-/ ||
+	  /^This mail is sent by logcheck./ ||
+	  /^please modify the configuration files in \/etc\/logcheck/ ||
+	  /^\r?\n$/;
+  # Get rid of date/time
+  s/^... +\d+ \d+:\d+:\d+ //;
+  s/^\d\d\d\d-\d\d-\d\d[T ]\d\d:\d\d:\d\d(,\d\d\d\d\d\d)?([-+]\d\d:?\d\d)? //;
+  # Get rid of process IDs
+  s/\[\d+\]/[(pid)]/;
+  # Twisted
+  s/\[Broker,\d+,/[Broker,(pid),/;
+  # PostgreSQL
+  s/postgres\[\(pid\)\]: \[\d+\]/postgres[(pid)]: [(n)]/;
+  s/postgres\[\(pid\)\]: \[\d+-\d+\]/postgres[(pid)]: [(n-m)]/;
+  # Samba
+  s{([sn]mbd\[\(pid\)\]): \[\d\d\d\d/\d\d/\d\d \d\d:\d\d:\d\d, \d+\]}{$1: [(datetime)]};
+  # named
+  s/(named\[\(pid\)\]: error .* resolving ').*(': .*)/$1(name)': (ip#port)/;
+  s/(named\[\(pid\)\]: client) .*: (query \(cache\)) '.*' (denied)/$1 (ip#port): $2 '(name\/type)' $3/;
+  # check-health
+  s/((?:is low on disk space|too much swap used) \(\d+)(\d)\d\d\d\d\d\)/$1.$2G)/;
+  s/((?:is low on disk space|too much swap used) \(\d+)\d\d\d\)/$1M)/;
+  # apt-get
+  s{^Fetched [0-9,]+(\.\d+)? ?[kMG]B in (\d+(m|min|min ))?\d+s \([0-9,]+(\.\d+)? ?[kMG]?B/s\)}{Fetched (bytes)B in (seconds)s ((speed)B/s)};
+  s{^After (unpacking|this operation,) [0-9,]+(\.\d+)? ?[kMG]?B (of additional disk space will be used.|disk space will be freed.)}{After this operation, (delta)B of disk space will be freed or used.};
+  s{^Get: ?\d+ https?://\S+ \S+ \S+ \S+ (?:\S+ )?\[[0-9,]+(\.\d+)? ?[kMG]?B\]}{Get: (n) (repository) (component) (package) (version) [(size)]};
+  s{^Need to get ([0-9,]+(\.\d+)? ?[kMG]?B/)?[0-9,]+(\.\d+)? ?[kMG]?B of archives.}{Need to get (bytes) of archives};
+  s{^\d+ upgraded, \d+ newly installed, \d+ to remove and \d+ not upgraded.}{(n) upgraded, (n) newly installed, (n) to remove and (n) not upgraded.};
+  # gutsy is out of date
+  s{(Failed to fetch http://[^/ ]+[.]ubuntu[.]com/ubuntu/dists/gutsy)[^ ]*}{$1/...};
+  # iptables
+  if ($do_iptables && /kernel:.* IN=.* OUT=/) {
+	# iptables fw log fields:
+	#   IN OUT MAC SRC DST LEN TOS PREC TTL ID DF PROTO SPT DPT WINDOW RES
+	#   SYN URGP
+	# We want a nice output like
+	#   kernel: (whatever)  PROTO=  DPT=  DST=  SRC=  SPT=  the rest...
+	my ($proto, $dpt, $dst, $spt, $src) = ('', '', '', '', '');
+	s/ PROTO=([^ ]*)// && ($proto = $&);
+	s/ DPT=([^ ]*)//   && ($dpt   = sprintf " DPT=%5s", $1);
+	s/ DST=([^ ]*)//   && ($dst   = sprintf " DST=%-15s", $1);
+	s/ SPT=([^ ]*)//   && ($spt   = sprintf " SPT=%5s", $1);
+	s/ SRC=([^ ]*)//   && ($src   = sprintf " SRC=%-15s", $1);
+	s/ IN=/$proto$dpt$dst$src$spt$&/;
+  }
+  push @lines, $_;
+}
+# Show some totals
+if ($totals) {
+    print "Processed ", scalar @lines, " lines\n"
+}
+# Sort; count and remove duplicates
+@lines = sort @lines;
+my $last = '';
+my $count = 0;
+push @lines, '';
+for (@lines) {
+    if ($last eq $_) {
+	$count++;
+    } else {
+	# XXX this is the place to launder $last from harmful control chars
+	# (we pipe it to less -R after all)
+	if ($count > 1) {
+	    chomp $last;
+	    if ($colorize and $count > 9) {
+		$last .= "\t\e[1;31m{*$count}\e[0m\n";
+	    } else {
+		$last .= "\t{*$count}\n";
+	    }
+	}
+	print "\e[0m" if $colorize;
+	print $last;
+	$last = $_;
+	$count = 1;
+    }
+}
+close STDOUT;

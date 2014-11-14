@@ -1,0 +1,22 @@
+#!/bin/bash
+cat=cat
+files="/var/log/syslog.1 /var/log/syslog"
+if [ x"$1" = x"-a" ]; then
+    cat=zcat
+    files="/var/log/syslog.7.gz /var/log/syslog.6.gz /var/log/syslog.5.gz $FILES"
+    files="/var/log/syslog.4.gz /var/log/syslog.3.gz /var/log/syslog.2.gz $FILES"
+fi
+$cat $files |\
+grep -e "Preparing system for mem sleep\|PM: Basic memory bitmaps created\|PM: Syncing filesystems\|Waking up from system sleep"
+# "PM: Basic memory bitmaps created" means basically "Preparing system for hibernation"
+# I couldn't find a better message in syslog -- the ACPI entering S4 state is printed
+# with the timestamp of resume.
+# New Ubuntu kernels (3.8.0) don't prepare for mem sleep?  All I could find was
+#    Jun  4 19:03:13 platonas NetworkManager[1052]: <info> sleep requested (sleeping: no  enabled: yes)
+#    ...
+#    Jun  4 19:03:14 platonas kernel: [33839.024315] PM: Syncing filesystems ... done.
+# and then 
+#    Jun  4 19:18:32 platonas kernel: [33839.165756] Freezing user space processes ... (elapsed 0.01 seconds) done.
+#    Jun  4 19:18:32 platonas kernel: [33839.181457] Freezing remaining freezable tasks ... (elapsed 0.01 seconds) done.
+#    Jun  4 19:18:32 platonas kernel: [33839.197486] Suspending console(s) (use no_console_suspend to debug)
+# already have the timestamp of the resume time

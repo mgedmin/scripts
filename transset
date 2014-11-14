@@ -1,0 +1,8 @@
+#!/bin/bash
+echo "Using ~/bin/transset instead of the broken /usr/bin/transset"
+echo "See https://bugs.freedesktop.org/show_bug.cgi?id=76958"
+opacity=${1:-0.75}
+scaled=$(echo "$opacity*4294967295"|bc)
+hex=$(printf "0x%x" ${scaled%.*})
+echo "Setting opacity to $opacity"
+xprop -f _NET_WM_WINDOW_OPACITY 32c -set _NET_WM_WINDOW_OPACITY $hex

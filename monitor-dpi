@@ -1,0 +1,43 @@
+#!/usr/bin/python
+import math
+import optparse
+
+
+def dpi(w, h, d):
+    hdpi = w * math.sqrt(1+float(h)**2/w**2)/d
+    vdpi = h * math.sqrt(1+float(w)**2/h**2)/d
+    return (hdpi, vdpi)
+
+
+def main():
+    parser = optparse.OptionParser(
+        usage="%prog xres yres inches\n"
+              "       %prog xres yres width-mm height-mm",
+        description="Calculate the resolution in dots per inch given the"
+                    " logical screen size in pixels and the physical screen"
+                    " size (either the diagonal in inches, or width and"
+                    " height in milimeters).\n\n"
+                    "Example:\n"
+                    "    %prog 1024 768 14.1\n"
+                    "    %prog 1280 800 331 207")
+    opts, args = parser.parse_args()
+    if len(args) < 3:
+        parser.error("too few arguments")
+    if len(args) > 4:
+        parser.error("too many arguments")
+    try:
+        w, h = map(float, args[:2])
+        if len(args) == 3:
+            d = float(args[2])
+        else:
+            d = math.hypot(float(args[2]), float(args[3])) / 25.4
+            print "Monitor size: %.1f inches" % d
+    except TypeError:
+        parser.error("argument is not a number")
+    hdpi, vdpi = dpi(w, h, d)
+    print "Horizontal resolution: %d dots per inch" % hdpi
+    print "Vertical resolution:   %d dots per inch" % vdpi
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,4 @@
+#!/bin/sh
+# To print a calendar for a given month, do
+#   print-monthly-calendar mm yyyy
+pcal -P A4 -F1 "$@"

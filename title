@@ -1,0 +1,4 @@
+#!/bin/bash
+# use: title string
+# Works for xterm clones
+printf "\033]0;%s\a" "$*"

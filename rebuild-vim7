@@ -1,0 +1,65 @@
+#!/bin/sh
+set -e
+
+COMPILED_BY="Marius Gedminas <marius@gedmin.as>"
+FEATURES=
+FEATURES="$FEATURES --with-features=huge"  # yum, features
+FEATURES="$FEATURES --enable-multibyte"    # vim is *crippled* without this!
+                                           # (BTW 'big' implies this)
+FEATURES="$FEATURES --enable-pythoninterp" # most of my plugins use this
+FEATURES="$FEATURES --enable-rubyinterp"   # Command-T wants this
+#FEATURES="$FEATURES --enable-perlinterp"  # ruby + perl = segfault
+#FEATURES="$FEATURES --enable-luainterp"
+#FEATURES="$FEATURES --enable-mzschemeinterp"
+#FEATURES="$FEATURES --enable-python3interp"
+#FEATURES="$FEATURES --enable-tcpinterp"
+FEATURES="$FEATURES --enable-cscope"
+FEATURES="$FEATURES --enable-gpm"
+
+# taken from ubuntu's debian/rules
+FEATURES="$FEATURES --with-x"
+FEATURES="$FEATURES --enable-xim"
+FEATURES="$FEATURES --enable-gui=gnome2"
+FEATURES="$FEATURES --disable-gtk2-check"
+FEATURES="$FEATURES --enable-gnome-check"
+FEATURES="$FEATURES --disable-motif-check"
+FEATURES="$FEATURES --disable-athena-check"
+FEATURES="$FEATURES --disable-fontset"
+FEATURES="$FEATURES --enable-fail-if-missing"
+
+# ubuntu 13.04 did something weird to the python config directory
+FEATURES="$FEATURES --with-python-config-dir=/usr/lib/python2.7/config-$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+
+#CFLAGS="-DUSE_FILE_CHOOSER" <-- buggy, fsync() with every keystroke is bad
+CFLAGS="-g"
+
+test -d ~/src/vim || {
+    echo "To get vim sources do" 1>&2
+    echo "  hg clone https://vim.googlecode.com/hg/ ~/src/vim" 1>&2
+    exit 1
+}
+cd ~/src/vim
+# hg pull -u?
+# make sure I have all the build-deps?
+rm -f src/auto/config.cache
+CFLAGS="$CFLAGS" ./configure $FEATURES --with-compiledby="$COMPILED_BY" \
+&& make -j4 && uname -m > .arch || {
+    echo "Consider" 1>&2
+    echo "  sudo apt-get build-dep vim-gnome" 1>&2
+    exit 1
+}
+# for that matter, if you get
+#   checking if compile and link flags for Python are sane... no: PYTHON DISABLED
+# config.log says
+#   /usr/bin/ld: cannot find -lssl
+# the fix is to:
+#   apt-get install libssl-dev
+
+# also, if you get a vim without ruby support, make sure you
+#   sudo apt-get install ruby-dev
+# there's a sad bug in Ubuntu 12.10 where ruby1.8-dev Provides: ruby-dev (while
+# the real ruby-dev Depends: ruby1.9.1-dev), and so apt-get build-dep vim
+# doesn't notice you don't have the right header files
+
+# the .arch thing is for my vim wrapper script
+# I have a NFS home shared between i686 and x86-64 machines

@@ -1,0 +1,6 @@
+#!/bin/bash
+# get and runhttps://gist.github.com/mgedmin/4995950
+test -d ~/src/zope-test-janitor || {
+    git clone git@gist.github.com:4995950.git ~/src/zope-test-janitor
+}
+exec ~/src/zope-test-janitor/zope_test_janitor.py "$@"

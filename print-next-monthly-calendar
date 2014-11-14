@@ -1,0 +1,2 @@
+#!/bin/bash
+pcal -P A4 -F1 $(date --date "$(date +%Y-%m-15) + 1 month" +'%m %Y')

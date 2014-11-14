@@ -1,0 +1,2 @@
+#!/bin/sh
+screen -dRS mutt mutt

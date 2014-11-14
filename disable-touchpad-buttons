@@ -1,0 +1,4 @@
+#!/bin/sh
+# disables touchpad buttons on my thinkpad, leaving trackpoint buttons functional
+# sadly(?) it also disables tap-to-click
+xinput set-button-map "SynPS/2 Synaptics TouchPad" 0 0 0

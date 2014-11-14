@@ -1,0 +1,16 @@
+#!/bin/sh
+# usage: ocr filename.jpg
+if test -z "$1"; then
+    echo "usage: ocr filename.jpg [...]"
+    echo "needs imagemagick and tesseract-ocr"
+    echo "if tesseract fails, check if you've got tesseract-ocr-eng installed"
+fi
+tmpdir="$(mktemp -d)"
+for fn in "$@"; do
+  convert "$fn" "$tmpdir/page.tif"
+  tesseract "$tmpdir/page.tif" "$tmpdir/page" 2>&1 | grep -v '^Tesseract Open Source OCR Engine$'
+  cat "$tmpdir/page.txt"
+  cp -i "$tmpdir/page.txt" "${fn%.jpg}.txt"
+  rm "$tmpdir/page.tif" "$tmpdir/page.txt"
+done
+rm -r "$tmpdir"

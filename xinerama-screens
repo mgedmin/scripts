@@ -1,0 +1,10 @@
+#!/usr/bin/python
+import gtk.gdk
+
+if __name__ == '__main__':
+    screen = gtk.gdk.screen_get_default()
+    n = screen.get_n_monitors()
+    for i in range(n):
+        rect = screen.get_monitor_geometry(i)
+        print "Monitor %d: %dx%d at (%d, %d)" % (i, rect.width, rect.height,
+    					     rect.x, rect.y)

@@ -1,0 +1,2 @@
+#!/bin/sh
+rdesktop -k en-us -g 1024x700 -u mg -p - langas.gedmin.as

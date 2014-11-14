@@ -1,0 +1,39 @@
+#!/bin/bash
+
+use_color=0
+use_colordiff=0
+test -t 1 && use_color=1
+test -t 1 && test -x /usr/bin/colordiff && use_colordiff=1
+
+svnlog() {
+    if [ $use_color -eq 1 ]; then
+        printf '\033[1;32m'
+    fi
+    svn log "$@"
+    rc=$?
+    if [ $use_color -eq 1 ]; then
+        printf '\033[0m'
+    fi
+    return $rc
+}
+svndiff() {
+    if [ $use_colordiff -eq 1 ]; then
+        svn diff --diff-cmd diff -x -up "$@" | colordiff
+    else
+        svn diff --diff-cmd diff -x -up "$@"
+    fi
+}
+
+list_all_revs() {
+    echo "Listing all revisions of $1"
+    for rev in $(svn log $1 | grep -o '^r[0-9]\+' | cut -c 2-); do
+        svnlog -r $rev || break
+        svndiff -r $[$rev-1]:$rev $1 2>/dev/null || svn cat -r $rev $1 || break
+    done
+}
+
+if test -t 1; then
+    list_all_revs "$@" | less -R
+else
+    list_all_revs "$@"
+fi

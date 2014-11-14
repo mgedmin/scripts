@@ -1,0 +1,14 @@
+#!/bin/sh
+# I use this in my ~/.ssh/config to make ssh connections to github fast:
+#
+#   Host github.com
+#   ControlMaster auto
+#   ControlPath ~/.ssh/control-%r@%h-%p
+#   ControlPersist yes
+#
+# One problem: when I suspend and move to a different wifi network, the
+# control master persists and takes a long time (5 minutes) to time out.
+# During that time I cannot git push or git pull.
+#
+# So here's a script to kick it manually.
+ssh -O exit git@github.com

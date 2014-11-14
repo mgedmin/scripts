@@ -1,0 +1,7 @@
+#!/bin/sh
+# usage: verynice command args ...
+# runs a job in the background without interfering with your interactive use
+# works better than 'nice'
+# source:
+# http://blog.verbum.org/2011/07/18/tweaking-the-linux-scheduler-for-background-jobs/
+chrt --idle 0 "$@"

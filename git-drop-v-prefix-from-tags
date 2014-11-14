@@ -1,0 +1,4 @@
+#!/bin/bash
+for t in $(git tag | grep ^v[0-9]); do
+    git tag ${t#v} $t && git tag -d $t
+done

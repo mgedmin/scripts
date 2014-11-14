@@ -1,0 +1,5 @@
+# http://askubuntu.com/a/131022
+dbus-send --system --print-reply \
+    --dest="org.freedesktop.UPower" \
+    /org/freedesktop/UPower \
+    org.freedesktop.UPower.Suspend

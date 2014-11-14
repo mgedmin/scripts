@@ -1,0 +1,3 @@
+#!/bin/sh
+# let me ptrace dammit!
+sudo sysctl -w kernel.yama.ptrace_scope=0

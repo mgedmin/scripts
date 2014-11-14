@@ -1,0 +1,2 @@
+#!/bin/sh
+dpkg-query -W --showformat '${STATUS} ${PACKAGE}=${VERSION}\n'|grep ' installed '|cut -d ' ' -f 4-

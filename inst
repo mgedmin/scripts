@@ -1,0 +1,6 @@
+#!/bin/sh
+if [ -x /usr/bin/apt ]; then
+    sudo apt -y install "$@"
+else
+    sudo apt-get -y install "$@"
+fi
