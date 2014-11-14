@@ -1,4 +1,8 @@
 #!/bin/sh
 NICE="nice -n 10"
 test -x /usr/bin/ionice && NICE="$NICE ionice -c3"
-sudo $NICE apt-get upgrade -u -f "$@"
+if [ -x /usr/bin/apt ]; then
+    sudo $NICE apt upgrade -u -f "$@"
+else
+    sudo $NICE apt-get upgrade -u -f "$@"
+fi
