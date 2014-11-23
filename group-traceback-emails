@@ -31,6 +31,11 @@ import os
 import re
 import sys
 
+__version__ = '1.0'
+__author__ = 'Marius Gedminas <marius@gedmin.as>'
+__licence__ = 'GPL'
+__url__ = 'https://gist.github.com/mgedmin/41b0419f61ea464536e3'
+
 
 def extract_traceback_from_body(body):
     """Extracts a Python traceback from a multiline string.
