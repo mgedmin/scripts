@@ -4,3 +4,4 @@ for arg in "$@"; do
 done
 # if .gitignore is in .gitignore, git add will complain, but we don't care
 git add .gitignore 2>/dev/null
+exit 0
