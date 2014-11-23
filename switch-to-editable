@@ -19,6 +19,10 @@ elif [ -e .git ]; then
       repo=${url##*/}
       newurl=git@gist.github.com:$repo
       ;;
+    https://gist.github.com/*)
+      repo=${url##*/}
+      newurl=git@gist.github.com:$repo.git
+      ;;
     https://github.com/*)
       repo=${url#https://github.com/}
       newurl=git@github.com:${repo%.git}.git
