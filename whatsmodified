@@ -111,7 +111,7 @@ for i; do
         # use --no-plugins to avoid bzr-svn slowness
         output=$(bzr --no-plugins st $args "$i" 2>&1)
     }
-    test $git -ne 0 -a -d "$i/.git" && {
+    test $git -ne 0 -a -e "$i/.git" && {
         type=git
         args="-uno"
         test $unknown -ne 0 && args=
