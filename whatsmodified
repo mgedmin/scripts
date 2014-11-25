@@ -118,7 +118,7 @@ for i; do
         if [ $verbose -ne 0 ]; then
             output=$(cd "$i" && git status $args | grep -v '^nothing to commit (use -u to show untracked files)$\|^# On branch .*$\|^# *$')
         else
-            output=$(cd "$i" && git status $args -s)
+            output=$(cd "$i" && git status $args -sb | grep -v '^## [^[]*$')
         fi
     }
     test $hg -ne 0 -a -d "$i/.hg" && {
