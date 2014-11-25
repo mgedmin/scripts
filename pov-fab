@@ -1,2 +1,6 @@
 #!/bin/sh
-fab -f ~/src/pov-admin/fabfile.py "$@"
+test -f ~/src/deployments/fabfile.py || {
+    echo "git clone git@github.com:ProgrammersOfVilnius/deployments ~/src/" 1>&2
+    exit 1
+}
+fab -f ~/src/deployments/fabfile.py "$@"
