@@ -6,7 +6,7 @@
 # One day these will become cmdline options
 my $do_iptables = 1;
 my $totals = 1;
-my $colorize = 0;
+my $colorize = 1;
 my $spawn_pager = 1;
 my $pager = "less -S -M";
 $pager .= " -R" if $colorize;
