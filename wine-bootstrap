@@ -1,0 +1,12 @@
+#!/bin/sh
+test -d ~/.wine/drive_c/Python27 || {
+    echo "Please install Python 2.7 into your Wine" 1>&2
+    # something like download *.msi from python.org,
+    # then wine msiexec /i python-*.msi
+    # NB: this worked for me with python-2.7.3.msi, and failed badly
+    # with python-3.3.0.msi and python-3.3.0.amd64.msi.
+    exit 1
+}
+set -x
+wine c:/python27/python.exe bootstrap.py
+bin/buildout.exe "$@"
