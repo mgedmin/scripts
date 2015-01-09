@@ -1,9 +1,7 @@
 #!/usr/bin/perl -w
 # Summarize log files and logcheck mail messages
-# Copyright (c) 2002, 2009 Marius Gedminas <marius@gedmin.as>
+# Copyright (c) 2002, 2009, 2015 Marius Gedminas <marius@gedmin.as>
 # GPL.
-#
-# $Id: summarize.pl,v 1.8 2002/11/10 21:16:44 mg Exp $
 
 # One day these will become cmdline options
 my $do_iptables = 1;
@@ -49,6 +47,45 @@ while (<>) {
   # named
   s/(named\[\(pid\)\]: error .* resolving ').*(': .*)/$1(name)': (ip#port)/;
   s/(named\[\(pid\)\]: client) .*: (query \(cache\)) '.*' (denied)/$1 (ip#port): $2 '(name\/type)' $3/;
+  # amavis
+  s/(amavis\[\(pid\)\]): \(\d+(?:-\d+)*\) ([^,]+),.*/$1: (nnnnn) $2, .../;
+  # cyrus
+  s/(cyrus\/.*) txn \d+/$1 txn (id)/;
+  s/(cyrus\/.*: Delivered:) <([^>]+)>/$1 <(email)>/;
+  s/(cyrus\/.*: duplicate_check:) <([^>]+)> */$1 <(email)> /;
+  s/(cyrus\/.*: duplicate_mark:) <([^>]+)>.*/$1 <(email)> .../;
+  s/(cyrus\/.*: process) \d+ exited/$1 (pid) exited/;
+  # postfix
+  s/(postfix\/anvil.*: statistics: .*) at (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d+ \d+:\d+:\d+/$1 at (date) (time)/;
+  s/(postfix\/anvil.*: statistics: max cache size) \d+/$1 (n)/;
+  s/(postfix\/anvil.*: statistics: max connection count) \d+ for \((smtps?):.*\)/$1 (n) for ($2:(ip))/;
+  s/(postfix\/anvil.*: statistics: max connection rate) \d+\/(\d+s) for \((smtps?):.*\)/$1 (n)\/$2 for ($3:(ip))/;
+  s/(postfix\/scache.*: statistics: start interval) .*/$1 (date) (time)/;
+  s/(postfix\/.*:) [0-9A-F]{10}:/$1 (queue-id):/;
+  s/(postfix\/.*:) (.*) [0-9A-F]{10}\b/$1 $2 (queue-id)/;
+  s/(postfix\/.*:) (.*) message-id=<[^>]*>/$1 $2 message-id=<(messageid)>/;
+  s/(postfix\/.*:) (.*) (from)=<[^>]*>/$1 $2 $3=<(email)>/;
+  s/(postfix\/.*:) (.*) (to)=<[^>]*>/$1 $2 $3=<(email)>/;
+  s/(postfix\/.*:) (.*) (orig_to)=<[^>]*>/$1 $2 $3=<(email)>/;
+  s/(postfix\/.*:) (.*) (delay)=[^ ,]*/$1 $2 $3=(delay)/;
+  s/(postfix\/.*:) (.*) (delays)=[^ ,]*/$1 $2 $3=(delay)/;
+  s/(postfix\/.*:) (.*) (size)=\d+/$1 $2 $3=(n)/;
+  s/(postfix\/.*:) (.*) (nrcpt)=\d+/$1 $2 $3=(n)/;
+  s/(postfix\/.*:) (.*) (id)=\d+-\d+/$1 $2 $3=(nnnnn-nn)/;
+  s/(postfix\/.*:) (.*) (client)=[^ ,]*/$1 $2 $3=(hostname)[(ip)]/;
+  s/(postfix\/.*:) (.*) (helo)=<[^>]*>/$1 $2 $3=<(hostname)>/;
+  s/(postfix\/.*:) (.*) [a-zA-Z0-9]{14} (Message accepted for delivery)/$1 $2 (id) $3/;
+  s/(postfix\/.*: (NOQUEUE|\(queue-id\)): reject: RCPT from) \S*:/$1 (hostname)[(ip)]:/;
+  s/(postfix\/.*: (NOQUEUE|\(queue-id\)): reject: .*) <[^>]*>/$1 <(email)>/;
+  s/(postfix\/.*: (dis)?connect from) \S+/$1 (hostname)[(ip)]/;
+  s/(postfix\/.*:) (warning): \S+: (address not listed for hostname) \S+/$1 $2: (ip): $3 (hostname)/;
+  s/(postfix\/.*:) (lost connection after .*) from \S+/$1 $2 from (hostname)[(ip)]/;
+  # postgrey
+  s/(postgrey\[\(pid\)\]:) (.*) (client_name)=[^ ,]*/$1 $2 $3=(hostname)/;
+  s/(postgrey\[\(pid\)\]:) (.*) (client_address)=[^ ,]*/$1 $2 $3=(ip)/;
+  s/(postgrey\[\(pid\)\]:) (.*) (sender)=[^ ,]*/$1 $2 $3=(email)/;
+  s/(postgrey\[\(pid\)\]:) (.*) (recipient)=[^ ,]*/$1 $2 $3=(email)/;
+  s/(postgrey\[\(pid\)\]:) (.*) (reason=early-retry) \(\d+s missing\)/$1 $2 $3 ((n)s missing)/;
   # check-health
   s/((?:is low on disk space|too much swap used) \(\d+)(\d)\d\d\d\d\d\)/$1.$2G)/;
   s/((?:is low on disk space|too much swap used) \(\d+)\d\d\d\)/$1M)/;
