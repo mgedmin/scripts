@@ -74,8 +74,9 @@ find "${paths[@]}" \
          '!' -name '*.zip' \
          '!' -name '*.gz' \
          '!' -name '*.so' \
+         '!' -name '*.mo' \
          '!' -name '*.[od]' \
-         '!' -name '*.sw[po]' \
+         '!' -name '*.sw[a-p]' \
          '!' -name '.#*'  \
          '!' -name '*~'  \
          '!' -name '.installed.cfg'  \
