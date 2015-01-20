@@ -18,12 +18,13 @@ verbose=0
 dry_run=0
 system_python=0
 scriptname=
+interpreter=
 grepargs=()
 
 for arg; do
     case "$arg" in
         -h|--help)
-            echo "Usage: $progname [-v|--verbose] [-n|--dry-run] [-s|--system-python] [--script=buildout-generated-script-filename] grep arguments"
+            echo "Usage: $progname [-v|--verbose] [-n|--dry-run] [-s|--system-python] [--python=python] [--script=buildout-generated-script-filename] grep arguments"
             exit 0
             ;;
         -v|--verbose)
@@ -34,6 +35,9 @@ for arg; do
             ;;
         -s|--system-python)
             system_python=1
+            ;;
+        --python=*)
+            interpreter=${arg#--python=}
             ;;
         --script=*)
             scriptname=${arg#--script=}
@@ -49,6 +53,8 @@ if [ -n "$scriptname" ] && [ -x "$scriptname" ]; then
     shebang=$(head -n 1 "$scriptname")
     python=${shebang:2}
     extra_work="exec(open('$scriptname').read(), {});"
+elif [ -n "$interpreter" ]; then
+    python=$interpreter
 elif [ $system_python -ne 0 ]; then
     python=python
 elif [ -x bin/python ]; then
