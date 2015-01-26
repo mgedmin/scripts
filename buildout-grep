@@ -75,7 +75,11 @@ elif [ -x bin/test ]; then
 else
     die "I expect to find a bin/python (or bin/py, or bin/test) here"
 fi
-paths=$($python -c "import os, sys; ${extra_work} print('\\n'.join(sorted(set(p for p in sys.path if os.path.isdir(p)))))")
+paths=$($python -c "import os, sys; ${extra_work} seen = set(); \
+    print('\\n'.join(seen.add(p) or p
+                     for p in sorted(map(os.path.realpath, filter(os.path.isdir, sys.path)))
+                     if all('/'.join(p.split('/')[:prefix]) not in seen
+                            for prefix in range(len(p.split('/'))))))")
 test -n "$paths" || die "The python path is empty?  Confused."
 test $verbose -ne 0 && echo "$paths"
 if [ $dry_run -eq 0 ]; then
