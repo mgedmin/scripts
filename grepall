@@ -47,6 +47,9 @@ find "${paths[@]}" \
          -name '.bzr' -o \
          -name '.git' -o \
          -name '.hg' -o \
+         -name '.tox' -o \
+         -name '.eggs' -o \
+         -name '.env' -o \
          -name 'junk' -o \
          -name 'build' -o \
          -name 'coverage' -o \
