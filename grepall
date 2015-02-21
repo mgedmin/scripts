@@ -85,5 +85,5 @@ find "${paths[@]}" \
          '!' -name '.installed.cfg'  \
          '!' -name 'ID'  \
          '!' -iname 'tags' \
-         "$@" ')' \
+         '(' "$@" ')' ')' \
     -exec grep --color=auto -nH "${grepargs[@]}" {} +
