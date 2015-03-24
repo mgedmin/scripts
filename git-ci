@@ -1,3 +1,0 @@
-#!/bin/sh
-# alias for git commit -v
-git commit -v "$@"
