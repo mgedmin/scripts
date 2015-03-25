@@ -9,11 +9,11 @@ args=()
 while true; do
     case "$1" in
         -*)
-            args+=($1)
+            args+=("$1")
             shift
             ;;
         *)
-            args+=($1)
+            args+=("$1")
             shift
             break
             ;;
