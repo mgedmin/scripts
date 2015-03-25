@@ -6,14 +6,17 @@ if [ $# -eq 0 ]; then
 fi
 
 args=()
+visible=()
 while true; do
     case "$1" in
         -*)
             args+=("$1")
+            visible+=("$1")
             shift
             ;;
         *)
             args+=("$1")
+            visible+=("$1")
             shift
             break
             ;;
@@ -22,11 +25,14 @@ done
 cd ~/.xchat2/xchatlogs
 if [ $# -eq 0 ]; then
     args+=(*)
+    visible+=("*")
 fi
 for arg; do
     args+=(*$arg*)
+    visible+=("*$arg*")
 done
-## echo + grep "${args[@]}"
+echo + grep "${visible[@]}"
+
 ##grep --color=always "${args[@]}"|less -R
 
 tmpdir=$(mktemp -d -t xchatgrep-XXXXXX) || exit 1
