@@ -1,0 +1,8 @@
+#!/bin/sh
+test -d ~/src/neovim || {
+    echo "To get neovim sources do" 1>&2
+    echo "  git clone https://github.com/neovim/neovim ~/src/neovim" 1>&2
+    exit 1
+}
+cd ~/src/neovim
+make

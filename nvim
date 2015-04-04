@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# Build steps:
+#   cd ~
+#   git clone https://github.com/neovim/neovim
+#   cd neovim
+#   make
+#   nvim +':helptags ~/src/neovim/runtime/doc/' +q
+#
+nvimhome=$HOME/src/neovim
+VIMRUNTIME=$nvimhome/runtime $nvimhome/build/bin/nvim "$@"
