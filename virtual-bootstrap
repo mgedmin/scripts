@@ -5,6 +5,8 @@ elif [ "${0##*/}" == "virtual-bootstrap-py34" ]; then
     python=python3.4
 elif [ "${0##*/}" == "virtual-bootstrap-py33" ]; then
     python=python3.3
+elif [ "${0##*/}" == "virtual-bootstrap-pypy3" ]; then
+    python=pypy3
 else
     python=python2.7
 fi
