@@ -58,7 +58,7 @@ find "${paths[@]}" \
          -name '.env' -o \
          -name 'junk' -o \
          -name 'build' -o \
-         -name 'coverage' -o \
+         -name 'lib' -o \
          -name 'ftest-coverage' -o \
          -name 'htmlcov' -o \
          -name 'dist' ')' -prune -o \
