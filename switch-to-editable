@@ -3,7 +3,7 @@
 # Switch between https://github.com/... and git@github.com:... in git checkouts
 
 if [ -d .svn ]; then
-  url=`svn info $1|grep URL|cut -d ' ' -f 2-`
+  url=`svn info $1|grep ^URL:|cut -d ' ' -f 2-`
   schema=${url%%://*}
   rest=${url#*://}
   [ "$schema" != "svn" -a "$schema" != "http" ] && {
@@ -11,6 +11,7 @@ if [ -d .svn ]; then
     exit 1
   }
   rest=${rest/#source.schooltool.org\/svn/source.schooltool.org\/svn\/schooltool}
+  echo svn switch --relocate $url svn+ssh://$rest $1
   svn switch --relocate $url svn+ssh://$rest $1
 elif [ -e .git ]; then
   url=`git config remote.origin.url`
