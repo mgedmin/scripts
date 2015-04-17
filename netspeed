@@ -1,0 +1,57 @@
+#!/usr/bin/perl -w
+use strict;
+
+sub default_if() {
+    open FD, "/proc/net/route"
+	or die "Cannot open /proc/net/route: $!";
+    while (<FD>) {
+	if (/(\w+)\s+00000000\s+[0-9A-F]+\s+\S+\s+\S+\s+\S+\s+\S+\s+00000000\s/) {
+            return $1
+        }
+    }
+    return "eth0"; # don't know any better
+}
+
+my $iface = $ARGV[0] || default_if();
+my $threshold1 = 5;
+my $threshold2 = 10;
+
+sub sample() {
+    my ($receive, $transmit) = (-1, -1);
+    open FD, "/proc/net/dev"
+	or die "Cannot open /proc/net/dev: $!";
+    while (<FD>) {
+	if (/$iface:\s*(\d+)(?:\s+\d+){7}\s+(\d+)/) {
+	    $receive = $1;
+	    $transmit = $2;
+	    last;
+	}
+    }
+    close FD;
+    return ($receive, $transmit);
+}
+
+my ($last_r, $last_t) = sample();
+my $last_time = time;
+my ($new_r, $new_t);
+my $new_time = $last_time;
+print "Monitoring $iface\n";
+$| = 1; # autoflush
+for(;;) {
+    select(undef, undef, undef, 0.25);		# sleep for 250 ms
+    my ($cur_r, $cur_t) = sample();
+    my ($cur_time) = time;
+    my ($delta_r, $delta_t) = ($cur_r - $last_r, $cur_t - $last_t);
+    my ($delta_time) = $cur_time - $last_time;
+    next if $delta_time < 1;
+    my $ispeed = $delta_r / $delta_time;
+    my $ospeed = $delta_t / $delta_time;
+    printf "\rIn: %6.3f KB/s   Out: %6.3f KB/s ", $ispeed / 1024, $ospeed / 1024;
+    if ($delta_time >= $threshold2) {
+	($last_r, $last_t, $last_time) = ($new_r, $new_t, $new_time);
+    }
+    if ($cur_time - $new_time >= $threshold1) {
+	($new_r, $new_t, $new_time) = ($cur_r, $cur_t, $cur_time);
+    }
+}
+
