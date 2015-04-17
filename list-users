@@ -1,0 +1,2 @@
+#!/bin/sh
+awk -F: '$3 >= 500 && $1 != "nobody" { print $1 }' /etc/passwd
