@@ -11,5 +11,5 @@ grep $grepargs '^deb ' /etc/apt/sources.list /etc/apt/sources.list.d/*.list \
     | sed -e 's/^\/[^:]*\///' -e 's/\.list:deb /.list /' \
           -e 's/^deb //' -e 's/#.*//' \
           -e 's/http:\/\/ppa\.launchpad\.net\/\(.*\)\/ubuntu /ppa:\1 /' \
-    | sort -u \
+    | LC_COLLATE=C sort -u \
     | column -t
