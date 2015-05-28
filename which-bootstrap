@@ -14,6 +14,7 @@ case "$checksum" in
         # new v1 since mid Oct 2013
         echo "you've got the latest v1.x bootstrap.py"
         echo "http://downloads.buildout.org/1/bootstrap.py"
+        echo "https://raw.githubusercontent.com/buildout/buildout/1/bootstrap/bootstrap.py"
         ;;
     357f2fe2684c54339fb78ff447d8cbc127071633*)
         echo "you've got the obsolete v2.0 bootstrap.py"
