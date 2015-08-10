@@ -20,6 +20,7 @@ git filter-branch -f --env-filter '
   if [ "$GIT_AUTHOR_EMAIL" = "" -o \
        "$GIT_AUTHOR_EMAIL" = "mg@mgdesktop" -o \
        "$GIT_AUTHOR_EMAIL" = "mgedmin@plant" -o \
+       "$GIT_AUTHOR_NAME" = "(no author)" -o \
        "$GIT_AUTHOR_NAME" = "mg" ]; then
       GIT_AUTHOR_NAME="Marius Gedminas";
       GIT_AUTHOR_EMAIL=marius@gedmin.as;
