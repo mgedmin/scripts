@@ -1,0 +1,34 @@
+#!/bin/sh
+# convert a subversion checkout to git
+# usage: convert-svn-to-git /path/to/svn/checkout
+# creates a git repository in place, renames old svn checkout to *.old
+repos=${1%/}
+test -z "$repos" && {
+  echo "usage: $0 /path/to/repository" 1>&2
+  exit
+}
+test -d "$repos/.svn" || {
+  echo "$0: $repos is not a Subversion repository" 1>&2
+  exit 1
+}
+test -e "$repos.old" && {
+  echo "$0: $repos.old already exists" 1>&2
+  exit 1
+}
+test -e "$repos.new" && {
+  echo "$0: $repos.new already exists" 1>&2
+  exit 1
+}
+
+set -e
+git init "$repos.new"
+url=$(cd "$repos" && svn info | awk '$1 == "URL:" { print $2 }')
+test -z "$url" && {
+  echo "$0: couldn't figure out the URL of $repos" 1>&2
+  exit 1
+}
+git svn clone "$url" "$repos.new"
+(cd "$repos.new" && git shortlog -se)
+mv "$repos" "$repos.old"
+mv "$repos.new" "$repos"
+echo "* $repos converted to git"
