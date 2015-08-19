@@ -1,4 +1,4 @@
 #!/bin/sh
 for arg in "$@"; do
-    echo "$arg" >> .git/info/exclude
+    echo "$arg" >> "$(git rev-parse --git-dir)/info/exclude"
 done
