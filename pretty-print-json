@@ -1,0 +1,25 @@
+#!/usr/bin/python3
+import sys
+import json
+import argparse
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Pretty-print JSON")
+    parser.add_argument('filenames', metavar='file', nargs='*', default=['-'])
+    args = parser.parse_args()
+    for fn in args.filenames:
+        if fn == '-':
+            pretty_print(sys.stdin)
+        else:
+            with open(fn) as f:
+                pretty_print(f)
+
+
+def pretty_print(fp):
+    json.dump(json.load(fp), sys.stdout, ensure_ascii=False, sort_keys=True,
+              indent=4, separators=(',', ': '))
+
+
+if __name__ == '__main__':
+    main()
