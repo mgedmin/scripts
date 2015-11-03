@@ -1,13 +1,17 @@
 #!/bin/bash
-cat=cat
-files="/var/log/syslog.1 /var/log/syslog"
-if [ x"$1" = x"-a" ]; then
-    cat=zcat
-    files="/var/log/syslog.7.gz /var/log/syslog.6.gz /var/log/syslog.5.gz $FILES"
-    files="/var/log/syslog.4.gz /var/log/syslog.3.gz /var/log/syslog.2.gz $FILES"
+if [ -x /bin/journalctl ]; then
+    journalctl _COMM=systemd-sleep
+else
+    cat=cat
+    files="/var/log/syslog.1 /var/log/syslog"
+    if [ x"$1" = x"-a" ]; then
+        cat=zcat
+        files="/var/log/syslog.7.gz /var/log/syslog.6.gz /var/log/syslog.5.gz $FILES"
+        files="/var/log/syslog.4.gz /var/log/syslog.3.gz /var/log/syslog.2.gz $FILES"
+    fi
+    $cat $files |\
+      grep -e "Preparing system for \(mem \)\?sleep\|PM: Basic memory bitmaps created\|PM: Syncing filesystems\|Waking up from system sleep"
 fi
-$cat $files |\
-grep -e "Preparing system for mem sleep\|PM: Basic memory bitmaps created\|PM: Syncing filesystems\|Waking up from system sleep"
 # "PM: Basic memory bitmaps created" means basically "Preparing system for hibernation"
 # I couldn't find a better message in syslog -- the ACPI entering S4 state is printed
 # with the timestamp of resume.
@@ -20,3 +24,5 @@ grep -e "Preparing system for mem sleep\|PM: Basic memory bitmaps created\|PM: S
 #    Jun  4 19:18:32 platonas kernel: [33839.181457] Freezing remaining freezable tasks ... (elapsed 0.01 seconds) done.
 #    Jun  4 19:18:32 platonas kernel: [33839.197486] Suspending console(s) (use no_console_suspend to debug)
 # already have the timestamp of the resume time
+# Oh, the Prepare is now "Preparing system for sleep (mem)", but it has the timestamp of resume.
+# Luckily journalctl and systemd-sleep are here to save us!
