@@ -1,0 +1,9 @@
+#!/bin/sh
+# For when "file core" prints
+#   core: ELF 64-bit LSB core file x86-64, version 1 (SYSV), too many program headers (463)
+# but you want to know what program crashed
+if [ -f core ]; then
+    readelf -n core | head -n 12
+else
+    echo "There is no core file here."
+fi

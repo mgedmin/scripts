@@ -18,10 +18,8 @@ fi
 case "$1" in
     --valgrind)
         prefix="valgrind --log-file=valgrind.log"
-        # doesn't suppress anything,
-        # https://github.com/python/cpython/blob/master/Misc/README.valgrind
-        # explains why
         prefix+=" --suppressions=$HOME/.python.supp"
+        prefix+=" --track-origins=yes"  # slow but better info
         shift
         ;;
     --gdb)
