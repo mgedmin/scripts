@@ -1,6 +1,6 @@
 #!/bin/sh
 for arg in "$@"; do
-    grep -q -F "$arg" .gitignore 2>/dev/null || echo "$arg" >> .gitignore
+    grep -q -F "^$arg$" .gitignore 2>/dev/null || echo "$arg" >> .gitignore
 done
 # if .gitignore is in .gitignore, git add will complain, but we don't care
 git add .gitignore 2>/dev/null
