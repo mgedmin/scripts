@@ -20,6 +20,7 @@ case "$1" in
         prefix="valgrind --log-file=valgrind.log"
         prefix+=" --suppressions=$HOME/.python.supp"
         prefix+=" --track-origins=yes"  # slow but better info
+        prefix+=" --malloc-fill=cc"
         shift
         ;;
     --gdb)
