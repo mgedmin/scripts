@@ -19,7 +19,12 @@ FEATURES="$FEATURES --enable-gpm"
 # taken from ubuntu's debian/rules
 FEATURES="$FEATURES --with-x"
 FEATURES="$FEATURES --enable-xim"
-FEATURES="$FEATURES --enable-gui=gnome2"
+if [ "$1" = "--gtk3" ]; then
+    # testing experimental patch by Kazunobu Kuriyama
+    FEATURES="$FEATURES --enable-gui=gtk3"
+else
+    FEATURES="$FEATURES --enable-gui=gnome2"
+fi
 FEATURES="$FEATURES --disable-gtk2-check"
 FEATURES="$FEATURES --enable-gnome-check"
 FEATURES="$FEATURES --disable-motif-check"
