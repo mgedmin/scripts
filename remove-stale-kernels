@@ -1,0 +1,3 @@
+#!/bin/sh
+# inspired by http://askubuntu.com/questions/401581/bash-one-liner-to-delete-only-old-kernels
+sudo apt-get remove $(dpkg -l linux-image-[0-9].* | awk '/^ii/{print $2}' | grep -v $(uname -r) | head -n -1)
