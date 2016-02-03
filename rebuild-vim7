@@ -35,11 +35,11 @@ CFLAGS="-g"
 
 test -d ~/src/vim || {
     echo "To get vim sources do" 1>&2
-    echo "  hg clone https://vim.googlecode.com/hg/ ~/src/vim" 1>&2
+    echo "  git clone https://github.com/vim/vim/ ~/src/vim" 1>&2
     exit 1
 }
 cd ~/src/vim
-# hg pull -u?
+# git pull?
 # make sure I have all the build-deps?
 rm -f src/auto/config.cache
 CFLAGS="$CFLAGS" ./configure $FEATURES --with-compiledby="$COMPILED_BY" \
