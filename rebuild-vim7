@@ -43,7 +43,7 @@ cd ~/src/vim
 # make sure I have all the build-deps?
 rm -f src/auto/config.cache
 CFLAGS="$CFLAGS" ./configure $FEATURES --with-compiledby="$COMPILED_BY" \
-&& make -j4 && uname -m > .arch || {
+&& make -j4 || {
     echo "Consider" 1>&2
     echo "  sudo apt-get build-dep vim-gnome" 1>&2
     exit 1
@@ -60,6 +60,3 @@ CFLAGS="$CFLAGS" ./configure $FEATURES --with-compiledby="$COMPILED_BY" \
 # there's a sad bug in Ubuntu 12.10 where ruby1.8-dev Provides: ruby-dev (while
 # the real ruby-dev Depends: ruby1.9.1-dev), and so apt-get build-dep vim
 # doesn't notice you don't have the right header files
-
-# the .arch thing is for my vim wrapper script
-# I have a NFS home shared between i686 and x86-64 machines
