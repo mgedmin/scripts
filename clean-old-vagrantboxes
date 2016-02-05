@@ -1,0 +1,53 @@
+#!/usr/bin/python
+import itertools
+import subprocess
+
+
+def list_boxes():
+    # returns [str]
+    return subprocess.check_output(['vagrant', 'box', 'list']).splitlines()
+
+
+def parse_boxes(boxes):
+    # [str] -> [(box, provider, version)]
+    for line in boxes:
+        # ubuntu/precise64 (virtualbox, 20160128.1.0)
+        box, provider, version = line.split()
+        yield box, provider.strip('(,'), version.strip(')')
+
+
+def recent_boxes(boxes):
+    # [(box, provider, version)] -> {box: version}
+    latest = {}
+    for box, provider, version in boxes:
+        latest[box] = version
+    return latest
+
+
+def obsolete_boxes(boxes):
+    # [(box, provider, version)] -> [(box, version)]
+    boxes1, boxes2 = itertools.tee(boxes)
+    latest = recent_boxes(boxes1)
+    for box, provider, version in boxes2:
+        if version != latest[box]:
+            yield box, version
+
+
+def remove_box(box, version):
+    subprocess.check_call(['vagrant', 'box', 'remove', box, '--box-version', version])
+
+
+def remove_boxes(boxes):
+    for box, version in boxes:
+        remove_box(box, version)
+
+
+def main():
+    boxes = list_boxes()
+    boxes = parse_boxes(boxes)
+    boxes = obsolete_boxes(boxes)
+    remove_boxes(boxes)
+
+
+if __name__ == '__main__':
+    main()
