@@ -8,7 +8,10 @@ to_keep=$(comm -3 <(echo "$kernels") <(echo "$to_remove"))
 if [ -n "$to_remove" ]; then
   echo "Will remove"
   printf "  %s\n" $to_remove
+  echo "Will keep"
+  printf "  %s\n" $to_keep
+  sudo apt-get remove $to_remove --auto-remove
+else
+  echo "Nothing to remove.  Installed kernels:"
+  printf "  %s\n" $to_keep
 fi
-echo "Will keep"
-printf "  %s\n" $to_keep
-sudo apt-get remove $to_remove --auto-remove
