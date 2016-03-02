@@ -19,6 +19,7 @@ dry_run=0
 include_js=0
 system_python=0
 scriptname=
+ctags=ctags-exuberant
 
 for arg; do
     case "$arg" in
@@ -95,10 +96,11 @@ print('\\n'.join(sorted(d)))
 ")
 test -n "$paths" || die "The python path is empty?  Confused."
 test $verbose -ne 0 && echo "$paths"
+test -z "$(which $ctags 2>/dev/null)" && ctags=ctags
 opts=
 if [ $include_js -eq 0 ]; then
     opts="--languages=-JavaScript"
 fi
 if [ $dry_run -eq 0 ]; then
-    ctags-exuberant -R $opts -f .tags.new $paths && mv .tags.new tags || rm .tags.new
+    $ctags -R $opts -f .tags.new $paths && mv .tags.new tags || rm .tags.new
 fi
