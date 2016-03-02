@@ -1,9 +1,13 @@
 #!/bin/sh
 # before oneiric
-test -x /usr/bin/gconftool && gconftool -s /desktop/gnome/peripherals/keyboard/delay -t int 250
+if [ -x /usr/bin/gconftool-2 ]; then
+    gconftool-2 -s /desktop/gnome/peripherals/keyboard/delay -t int 250
+fi
 # starting with oneiric
 # only problem is this seems to reset the value to the defaul sluggish 500ms, no matter what number I use :(
 # I've no clue why
 # OOH because I'm skipping the gsettings layer maybe?
 ##test -x /usr/bin/dconf && dconf write /org/gnome/settings-daemon/peripherals/keyboard/delay 250
-test -x /usr/bin/gsettings && gsettings set org.gnome.settings-daemon.peripherals.keyboard delay 250
+if [ -x /usr/bin/gsettings ]; then
+    gsettings set org.gnome.settings-daemon.peripherals.keyboard delay 250
+fi
