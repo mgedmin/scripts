@@ -37,6 +37,7 @@ for arg; do
             ;;
         -n|--dry-run)
             dry_run=1
+            verbose=1
             ;;
         -s|--system-python)
             system_python=1
