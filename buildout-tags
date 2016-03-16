@@ -86,7 +86,9 @@ fi
 paths=$($python -c "
 import os, sys
 ${extra_work}
-d = set(p for p in sys.path if os.path.isdir(p) and not os.path.isdir(os.path.join(p, 'dist-packages')))
+d = set(p for p in sys.path if os.path.isdir(p) and
+        not os.path.isdir(os.path.join(p, 'dist-packages')) and
+        'lib64/python' not in p)
 for p in sys.path:
     if os.path.isdir(os.path.join(p, 'dist-packages')):
         d.add(os.path.join(p, '*.py'))
