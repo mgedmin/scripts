@@ -19,11 +19,11 @@ FEATURES="$FEATURES --enable-gpm"
 # taken from ubuntu's debian/rules
 FEATURES="$FEATURES --with-x"
 FEATURES="$FEATURES --enable-xim"
-if [ "$1" = "--gtk3" ]; then
-    # testing experimental patch by Kazunobu Kuriyama
-    FEATURES="$FEATURES --enable-gui=gtk3"
-else
+if [ "$1" = "--gtk2" ]; then
+    # compiling old vim that didn't support gtk3
     FEATURES="$FEATURES --enable-gui=gnome2"
+else
+    FEATURES="$FEATURES --enable-gui=gtk3"
 fi
 FEATURES="$FEATURES --disable-gtk2-check"
 FEATURES="$FEATURES --enable-gnome-check"
