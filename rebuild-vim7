@@ -1,13 +1,41 @@
 #!/bin/sh
 set -e
 
+gui=gtk3
+ruby=yes
+for arg; do
+    case "$arg" in
+        --help)
+            echo "Usage: $0 [options]"
+            echo "Options:"
+            echo "  --gtk2     build for GTK+ 2 (default: GTK+ 3)"
+            echo "  --no-ruby  disable :ruby support"
+            exit
+            ;;
+        --no-ruby)
+            ruby=no
+            ;;
+        --gtk2)
+            gui=gnome2
+            ;;
+        *)
+            echo "unrecognized argument: $arg" 1>&2
+            exit 1
+            ;;
+    esac
+done
+
 COMPILED_BY="Marius Gedminas <marius@gedmin.as>"
 FEATURES=
 FEATURES="$FEATURES --with-features=huge"  # yum, features
 FEATURES="$FEATURES --enable-multibyte"    # vim is *crippled* without this!
                                            # (BTW 'big' implies this)
 FEATURES="$FEATURES --enable-pythoninterp" # most of my plugins use this
-FEATURES="$FEATURES --enable-rubyinterp"   # Command-T wants this
+if [ $ruby = yes ]; then
+    FEATURES="$FEATURES --enable-rubyinterp"   # Command-T wants this
+else
+    FEATURES="$FEATURES --disable-rubyinterp"
+fi
 #FEATURES="$FEATURES --enable-perlinterp"  # ruby + perl = segfault
 #FEATURES="$FEATURES --enable-luainterp"
 #FEATURES="$FEATURES --enable-mzschemeinterp"
@@ -19,12 +47,7 @@ FEATURES="$FEATURES --enable-gpm"
 # taken from ubuntu's debian/rules
 FEATURES="$FEATURES --with-x"
 FEATURES="$FEATURES --enable-xim"
-if [ "$1" = "--gtk2" ]; then
-    # compiling old vim that didn't support gtk3
-    FEATURES="$FEATURES --enable-gui=gnome2"
-else
-    FEATURES="$FEATURES --enable-gui=gtk3"
-fi
+FEATURES="$FEATURES --enable-gui=$gui"
 FEATURES="$FEATURES --disable-gtk2-check"
 FEATURES="$FEATURES --enable-gnome-check"
 FEATURES="$FEATURES --disable-motif-check"
@@ -33,7 +56,9 @@ FEATURES="$FEATURES --disable-fontset"
 FEATURES="$FEATURES --enable-fail-if-missing"
 
 # ubuntu 13.04 did something weird to the python config directory
-FEATURES="$FEATURES --with-python-config-dir=/usr/lib/python2.7/config-$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+if [ -x /usr/bin/dpkg-architecture ]; then
+    FEATURES="$FEATURES --with-python-config-dir=/usr/lib/python2.7/config-$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+fi
 
 #CFLAGS="-DUSE_FILE_CHOOSER" <-- buggy, fsync() with every keystroke is bad
 CFLAGS="-g"
