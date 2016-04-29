@@ -3,13 +3,15 @@ set -e
 
 gui=gtk3
 ruby=yes
+termtruecolor=no
 for arg; do
     case "$arg" in
-        --help)
+        -h|--help)
             echo "Usage: $0 [options]"
             echo "Options:"
-            echo "  --gtk2     build for GTK+ 2 (default: GTK+ 3)"
-            echo "  --no-ruby  disable :ruby support"
+            echo "  --gtk2              build for GTK+ 2 (default: GTK+ 3)"
+            echo "  --no-ruby           disable :ruby support"
+            echo "  --termtruecolor     enable truecolor support in xterm (default since 7.4.1784)"
             exit
             ;;
         --no-ruby)
@@ -17,6 +19,9 @@ for arg; do
             ;;
         --gtk2)
             gui=gnome2
+            ;;
+        --termtruecolor)
+            termtruecolor=yes
             ;;
         *)
             echo "unrecognized argument: $arg" 1>&2
@@ -43,6 +48,10 @@ fi
 #FEATURES="$FEATURES --enable-tcpinterp"
 FEATURES="$FEATURES --enable-cscope"
 FEATURES="$FEATURES --enable-gpm"
+
+if [ $termtruecolor = yes ]; then
+    FEATURES="$FEATURES --enable-termtruecolor"
+fi
 
 # taken from ubuntu's debian/rules
 FEATURES="$FEATURES --with-x"
