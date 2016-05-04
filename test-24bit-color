@@ -1,0 +1,25 @@
+#!/usr/bin/python
+# Loosely based on https://gist.github.com/XVilka/8346728
+
+import sys
+import curses
+
+fg_color = '\033[48;2;{r};{g};{b}m'
+bg_color = '\033[48;2;{r};{g};{b}m'
+reset = '\033[m'
+
+try:
+    curses.setupterm()
+except Exception:
+    max = 77
+else:
+    max = curses.tigetnum('cols') - 1
+
+for n in range(max):
+    r = 255 - (255 * n // max)
+    g = 510 * n // max
+    if g > 255:
+        g = 510 - g
+    b = 255 * n // max
+    sys.stdout.write('{bg} '.format(bg=bg_color.format(r=r, g=g, b=b)))
+sys.stdout.write('{reset}\n'.format(reset=reset))
