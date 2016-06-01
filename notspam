@@ -2,7 +2,7 @@
 # In mutt, pipe a message through this script to teach Bayesian filters
 if [ -f ~/.hammiedb ]; then
     # we have a local spambayes db
-    mutt_dotlock -r 30 ~/.hammiedb || {
+    mutt_dotlock -r 300 ~/.hammiedb || {
         echo "$0: could not lock ~/.hammiedb" 1>&2
         exit 1
     }
