@@ -1,0 +1,2 @@
+#!/bin/sh
+xinput set-prop 'SynPS/2 Synaptics TouchPad' 'libinput Scroll Method Enabled' --type=int --format=8 0 1 0
