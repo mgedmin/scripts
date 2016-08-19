@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Assuming master is the main branch and first argument is topic branch
+
+branch=origin/${1:?please specify a branch name}
+topicsha=$(git rev-parse "$branch")
+mergebase=$(git merge-base master "$branch")
+
+
+if [[ $topicsha != $mergebase ]]; then
+    # Not merged yet! ez
+    git diff master..."$branch"
+else
+    # Oh no, it's already merged. Find merge in log
+    # This prints sha parent1sha [ parent2sha ... ]
+    mergecommit=$(git log --format='%H %P' "$branch"..master |
+        awk -vtopicsha="$topicsha" ' $3 == topicsha { print $1; exit }'
+    )
+
+    if [[ -n $mergecommit ]]; then
+        # ez
+        git diff "$mergecommit^1...$mergecommit^2"
+    else
+        echo "could not find a merge commit for $branch" >&2;
+        exit 1
+    fi
+fi
