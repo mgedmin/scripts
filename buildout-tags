@@ -10,7 +10,7 @@
 progname=${0##*/}
 
 die() {
-    echo "$progname: $@" 1>&2
+    echo "$progname: $*" 1>&2
     exit 1
 }
 
@@ -19,7 +19,7 @@ dry_run=0
 include_js=0
 system_python=0
 scriptname=
-ctags=ctags-exuberant
+ctags="ctags-exuberant"
 
 for arg; do
     case "$arg" in
@@ -105,5 +105,9 @@ if [ $include_js -eq 0 ]; then
     opts="--languages=-JavaScript"
 fi
 if [ $dry_run -eq 0 ]; then
-    $ctags -R $opts -f .tags.new $paths && mv .tags.new tags || rm .tags.new
+    if $ctags -R $opts -f .tags.new $paths; then
+        mv .tags.new tags
+    else
+        rm -f .tags.new
+    fi
 fi
