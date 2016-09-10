@@ -35,7 +35,8 @@ FEATURES=
 FEATURES="$FEATURES --with-features=huge"  # yum, features
 FEATURES="$FEATURES --enable-multibyte"    # vim is *crippled* without this!
                                            # (BTW 'big' implies this)
-FEATURES="$FEATURES --enable-pythoninterp" # most of my plugins use this
+FEATURES="$FEATURES --enable-pythoninterp=dynamic" # most of my plugins use this
+FEATURES="$FEATURES --enable-python3interp=dynamic"
 if [ $ruby = yes ]; then
     FEATURES="$FEATURES --enable-rubyinterp"   # Command-T wants this
 else
@@ -44,7 +45,6 @@ fi
 #FEATURES="$FEATURES --enable-perlinterp"  # ruby + perl = segfault
 #FEATURES="$FEATURES --enable-luainterp"
 #FEATURES="$FEATURES --enable-mzschemeinterp"
-#FEATURES="$FEATURES --enable-python3interp"
 #FEATURES="$FEATURES --enable-tcpinterp"
 FEATURES="$FEATURES --enable-cscope"
 FEATURES="$FEATURES --enable-gpm"
