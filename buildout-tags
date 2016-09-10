@@ -18,16 +18,20 @@ verbose=0
 dry_run=0
 include_js=0
 system_python=0
+python=
 scriptname=
 ctags="ctags-exuberant"
 
-for arg; do
+while [ $# -ne 0 ]; do
+    arg="$1"
+    shift
     case "$arg" in
         -h|--help)
             echo "Usage: $progname [options] [buildout-generated-script-filename]"
             echo "Options:"
             echo "  -v, --verbose              be verbose"
             echo "  -n, --dry-run              don't run ctags"
+            echo "  -p, --python PYTHON        use the specified python interpreter"
             echo "  -s, --system-python        build tags for system python"
             echo "  -j, --include-javascript   include JS files in tags"
             exit 0
@@ -38,6 +42,14 @@ for arg; do
         -n|--dry-run)
             dry_run=1
             verbose=1
+            ;;
+        -p|--python)
+            test $# -ne 0 || die "$arg requires an argument"
+            python="$1"
+            shift
+            ;;
+        --python=*)
+            python="${arg#--python=}"
             ;;
         -s|--system-python)
             system_python=1
@@ -65,6 +77,8 @@ if [ -n "$scriptname" ] && [ -x "$scriptname" ]; then
     extra_work="exec(open('$scriptname').read(), {});"
 elif [ $system_python -ne 0 ]; then
     python=python
+elif [ -n "$python" ]; then
+    :
 elif [ -x bin/python ]; then
     python=bin/python
 elif [ -x bin/py ]; then
