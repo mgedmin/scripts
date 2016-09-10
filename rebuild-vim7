@@ -69,6 +69,9 @@ if [ -x /usr/bin/dpkg-architecture ]; then
     FEATURES="$FEATURES --with-python-config-dir=/usr/lib/python2.7/config-$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
 fi
 
+# let's not let vim see ~/.venv/bin/ptython
+export PATH=/usr/lib/ccache:/usr/bin:/bin
+
 #CFLAGS="-DUSE_FILE_CHOOSER" <-- buggy, fsync() with every keystroke is bad
 CFLAGS="-g"
 
@@ -84,7 +87,8 @@ rm -f src/auto/config.cache
 CFLAGS="$CFLAGS" ./configure $FEATURES --with-compiledby="$COMPILED_BY" \
 && make -j4 || {
     echo "Consider" 1>&2
-    echo "  sudo apt-get build-dep vim-gnome" 1>&2
+    echo "  sudo apt-get build-dep vim" 1>&2
+    echo "  sudo apt-get install ruby-dev libssl-dev" 1>&2
     exit 1
 }
 # for that matter, if you get
