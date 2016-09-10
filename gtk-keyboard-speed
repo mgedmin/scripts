@@ -9,5 +9,14 @@ fi
 # OOH because I'm skipping the gsettings layer maybe?
 ##test -x /usr/bin/dconf && dconf write /org/gnome/settings-daemon/peripherals/keyboard/delay 250
 if [ -x /usr/bin/gsettings ]; then
-    gsettings set org.gnome.settings-daemon.peripherals.keyboard delay 250
+    # welp in xenial this key does not exist any more so what do I do?
+    ##gsettings set org.gnome.settings-daemon.peripherals.keyboard delay 250
+    # oh it's been moved to deprecated
+    gsettings set org.gnome.settings-daemon.peripherals.keyboard.deprecated:/org/gnome/desktop/peripherals/keyboard/ delay 250
+    # BTW how did I discover this magic?
+    # dconf dump > /tmp/wtf1
+    # use gnome-control-center to adjust the delay
+    # dconf dump > /tmp/wtf2
+    # diff -u /tmp/wtf1 /tmp/wtf2
+    # so maybe dconf write /org/gnome/desktop/peripherals/keyboard/delay 250 would've been simpler
 fi
