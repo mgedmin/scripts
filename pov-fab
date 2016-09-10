@@ -1,6 +1,8 @@
 #!/bin/sh
 test -f ~/src/deployments/fabfile.py || {
-    echo "git clone git@github.com:ProgrammersOfVilnius/deployments ~/src/" 1>&2
+    echo "~/src/deployments/fabfile.py is missing, please run the following command:" 1>&2
+    echo 1>&2
+    echo "  cd ~/src && git clone git@github.com:ProgrammersOfVilnius/deployments" 1>&2
     exit 1
 }
 fab -f ~/src/deployments/fabfile.py "$@"
