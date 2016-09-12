@@ -1,0 +1,11 @@
+#!/bin/sh
+mediakeys=/org/gnome/settings-daemon/plugins/media-keys
+bindings=$mediakeys/custom-keybindings
+dconf write $bindings/custom0/binding "'<Super>t'"
+dconf write $bindings/custom0/command "'gnome-terminal'"
+dconf write $bindings/custom0/name "'Terminalas'"
+dconf write $bindings/custom1/binding "'<Super>g'"
+dconf write $bindings/custom1/command "'gtimelog'"
+dconf write $bindings/custom1/name "'Time Log'"
+dconf write $mediakeys/custom-keybindings "['$bindings/custom0/', '$bindings/custom1/']"
+dconf write $mediakeys/screensaver "'Launch1'"
