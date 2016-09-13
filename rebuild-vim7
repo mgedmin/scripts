@@ -4,11 +4,13 @@ set -e
 gui=gtk3
 ruby=yes
 termtruecolor=no
+pull=no
 for arg; do
     case "$arg" in
         -h|--help)
             echo "Usage: $0 [options]"
             echo "Options:"
+            echo "  --pull              git pull before building"
             echo "  --gtk2              build for GTK+ 2 (default: GTK+ 3)"
             echo "  --no-ruby           disable :ruby support"
             echo "  --termtruecolor     enable truecolor support in xterm (default since 7.4.1784)"
@@ -22,6 +24,9 @@ for arg; do
             ;;
         --termtruecolor)
             termtruecolor=yes
+            ;;
+        --pull)
+            pull=yes
             ;;
         *)
             echo "unrecognized argument: $arg" 1>&2
@@ -81,7 +86,9 @@ test -d ~/src/vim || {
     exit 1
 }
 cd ~/src/vim
-# git pull?
+if [ $pull = yes ]; then
+    git pull
+fi
 # make sure I have all the build-deps?
 rm -f src/auto/config.cache
 CFLAGS="$CFLAGS" ./configure $FEATURES --with-compiledby="$COMPILED_BY" \
