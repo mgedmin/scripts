@@ -1,0 +1,9 @@
+#!/bin/sh
+fuser -s -n tcp 6667 || { ~/bin/irc-tunnel & sleep 1; }
+if [ -x /home/mg/.local/bin/jhbuild ] && [ -x ~/jhbuild/install/bin/polari ] ; then
+    jhbuild run polari
+elif [ -x /usr/bin/flatpak ] && flatpak info org.gnome.Polari >/dev/null 2>&1; then
+    flatpak run org.gnome.Polari
+else
+    /usr/bin/polari
+fi
