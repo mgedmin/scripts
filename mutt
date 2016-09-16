@@ -1,0 +1,6 @@
+#!/bin/sh
+if [ -x ~/src/mutt/mutt ]; then
+    exec ~/src/mutt/mutt "$@"
+else
+    exec /usr/bin/mutt "$@"
+fi

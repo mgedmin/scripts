@@ -1,0 +1,36 @@
+#!/bin/bash
+
+FEATURES=()
+# debian does this:
+FEATURES+=(--with-mailpath=/var/mail)
+#FEATURES+=(--enable-compressed)
+FEATURES+=(--enable-debug)
+FEATURES+=(--enable-fcntl)
+FEATURES+=(--enable-hcache)
+FEATURES+=(--enable-gpgme)
+FEATURES+=(--enable-imap)
+FEATURES+=(--enable-smtp)
+FEATURES+=(--enable-pop)
+FEATURES+=(--enable-sidebar)
+#FEATURES+=(--enable-nntp)
+#FEATURES+=(--enable-notmuch)
+#FEATURES+=(--disable-fmemopen)
+FEATURES+=(--with-curses)
+FEATURES+=(--with-gnutls)
+FEATURES+=(--with-gss)
+FEATURES+=(--with-idn)
+FEATURES+=(--with-mixmaster)
+FEATURES+=(--with-sasl)
+FEATURES+=(--without-gdbm)
+FEATURES+=(--without-bdb)
+FEATURES+=(--without-qdbm)
+# note that upstream doesn't recognize some of these options:
+# configure: WARNING: unrecognized options: --enable-compressed, --enable-nntp, --enable-notmuch, --disable-fmemopen
+
+test -d ~/src/mutt || {
+    echo "To get mutt sources do" 1>&2
+    echo "  git clone hg::https://dev.mutt.org/hg/mutt ~/src/mutt" 1>&2
+    exit 1
+}
+cd ~/src/mutt
+./configure "${FEATURES[@]}" && make -j4

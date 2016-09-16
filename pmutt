@@ -1,8 +1,9 @@
 #!/bin/sh
-if test -d $HOME/Maildir/.IN.personal/; then
+# pmutt stands for "personal mailbox mutt"
+if test -d ~/Maildir/.IN.personal/; then
     # this would be musmire
     mutt -f =.IN.personal
-elif test -d $HOME/Mail/Home/IN.personal/; then
+elif test -d ~/Mail/Home/IN.personal/; then
     # this would be my laptop
     mutt -f =IN.personal
 else
