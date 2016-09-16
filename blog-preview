@@ -1,0 +1,16 @@
+#!/bin/sh
+test -d ~/blog/content || {
+    echo "You don't have ~/blog/content here!"
+    echo
+    echo "  git clone fridge:git/newblog.git ~/blog"
+    echo
+    echo "and try again."
+    exit 1
+} 1>&2
+
+url=http://localhost:1313/blog/
+
+# launch a browser after the web server starts up
+({ wget --retry-connrefused -T 1 -O /dev/null $url && xdg-open $url; } >/dev/null 2>&1) &
+
+make -C ~/blog preview
