@@ -1,0 +1,34 @@
+#!/bin/bash
+# Perhaps a script will make blogging easier for me
+
+test -d ~/blog/content || {
+    echo "You don't have ~/blog/content here!"
+    echo
+    echo "  git clone fridge:git/newblog.git ~/blog"
+    echo
+    echo "and try again."
+    exit 1
+} 1>&2
+
+cd ~/blog/content
+
+file=$1
+
+case "$file" in
+  *.*|"") ;;
+  *) file=$file.md;;
+esac
+
+if test -n "$file" && ! test -f "$file"; then
+  cat > "$file" << END
++++
+title = "${1//-/ }"
+tags = []
+date = "$(date +%Y-%m-%dT%H:%M:%S%z|sed s/00$/:00/)"
+draft = true
++++
+
+END
+fi
+
+vim "$file"
