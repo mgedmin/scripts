@@ -1,4 +1,5 @@
 #!/bin/sh
 sudo true
 echo "Scanning..."
-sudo iwlist wlan0 scan|grep 'ESSID\|Channel:\|Quality'
+IFACE=wlp3s0
+sudo iwlist $IFACE scan|grep 'ESSID\|Channel:\|Quality'
