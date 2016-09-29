@@ -1,4 +1,8 @@
 #!/bin/sh
+if [ -n "$SSH_AGENT_PID" ]; then
+    # See if ssh-agent has any identities, and if not, add some
+    ssh-add -l > /dev/null || ssh-add
+fi
 fuser -s -n tcp 6667 || { ~/bin/irc-tunnel & sleep 1; }
 if [ -x /home/mg/.local/bin/jhbuild ] && [ -x ~/jhbuild/install/bin/polari ] ; then
     jhbuild run polari
