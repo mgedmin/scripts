@@ -22,7 +22,7 @@ while true; do
             ;;
     esac
 done
-cd ~/.xchat2/xchatlogs
+cd ~/.xchat2/xchatlogs || exit 1
 if [ $# -eq 0 ]; then
     args+=(*)
     visible+=("*")
