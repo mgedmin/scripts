@@ -35,7 +35,7 @@ PPA_NAME = 'ppa'
 PACKAGE_WHITELIST = ['gtimelog']
 
 SOURCE_SERIES = 'precise'
-TARGET_SERIESES = ['saucy', 'raring', 'quantal', 'trusty']
+TARGET_SERIESES = ['trusty', 'xenial', 'yakkety']
 POCKET = 'Release'
 
 APP_NAME = 'ppa-gtimelog-copy-packages'
