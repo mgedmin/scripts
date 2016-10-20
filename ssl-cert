@@ -1,0 +1,6 @@
+#!/bin/sh
+domain=${1:?usage: $0 www.example.org}
+shift
+set -x
+openssl s_client -CApath /etc/ssl/certs -connect "$domain":443 \
+                 -servername "$domain" -verify_hostname "$domain" "$@" < /dev/null
