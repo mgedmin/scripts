@@ -1,37 +1,58 @@
 #!/bin/bash
 
-FEATURES=()
-FEATURES+=(--sysconfdir=/etc)  # so it reads /etc/Muttrc
-# debian does this:
-FEATURES+=(--with-mailpath=/var/mail)
-#FEATURES+=(--enable-compressed)
-FEATURES+=(--enable-debug)
-FEATURES+=(--enable-fcntl)
-FEATURES+=(--enable-hcache)
-FEATURES+=(--enable-gpgme)
-FEATURES+=(--enable-imap)
-FEATURES+=(--enable-smtp)
-FEATURES+=(--enable-pop)
-FEATURES+=(--enable-sidebar)
-#FEATURES+=(--enable-nntp)
-#FEATURES+=(--enable-notmuch)
-#FEATURES+=(--disable-fmemopen)
-FEATURES+=(--with-curses)
-FEATURES+=(--with-gnutls)
-FEATURES+=(--with-gss)
-FEATURES+=(--with-idn)
-FEATURES+=(--with-mixmaster)
-FEATURES+=(--with-sasl)
-FEATURES+=(--without-gdbm)
-FEATURES+=(--without-bdb)
-FEATURES+=(--without-qdbm)
-# note that upstream doesn't recognize some of these options:
-# configure: WARNING: unrecognized options: --enable-compressed, --enable-nntp, --enable-notmuch, --disable-fmemopen
+pull=no
 
-test -d ~/src/mutt || {
+for arg; do
+    case "$arg" in
+        -h|--help)
+            echo "Usage: $0 [options]"
+            echo "Options:"
+            echo "  --pull              git pull before building"
+            exit
+            ;;
+        --pull)
+            pull=yes
+            ;;
+        *)
+            echo "unrecognized argument: $arg" 1>&2
+            exit 1
+            ;;
+    esac
+done
+
+FEATURES=()
+# ubuntu does this:
+FEATURES+=(--with-mailpath=/var/mail)
+FEATURES+=(--enable-compressed      )
+FEATURES+=(--enable-debug           )
+FEATURES+=(--enable-fcntl           )
+FEATURES+=(--enable-hcache          )
+FEATURES+=(--enable-gpgme           )
+FEATURES+=(--enable-imap            )
+FEATURES+=(--enable-smtp            )
+FEATURES+=(--enable-pop             )
+FEATURES+=(--enable-sidebar         )
+FEATURES+=(--enable-nntp            )
+FEATURES+=(--enable-notmuch         )
+FEATURES+=(--disable-fmemopen       )
+FEATURES+=(--with-curses            )
+FEATURES+=(--with-gnutls            )
+FEATURES+=(--with-gss               )
+FEATURES+=(--with-idn               )
+FEATURES+=(--with-mixmaster         )
+FEATURES+=(--with-sasl              )
+FEATURES+=(--without-gdbm           )
+FEATURES+=(--without-bdb            )
+FEATURES+=(--without-qdbm           )
+
+cd ~/src/neomutt ||{
     echo "To get mutt sources do" 1>&2
-    echo "  git clone hg::https://dev.mutt.org/hg/mutt ~/src/mutt" 1>&2
+    echo "  git clone https://github.com/neomutt/neomutt ~/src/neomutt" 1>&2
     exit 1
 }
-cd ~/src/mutt
-./configure "${FEATURES[@]}" && make clean && make -j4
+
+if [ $pull = yes ]; then
+    git pull
+fi
+
+./prepare "${FEATURES[@]}" && make clean && make -j4
