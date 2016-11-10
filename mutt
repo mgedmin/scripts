@@ -1,0 +1,7 @@
+#!/bin/bash
+where=~/src/neomutt
+if [ -x $where/mutt ]; then
+    exec $where/mutt "$@"
+else
+    exec /usr/bin/mutt "$@"
+fi
