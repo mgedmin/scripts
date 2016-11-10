@@ -27,6 +27,9 @@ for arg; do
 done
 
 FEATURES=(
+    # I think debhelper implicitly adds this; anyway I need it to look for
+    # mutt_dotlock in /usr/bin/ instead of /usr/local/bin/
+    --prefix=/usr
     # debian's mutt (1.6.2-3) does this:
     --with-mailpath=/var/mail
     --enable-compressed
