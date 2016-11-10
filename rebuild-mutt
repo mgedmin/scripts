@@ -75,9 +75,11 @@ BUILDDEPS=(
     zlib1g-dev
 )
 
-cd ~/src/neomutt || {
+cd ~/src/neomutt 2>/dev/null || {
     echo "To get mutt sources do" 1>&2
+    echo
     echo "  git clone https://github.com/neomutt/neomutt ~/src/neomutt" 1>&2
+    echo
     read -r -p "Would you like me to run that for you now? [y/N] " answer
     if [ "$answer" = "y" ]; then
         git clone https://github.com/neomutt/neomutt ~/src/neomutt && cd ~/src/neomutt || exit 1
