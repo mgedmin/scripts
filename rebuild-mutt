@@ -1,17 +1,23 @@
 #!/bin/bash
 
 pull=no
+builddeps=no
 
 for arg; do
     case "$arg" in
         -h|--help)
-            echo "Usage: $0 [options]"
+            echo "Usage: $(basename "$0") [options]"
+            echo
             echo "Options:"
             echo "  --pull              git pull before building"
+            echo "  --build-deps        sudo apt install build dependencies"
             exit
             ;;
         --pull)
             pull=yes
+            ;;
+        --build-deps)
+            builddeps=yes
             ;;
         *)
             echo "unrecognized argument: $arg" 1>&2
@@ -20,30 +26,54 @@ for arg; do
     esac
 done
 
-FEATURES=()
-# ubuntu does this:
-FEATURES+=(--with-mailpath=/var/mail)
-FEATURES+=(--enable-compressed      )
-FEATURES+=(--enable-debug           )
-FEATURES+=(--enable-fcntl           )
-FEATURES+=(--enable-hcache          )
-FEATURES+=(--enable-gpgme           )
-FEATURES+=(--enable-imap            )
-FEATURES+=(--enable-smtp            )
-FEATURES+=(--enable-pop             )
-FEATURES+=(--enable-sidebar         )
-FEATURES+=(--enable-nntp            )
-FEATURES+=(--enable-notmuch         )
-FEATURES+=(--disable-fmemopen       )
-FEATURES+=(--with-curses            )
-FEATURES+=(--with-gnutls            )
-FEATURES+=(--with-gss               )
-FEATURES+=(--with-idn               )
-FEATURES+=(--with-mixmaster         )
-FEATURES+=(--with-sasl              )
-FEATURES+=(--without-gdbm           )
-FEATURES+=(--without-bdb            )
-FEATURES+=(--without-qdbm           )
+FEATURES=(
+    # debian's mutt (1.6.2-3) does this:
+    --with-mailpath=/var/mail
+    --enable-compressed
+    --enable-debug
+    --enable-fcntl
+    --enable-hcache
+    --enable-gpgme
+    --enable-imap
+    --enable-smtp
+    --enable-pop
+    --enable-sidebar
+    --enable-nntp
+    --enable-notmuch
+    --disable-fmemopen
+    --with-curses
+    --with-gnutls
+    --with-gss
+    --with-idn
+    --with-mixmaster
+    --with-sasl
+    --without-gdbm
+    --without-bdb
+    --without-qdbm
+)
+
+BUILDDEPS=(
+    # debian's mutt (1.6.2-3) depends on this:
+    debhelper
+    dh-autoreconf
+    docbook-xml
+    docbook-xsl
+    gawk
+    gettext
+    libgnutls28-dev
+    libgpgme11-dev
+    libidn11-dev
+    libkrb5-dev
+    libnotmuch-dev
+    libncurses5-dev
+    libncursesw5-dev
+    libsasl2-dev
+    libtokyocabinet-dev
+    pkg-config
+    w3m
+    xsltproc
+    zlib1g-dev
+)
 
 cd ~/src/neomutt || {
     echo "To get mutt sources do" 1>&2
@@ -58,6 +88,10 @@ cd ~/src/neomutt || {
 
 if [ $pull = yes ]; then
     git pull
+fi
+
+if [ $builddeps = yes ]; then
+    sudo apt install "${BUILDDEPS[@]}"
 fi
 
 ./prepare "${FEATURES[@]}" && make clean && make -j4
