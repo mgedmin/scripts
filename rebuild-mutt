@@ -28,8 +28,10 @@ done
 
 FEATURES=(
     # I think debhelper implicitly adds this; anyway I need it to look for
-    # mutt_dotlock in /usr/bin/ instead of /usr/local/bin/
+    # mutt_dotlock in /usr/bin/ instead of /usr/local/bin/ and config in
+    # /etc/Muttrc instead of /usr/local/etc/ or /usr/etc/
     --prefix=/usr
+    --sysconfdir=/etc
     # debian's mutt (1.6.2-3) does this:
     --with-mailpath=/var/mail
     --enable-compressed
