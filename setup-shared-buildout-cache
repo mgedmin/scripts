@@ -1,0 +1,9 @@
+#!/bin/bash
+set -x
+mkdir -p ~/.cache/buildout/{eggs,downloads,extends} ~/.buildout
+test -f ~/.buildout/default.cfg || cat > ~/.buildout/default.cfg <<.
+[buildout]
+eggs-directory = $HOME/.cache/buildout/eggs/
+download-cache = $HOME/.cache/buildout/downloads/
+extends-cache  = $HOME/.cache/buildout/extends/
+.
