@@ -1,0 +1,49 @@
+#!/bin/bash
+set -e
+
+pull=no
+branch=
+for arg; do
+    case "$arg" in
+        -h|--help)
+            echo "Usage: $0 [options]"
+            echo "Options:"
+            echo "  --pull              git pull before building"
+            echo "  --branch=BRANCH     git checkout BRANCH before building"
+            exit
+            ;;
+        --pull)
+            pull=yes
+            ;;
+        --branch=*)
+            branch=${arg%--branch=}
+            ;;
+        *)
+            echo "unrecognized argument: $arg" 1>&2
+            exit 1
+            ;;
+    esac
+done
+
+test -d ~/src/cpython || {
+    echo "To get CPython sources do" 1>&2
+    echo "  git clone https://github.com/python/cpython/ ~/src/cpython" 1>&2
+    exit 1
+}
+cd ~/src/cpython
+if [ -n "$branch" ]; then
+    git checkout "$branch"
+fi
+if [ $pull = yes ]; then
+    git pull
+fi
+
+
+version=$(perl -ne '/^m4_define[(]PYTHON_VERSION, (.*)[)]/ and print $1' configure.ac | tr -d .)
+test -n "$version" || {
+    echo "Failed to determine Python version from configure.ac" 1>&2
+    exit 1
+}
+./configure --prefix="$HOME/opt/python${version//./}"
+make -j4
+make install
