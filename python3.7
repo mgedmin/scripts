@@ -1,0 +1,6 @@
+#!/bin/sh
+if [ -x ~/opt/python37/bin/python3.7 ]; then
+    exec ~/opt/python37/bin/python3.7 "$@"
+else
+    exec /usr/bin/python3.7 "$@"
+fi
