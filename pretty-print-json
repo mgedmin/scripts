@@ -2,23 +2,30 @@
 import sys
 import json
 import argparse
+import functools
 
 
 def main():
     parser = argparse.ArgumentParser(description="Pretty-print JSON")
+    parser.add_argument('-i', '--indent', metavar='indent', type=int, default=4)
     parser.add_argument('filenames', metavar='file', nargs='*', default=['-'])
     args = parser.parse_args()
+    doit = functools.partial(pretty_print, indent=args.indent)
     for fn in args.filenames:
         if fn == '-':
-            pretty_print(sys.stdin)
+            doit(sys.stdin, fn)
         else:
             with open(fn) as f:
-                pretty_print(f)
+                doit(f, fn)
 
 
-def pretty_print(fp):
-    json.dump(json.load(fp), sys.stdout, ensure_ascii=False, sort_keys=True,
-              indent=4, separators=(',', ': '))
+def pretty_print(fp, filename, indent=4):
+    try:
+        json.dump(json.load(fp), sys.stdout, ensure_ascii=False, sort_keys=True,
+                  indent=indent, separators=(',', ': '))
+    except json.JSONDecodeError as e:
+        sys.exit('{filename}:{lineno}:{colno}: {error}'.format(
+            filename=filename, lineno=e.lineno, colno=e.colno, error=e.msg))
 
 
 if __name__ == '__main__':
