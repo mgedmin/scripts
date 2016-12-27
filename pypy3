@@ -1,0 +1,13 @@
+#!/bin/sh
+if ! [ -d ~/opt/pypy3-v5.5.0-linux64 ]; then
+    cat 1>&2 <<.
+To install pypy3 please do
+
+  wget https://bitbucket.org/pypy/pypy/downloads/pypy3.3-v5.5.0-alpha-linux64.tar.bz2
+  mkdir -p ~/opt
+  tar -xf pypy3.3-v5.5.0-alpha-linux64.tar.bz2 -C ~/opt
+
+.
+    exit 1
+fi
+exec ~/opt/pypy3-v5.5.0-linux64/bin/pypy3 "$@"
