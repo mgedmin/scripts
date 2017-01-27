@@ -91,8 +91,8 @@ while (<>) {
   # check-health
   s/((?:is low on disk space|too much swap used) \(\d+)(\d)\d\d\d\d\d\)/$1.$2G)/;
   s/((?:is low on disk space|too much swap used) \(\d+)\d\d\d\)/$1M)/;
-  s{HTTP WARNING: HTTP/1.1 401 Unauthorized - \d+ bytes in \d+\.\d+ second response time \|time=\d+\.\d+s;;;0.000000 size=\d+B;;;0}
-   {HTTP WARNING: HTTP/1.1 401 Unauthorized - (n) bytes in (s) second response time |time=(s)s;;;0.000000 size=(n)B;;;0};
+  s{HTTP (WARNING|CRITICAL): HTTP/1.1 (\d+ .*) - \d+ bytes in \d+\.\d+ second response time \|time=\d+\.\d+s;;;0.000000 size=\d+B;;;0}
+   {HTTP $1: HTTP/1.1 $2 - (n) bytes in (s) second response time |time=(s)s;;;0.000000 size=(n)B;;;0};
   s/load average: (\d+)\.\d+, (\d+)\.\d+, (\d+)\.\d+/load average: $1.xx, $2.xx, $3.xx/;
   # apt-get
   s{^\(Reading database \.\.\. \d+ files and directories currently installed}{(Reading database ... (n) files and directories currently installed};
