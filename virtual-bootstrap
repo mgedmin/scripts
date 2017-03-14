@@ -2,7 +2,7 @@
 progname="${0##*/}"
 python="${progname#virtual-bootstrap-}"
 case "$python" in
-    "")         python=python;;
+    virtual-bootstrap) python=python;;
     py[23])     python=python${python#py};;
     py2[0-9])   python=python2.${python#py2};;
     py3[0-9])   python=python3.${python#py3};;
