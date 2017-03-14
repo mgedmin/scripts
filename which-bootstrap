@@ -39,6 +39,10 @@ case "$checksum" in
         echo "you've got the unreleased v2.3.2? bootstrap.py"
         echo "https://raw.githubusercontent.com/buildout/buildout/master/bootstrap/bootstrap.py"
         ;;
+    51a2cdc12dc51f6b135ce0a48c34b4d18c0bc663*)
+        echo "you've got bootstrap.py version 2015-07-01 which is the latest one at the moment"
+        echo "https://bootstrap.pypa.io/bootstrap-buildout.py"
+        ;;
     *)
         echo "you've got some obsolete bootstrap.py probably"
         exit 1
