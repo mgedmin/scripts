@@ -1,8 +1,57 @@
-#!/bin/sh
+#!/bin/bash
+
+pull=no
+git_clean=no
+clean=no
+helptags=no
+for arg; do
+    case "$arg" in
+        -h|--help)
+            echo "Usage: $0 [options]"
+            echo "Options:"
+            echo "  --pull              git pull before building"
+            echo "  --git-clean         run git clean -dfx before building"
+            echo "  --clean             run make clean before building"
+            echo "  --helptags          rebuild helptags after building"
+            exit
+            ;;
+        --pull)
+            pull=yes
+            ;;
+        --git-clean)
+            git_clean=yes
+            ;;
+        --clean)
+            clean=yes
+            ;;
+        --helptags)
+            helptags=yes
+            ;;
+        *)
+            echo "unrecognized argument: $arg" 1>&2
+            exit 1
+            ;;
+    esac
+done
+
 test -d ~/src/neovim || {
     echo "To get neovim sources do" 1>&2
     echo "  git clone https://github.com/neovim/neovim ~/src/neovim" 1>&2
     exit 1
 }
-cd ~/src/neovim
+cd ~/src/neovim || exit 1
+if [ $pull = yes ]; then
+    git pull
+fi
+if [ $git_clean = yes ]; then
+    git clean -dfx
+fi
+if [ $clean = yes ]; then
+    make clean
+fi
 make
+if [ $helptags = yes ]; then
+    # for some reason 'make helptags' doesn't build them
+    VIMRUNTIME=runtime build/bin/nvim +':helptags runtime/doc/' +q
+fi
+

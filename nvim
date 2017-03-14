@@ -5,7 +5,11 @@
 #   git clone https://github.com/neovim/neovim
 #   cd neovim
 #   make
-#   nvim +':helptags ~/src/neovim/runtime/doc/' +q
+#   nvim +':helptags runtime/doc/' +q
 #
+
+test -d ~/.config/nvim || mkdir -p ~/.config/nvim
+test -e ~/.config/nvim/init.vim || ln -sr ~/.vim/vimrc ~/.config/nvim/init.vim
+
 nvimhome=$HOME/src/neovim
-VIMRUNTIME=$nvimhome/runtime $nvimhome/build/bin/nvim "$@"
+VIMRUNTIME=$nvimhome/runtime "$nvimhome"/build/bin/nvim "$@"
