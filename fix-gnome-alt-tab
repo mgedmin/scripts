@@ -1,0 +1,4 @@
+#!/bin/sh
+# make alt-tab switch windows, not applications
+gsettings set org.gnome.desktop.wm.keybindings switch-applications '@as []'
+gsettings set org.gnome.desktop.wm.keybindings switch-windows '["<Alt>Tab"]'
