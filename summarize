@@ -102,6 +102,9 @@ while (<>) {
   s{^Get: ?\d+ https?://\S+ \S+ \S+ \S+ (?:\S+ )?\[[0-9,]+(\.\d+)? ?[kMG]?B\]}{Get: (n) (repository) (component) (package) (version) [(size)]};
   s{^Need to get ([0-9,]+(\.\d+)? ?[kMG]?B/)?[0-9,]+(\.\d+)? ?[kMG]?B of archives.}{Need to get (bytes) of archives};
   s{^\d+ upgraded, \d+ newly installed, \d+ to remove and \d+ not upgraded.}{(n) upgraded, (n) newly installed, (n) to remove and (n) not upgraded.};
+  # unattended-upgrades
+  s{Log (started|ended): \d+-\d+-\d+  \d+:\d+:\d+}{Log $1: YYYY-MM-DD  HH:MM:SS};
+  s{(Writing dpkg log to '/var/log/unattended-upgrades/unattended-upgrades-dpkg_)\d+-\d+-\d+_\d+:\d+:\d+.\d+.log'}{$1YYYY-MM-DD_HH:MM:SS.ssssss.log'};
   # gutsy is out of date
   s{(Failed to fetch http://[^/ ]+[.]ubuntu[.]com/ubuntu/dists/gutsy)[^ ]*}{$1/...};
   # iptables
