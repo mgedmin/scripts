@@ -56,9 +56,9 @@ find "${paths[@]}" \
          -name '.tox' -o \
          -name '.eggs' -o \
          -name '.env' -o \
+         -name '.venv' -o \
          -name 'junk' -o \
          -name 'build' -o \
-         -name 'lib' -o \
          -name 'ftest-coverage' -o \
          -name 'htmlcov' -o \
          -name 'dist' ')' -prune -o \
