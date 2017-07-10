@@ -1,2 +1,2 @@
 #!/bin/sh
-screen -dRS mutt mutt
+screen -dRS mutt mutt "$@"
