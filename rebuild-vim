@@ -3,6 +3,7 @@ set -e
 
 gui=gtk3
 ruby=yes
+terminal=yes
 termtruecolor=no
 pull=no
 for arg; do
@@ -13,11 +14,15 @@ for arg; do
             echo "  --pull              git pull before building"
             echo "  --gtk2              build for GTK+ 2 (default: GTK+ 3)"
             echo "  --no-ruby           disable :ruby support"
+            echo "  --no-terminal       disable :terminal support"
             echo "  --termtruecolor     enable truecolor support in xterm (default since 7.4.1784)"
             exit
             ;;
         --no-ruby)
             ruby=no
+            ;;
+        --no-terminal)
+            terminal=no
             ;;
         --gtk2)
             gui=gnome2
@@ -46,6 +51,11 @@ if [ $ruby = yes ]; then
     FEATURES="$FEATURES --enable-rubyinterp"   # Command-T wants this
 else
     FEATURES="$FEATURES --disable-rubyinterp"
+fi
+if [ $terminal = yes ]; then
+    FEATURES="$FEATURES --enable-terminal"
+else
+    FEATURES="$FEATURES --disable-terminal"
 fi
 #FEATURES="$FEATURES --enable-perlinterp"  # ruby + perl = segfault
 #FEATURES="$FEATURES --enable-luainterp"
