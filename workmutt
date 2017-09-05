@@ -1,0 +1,2 @@
+#!/bin/sh
+mutt -f imaps://fridge/ "$@"
