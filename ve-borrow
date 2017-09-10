@@ -1,0 +1,66 @@
+#!/usr/bin/env python
+"""Borrow a system Python package and make it available in a virtualenv."""
+
+import argparse
+import os
+import sys
+
+
+__version__ = '0.1'
+
+
+def get_python_version(ve_dir):
+    """Determine the version of the Python used in a virtualenv."""
+    if not os.path.isfile(os.path.join(ve_dir, 'bin', 'python')):
+        sys.exit("not a virtualenv: {}/bin/python does not exist".format(
+            ve_dir))
+    versions = os.listdir(os.path.join(ve_dir, 'lib'))
+    if len(versions) != 1:
+        sys.exit("not a virtualenv: {}/lib has more than one entry".format(
+            ve_dir))
+    if not versions[0].startswith('python'):
+        sys.exit("not a virtualenv: {}/lib/python* does not exist".format(
+            ve_dir))
+    return versions[0][len('python'):]
+
+
+def find_package(python_version, package_name):
+    for site_dir in 'site-packages', 'dist-packages':
+        candidate = os.path.join(
+            '/usr/lib/python' + python_version, site_dir, package_name)
+        if os.path.isdir(candidate):
+            return candidate
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--version', action='version',
+                        version="%(prog)s version " + __version__)
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='show symlinks being created')
+    parser.add_argument('-n', '--dry-run', action='store_true',
+                        help="don't actually create symlinks (implies -v)")
+    parser.add_argument('ve_path', metavar='ve-path',
+                        help='path to a virtualenv')
+    parser.add_argument('package_name', metavar='package-name', nargs='+',
+                        help='name of a Python package')
+    args = parser.parse_args()
+
+    python_version = get_python_version(args.ve_path)
+    ve_site_package_dir = os.path.join(
+        args.ve_path, 'lib', 'python' + python_version, 'site-packages')
+
+    for package in args.package_name:
+        link_path = os.path.join(ve_site_package_dir, package)
+        link_target = find_package(python_version, package)
+        if not link_target:
+            sys.exit("couldn't find {} in /usr/lib/python{}".format(
+                package, python_version))
+        if args.verbose or args.dry_run:
+            print("ln -s {} {}".format(link_target, link_path))
+        if not args.dry_run:
+            os.symlink(link_target, link_path)
+
+
+if __name__ == '__main__':
+    main()
