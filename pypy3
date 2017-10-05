@@ -1,13 +1,16 @@
 #!/bin/sh
-if ! [ -d ~/opt/pypy3-v5.5.0-linux64 ]; then
+pypy_url=https://bitbucket.org/pypy/pypy/downloads/pypy3-v5.9.0-linux64.tar.bz2
+pypy_name=pypy3-v5.9.0-linux64
+
+if ! [ -d ~/opt/${pypy_name} ]; then
     cat 1>&2 <<.
 To install pypy3 please do
 
-  wget https://bitbucket.org/pypy/pypy/downloads/pypy3.3-v5.5.0-alpha-linux64.tar.bz2
+  wget ${pypy_url}
   mkdir -p ~/opt
-  tar -xf pypy3.3-v5.5.0-alpha-linux64.tar.bz2 -C ~/opt
+  tar -xf ${pypy_url##*/} -C ~/opt
 
 .
     exit 1
 fi
-exec ~/opt/pypy3-v5.5.0-linux64/bin/pypy3 "$@"
+exec ~/opt/${pypy_name}/bin/pypy3 "$@"
