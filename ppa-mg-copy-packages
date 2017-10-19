@@ -37,7 +37,7 @@ except ImportError:
 
 
 __author__ = 'Marius Gedminas <marius@pov.lt>'
-__version__ = '1.4.2'
+__version__ = '1.4.4'
 
 
 #
@@ -50,8 +50,14 @@ PACKAGE_WHITELIST = [
     'pwsafe',
 ]
 
-SOURCE_SERIES = 'precise'
-TARGET_SERIESES = ['trusty', 'xenial', 'yakkety', 'zesty']
+SOURCE_SERIES = 'precise'  # aka 12.04 LTS
+TARGET_SERIESES = [
+    'trusty',   # aka 14.04 LTS
+    'xenial',   # aka 16.04 LTS
+    'yakkety',  # aka 16.10
+    'zesty',    # aka 17.04
+    'artful',   # aka 17.10
+]
 ARCHITECTURES = ['i386', 'amd64']
 POCKET = 'Release'
 
@@ -82,7 +88,8 @@ class DebugFormatter(logging.Formatter):
         LAST_LOG_TIME = now
         delta_requests = REQUESTS - LAST_REQUESTS
         LAST_REQUESTS = REQUESTS
-        return "\n%.3fs (%+.3fs) [%d/+%d] %s" % (elapsed, delta, REQUESTS, delta_requests, msg)
+        return "\n%.3fs (%+.3fs) [%d/+%d] %s" % (elapsed, delta, REQUESTS,
+                                                 delta_requests, msg)
 
 
 def enable_http_debugging():
@@ -93,11 +100,13 @@ def enable_http_debugging():
 def install_request_counter():
     import httplib2
     orig = httplib2.Http.request
+
     @functools.wraps(orig)
     def wrapper(*args, **kw):
         global REQUESTS
         REQUESTS += 1
         return orig(*args, **kw)
+
     httplib2.Http.request = wrapper
 
 
@@ -135,6 +144,7 @@ class once(object):
 def cache(fn):
     """Trivial memoization decorator."""
     cache = fn.cache = {}
+
     @functools.wraps(fn)
     def inner(*args):
         # The way we use the cache is suboptimal for methods: it is
@@ -185,7 +195,8 @@ class LaunchpadWrapper(object):
     def lp(self):
         log.debug("Logging in...")
         # cost: 2 HTTP requests
-        return Launchpad.login_with(self.application_name, self.launchpad_instance)
+        return Launchpad.login_with(self.application_name,
+                                    self.launchpad_instance)
 
     @once
     def owner(self):
@@ -210,7 +221,7 @@ class LaunchpadWrapper(object):
 
     @cache
     def get_arch_series(self, name, archtag):
-        series = self.get_series(name) # ensure correct ordering of debug messages
+        series = self.get_series(name)  # ensure correct ordering of messages
         log.debug("Locating the arch series: %s %s...", name, archtag)
         # cost: 1 HTTP request
         return series.getDistroArchSeries(archtag=archtag)
@@ -285,7 +296,8 @@ class LaunchpadWrapper(object):
     def has_published_binaries(self, name, version, series_name):
         for archtag in ARCHITECTURES:
             binaries = self.get_published_binaries(series_name, archtag)
-            if not any(b.binary_package_name == name and b.binary_package_version == version
+            if not any(b.binary_package_name == name
+                       and b.binary_package_version == version
                        for b in binaries):
                 log.debug("%s %s has no published binary for %s %s",
                           name, version, series_name, archtag)
@@ -303,7 +315,7 @@ class LaunchpadWrapper(object):
             version = source.source_package_version
             if source.status in ('Superseded', 'Deleted', 'Obsolete'):
                 log.debug("%s %s is %s in %s", name, version,
-                         source.status.lower(), series_name)
+                          source.status.lower(), series_name)
                 continue
             if source.status != ('Published'):
                 if source.status == 'Pending':
@@ -319,7 +331,7 @@ class LaunchpadWrapper(object):
 
     def perform_queued_copies(self, dry_run=False):
         first = True
-        for (source_series, target_series, pocket), names in self.queue.items():
+        for (src_series, target_series, pocket), names in self.queue.items():
             if not names:
                 continue
             if first:
@@ -375,12 +387,13 @@ def process_packages(lp, dry_run):
                                  (source.status.lower(), target_series_name)))
                 notices.append("  but it is %s in %s" %
                                (source.status.lower(), target_series_name))
-            elif not lp.has_published_binaries(name, version, target_series_name):
+            elif not lp.has_published_binaries(name, version,
+                                               target_series_name):
                 builds = lp.get_builds_for(name, version, target_series_name)
                 if builds:
                     notices.append("  but binaries aren't published yet for %s (state: %s) - %s" %
                                    (target_series_name, builds[0].buildstate,
-                                   builds[0].web_link))
+                                    builds[0].web_link))
         if not mentioned or notices:
             log.info("%s %s", name, version)
             for notice in notices:
@@ -391,17 +404,25 @@ def process_packages(lp, dry_run):
 
 
 def main():
-    parser = optparse.OptionParser('usage: %prog [options]',
-        description="copy ppa:%s/%s packages from %s to %s"
-                    % (PPA_OWNER, PPA_NAME, SOURCE_SERIES, ', '.join(TARGET_SERIESES)))
-    parser.add_option('-v', '--verbose', action='count')
-    parser.add_option('-q', '--quiet', action='store_true')
-    parser.add_option('-n', '--dry-run', action='store_true')
-    parser.add_option('-w', '--wait', action='store_true',
-                      help="Wait for pending packages to be published")
-    parser.add_option('-b', '--browse', action='store_true',
-                      help="Open the PPA page in a browser, don't do anything else.")
-    parser.add_option('--debug', action='store_true')
+    parser = optparse.OptionParser(
+        'usage: %prog [options]',
+        description=("copy ppa:%s/%s packages from %s to %s"
+                     % (PPA_OWNER, PPA_NAME,
+                        SOURCE_SERIES, ', '.join(TARGET_SERIESES))))
+    parser.add_option(
+        '-v', '--verbose', action='count')
+    parser.add_option(
+        '-q', '--quiet', action='store_true')
+    parser.add_option(
+        '-n', '--dry-run', action='store_true')
+    parser.add_option(
+        '-w', '--wait', action='store_true',
+        help="Wait for pending packages to be published")
+    parser.add_option(
+        '-b', '--browse', action='store_true',
+        help="Open the PPA page in a browser, don't do anything else.")
+    parser.add_option(
+        '--debug', action='store_true')
     opts, args = parser.parse_args()
 
     if opts.browse:

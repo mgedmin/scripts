@@ -22,7 +22,7 @@ from launchpadlib.launchpad import Launchpad
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '1.0'
+__version__ = '1.0.1'
 __url__ = 'https://gist.github.com/mgedmin/7689218'
 
 
@@ -35,7 +35,7 @@ PPA_NAME = 'ppa'
 PACKAGE_WHITELIST = ['gtimelog']
 
 SOURCE_SERIES = 'precise'
-TARGET_SERIESES = ['trusty', 'xenial', 'yakkety', 'zesty']
+TARGET_SERIESES = ['trusty', 'xenial', 'yakkety', 'zesty', 'artful']
 POCKET = 'Release'
 
 APP_NAME = 'ppa-gtimelog-copy-packages'
