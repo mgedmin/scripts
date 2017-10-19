@@ -1,2 +1,2 @@
 #!/bin/sh
-rdesktop -k en-us -g 1024x700 -u mg -p - -r clipboard:CLIPBOARD langas.gedmin.as
+rdesktop -k en-us -g 1024x700 -u mg -p - -r clipboard:CLIPBOARD -r disk:pub=$HOME/pub langas.gedmin.as
