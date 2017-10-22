@@ -211,7 +211,7 @@ def report_diag(w_px, h_px, d):
     report_dpi(hdpi, vdpi)
 
 
-def report_name(name, _first=[True]):
+def report_name(name, w_px, h_px, _first=[True]):
     """Report the name of the monitor connection.
 
     Stateful: adds blank lines between invocations.  Bleugh.
@@ -220,7 +220,7 @@ def report_name(name, _first=[True]):
         _first[0] = False
     else:
         print("")
-    print(name)
+    print("%s (%dx%d)" % (name, w_px, h_px))
 
 
 def report_size(d):
@@ -258,7 +258,7 @@ def main():
     if len(args) == 0:
         monitors = get_xrandr_output()
         for (name, w_px, h_px, w_mm, h_mm) in monitors:
-            report_name(name)
+            report_name(name, w_px, h_px)
             report_mm(w_px, h_px, w_mm, h_mm)
         return
     if len(args) < 3:
