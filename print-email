@@ -1,9 +1,16 @@
 #!/bin/sh
 # Inspired by http://terminalmage.net/2011/10/12/printing-to-pdf-in-mutt.html
-# NB: enscript can't UTF-8 which makes this very much useless
+# and https://unix.stackexchange.com/questions/20456/pretty-print-mails-from-mutt
 
 mkdir -p ~/tmp || exit 1
 outfile=$(mktemp ~/tmp/mutt_XXXXXXXX.pdf)
-enscript -G --word-wrap --mark-wrapped-lines=arrow --pretty-print=mail -o - | ps2pdf - "$outfile"
+
+# NB: enscript can't UTF-8 which makes this very much useless
+# enscript -G --word-wrap --mark-wrapped-lines=arrow --pretty-print=mail -o - | ps2pdf - "$outfile"
+
+# this one goes through LaTeX and is kind of shitty, but at least it kind of
+# supports UTF-8.
+muttprint -P A4 -p - | ps2pdf - "$outfile"
+
 evince "$outfile"
 rm "$outfile"
