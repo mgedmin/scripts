@@ -1,0 +1,9 @@
+#!/bin/sh
+# Inspired by http://terminalmage.net/2011/10/12/printing-to-pdf-in-mutt.html
+# NB: enscript can't UTF-8 which makes this very much useless
+
+mkdir -p ~/tmp || exit 1
+outfile=$(mktemp ~/tmp/mutt_XXXXXXXX.pdf)
+enscript -G --word-wrap --mark-wrapped-lines=arrow --pretty-print=mail -o - | ps2pdf - "$outfile"
+evince "$outfile"
+rm "$outfile"
