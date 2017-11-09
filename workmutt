@@ -1,2 +1,2 @@
 #!/bin/sh
-mutt -f imaps://fridge/ "$@"
+exec mutt -f imaps://fridge/ "$@"

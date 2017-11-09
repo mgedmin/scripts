@@ -2,11 +2,11 @@
 # pmutt stands for "personal mailbox mutt"
 if test -d ~/Maildir/.IN.personal/; then
     # this would be musmire
-    mutt -f =.IN.personal
+    exec mutt -f =.IN.personal
 elif test -d ~/Mail/Home/IN.personal/; then
     # this would be my laptop
-    mutt -f =IN.personal
+    exec mutt -f =IN.personal
 else
     # this would be fridge, probably
-    mutt
+    exec mutt
 fi
