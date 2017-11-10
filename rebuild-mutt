@@ -30,20 +30,22 @@ FEATURES=(
     # I think debhelper implicitly adds this; anyway I need it to look for
     # mutt_dotlock in /usr/bin/ instead of /usr/local/bin/ and config in
     # /etc/Muttrc instead of /usr/local/etc/ or /usr/etc/
-    --prefix=/usr
-    --sysconfdir=/etc
-    # debian's mutt (1.6.2-3) does this:
-    --with-mailpath=/var/mail
+    "--prefix=/usr"
+    "--sysconfdir=/etc"
+    # Ubuntu's mutt (1.8.3+neomutt20170609-2build1) does this:
+    "--with-mailpath=/var/mail"
     --enable-compressed
     --enable-debug
     --enable-fcntl
     --enable-hcache
     --enable-gpgme
+    --enable-lua
     --enable-imap
     --enable-smtp
     --enable-pop
     --enable-sidebar
     --enable-nntp
+    --enable-dotlock
     --enable-notmuch
     --disable-fmemopen
     --with-curses
@@ -55,12 +57,14 @@ FEATURES=(
     --without-gdbm
     --without-bdb
     --without-qdbm
+    --with-tokyocabinet
 )
 
 BUILDDEPS=(
-    # debian's mutt (1.6.2-3) depends on this:
+    # Ubuntu's mutt (1.8.3+neomutt20170609-2build1) depends on this:
     debhelper
     dh-autoreconf
+    dh-lua
     docbook-xml
     docbook-xsl
     gawk
