@@ -4,7 +4,6 @@
 import sys
 import curses
 
-fg_color = '\033[48;2;{r};{g};{b}m'
 bg_color = '\033[48;2;{r};{g};{b}m'
 reset = '\033[m'
 
