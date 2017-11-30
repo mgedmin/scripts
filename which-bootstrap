@@ -28,11 +28,11 @@ case "$checksum" in
         echo "http://downloads.buildout.org/2/bootstrap.py"
         ;;
     043f0eac56878b0d25f028aba170f73b6d7d5bf6*)
-        echo "you've got the latest v2.2.5 bootstrap.py"
+        echo "you've got an older v2.2.5 bootstrap.py"
         echo "http://downloads.buildout.org/2/bootstrap.py"
         ;;
     a3d2a377180cef91c72d424baf235388e267bc53*)
-        echo "you've got the latest v2.3 bootstrap.py"
+        echo "you've got an older v2.3 bootstrap.py"
         echo "https://bootstrap.pypa.io/bootstrap-buildout.py"
         ;;
     db70b61b349771d2f69a9ec77f354b5d76242f03*)
