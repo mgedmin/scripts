@@ -32,32 +32,17 @@ FEATURES=(
     # /etc/Muttrc instead of /usr/local/etc/ or /usr/etc/
     "--prefix=/usr"
     "--sysconfdir=/etc"
-    # Ubuntu's mutt (1.8.3+neomutt20170609-2build1) does this:
+    # Upstream switched from autoconf to autosetup and now I'm inventing stuff
+    # on my own
     "--with-mailpath=/var/mail"
-    --enable-compressed
-    --enable-debug
-    --enable-fcntl
-    --enable-hcache
-    --enable-gpgme
-    --enable-lua
-    --enable-imap
-    --enable-smtp
-    --enable-pop
-    --enable-sidebar
-    --enable-nntp
-    --enable-dotlock
-    --enable-notmuch
-    --disable-fmemopen
-    --with-curses
-    --with-gnutls
-    --with-gss
-    --with-idn
-    --with-mixmaster
-    --with-sasl
-    --without-gdbm
-    --without-bdb
-    --without-qdbm
-    --with-tokyocabinet
+    --mixmaster
+    --gnutls
+    --gpgme
+    --gss
+    --sasl
+    --lua
+    --notmuch
+    --tokyocabinet
 )
 
 BUILDDEPS=(
@@ -105,4 +90,4 @@ if [ $builddeps = yes ]; then
     sudo apt install "${BUILDDEPS[@]}"
 fi
 
-./prepare "${FEATURES[@]}" && make clean && make -j4
+./configure "${FEATURES[@]}" && make clean && make -j4

@@ -1,12 +1,12 @@
 #!/bin/bash
 where=~/src/neomutt
 if [ -x $where/neomutt ]; then
+    if ! [ -e $where/po/lt.mo ] || ! [ $where/po/lt.mo -nt $where/po/lt.po ]; then
+      make -C $where/po lt.mo
+    fi
     if ! [ -e ~/.local/share/locale/lt/LC_MESSAGES/neomutt.mo ]; then
       mkdir -p ~/.local/share/locale/lt/LC_MESSAGES
-      ln -sr $where/po/lt.gmo ~/.local/share/locale/lt/LC_MESSAGES/neomutt.mo
-    fi
-    if ! [ -e $where/po/lt.gmo ] || ! [ $where/po/lt.gmo -nt $where/po/lt.po ]; then
-      make -C $where/po lt.gmo
+      ln -sfr $where/po/lt.mo ~/.local/share/locale/lt/LC_MESSAGES/neomutt.mo
     fi
     export TEXTDOMAINDIR=~/.local/share/locale/
     exec $where/neomutt "$@"
