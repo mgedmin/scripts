@@ -37,7 +37,7 @@ except ImportError:
 
 
 __author__ = 'Marius Gedminas <marius@pov.lt>'
-__version__ = '1.4.5'
+__version__ = '1.4.6'
 
 
 #
@@ -53,8 +53,6 @@ PACKAGE_WHITELIST = [
 SOURCE_SERIES = 'trusty'  # aka 14.04 LTS
 TARGET_SERIESES = [
     'xenial',   # aka 16.04 LTS
-    'yakkety',  # aka 16.10
-    'zesty',    # aka 17.04
     'artful',   # aka 17.10
 ]
 ARCHITECTURES = ['i386', 'amd64']
