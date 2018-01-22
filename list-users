@@ -1,2 +1,3 @@
 #!/bin/sh
+# XXX: maybe parse /etc/login.defs to get UID_MIN and UID_MAX
 awk -F: '$3 >= 500 && $1 != "nobody" { print $1 }' /etc/passwd
