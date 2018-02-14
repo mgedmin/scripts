@@ -200,7 +200,7 @@ def get_xrandr_output():
 def report_mm(w_px, h_px, w_mm, h_mm):
     """Report the resolution given sizes in px and mm."""
     d = diagonal(w_mm, h_mm)
-    report_size(d)
+    report_size(d, w_mm, h_mm)
     hdpi, vdpi = dpi_mm(w_px, h_px, w_mm, h_mm)
     report_dpi(hdpi, vdpi)
 
@@ -223,12 +223,12 @@ def report_name(name, w_px, h_px, _first=[True]):
     print("%s (%dx%d)" % (name, w_px, h_px))
 
 
-def report_size(d):
+def report_size(d, w_mm, h_mm):
     """Report the diagonal size of a monitor in inches."""
     d = '%.1f' % d
     if d.endswith('.0'):
         d = d[:-2]
-    print("Monitor size: %s inches" % d)
+    print("Monitor size: %s inches (%d mm x %d mm)" % (d, w_mm, h_mm))
 
 
 def report_dpi(hdpi, vdpi):
