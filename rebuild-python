@@ -44,6 +44,7 @@ test -n "$version" || {
     echo "Failed to determine Python version from configure.ac" 1>&2
     exit 1
 }
+# XXX: should I add --enable-shared?
 ./configure --prefix="$HOME/opt/python${version//./}"
 make -j4
 make install

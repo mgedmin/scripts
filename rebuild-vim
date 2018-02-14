@@ -80,9 +80,11 @@ FEATURES="$FEATURES --disable-fontset"
 FEATURES="$FEATURES --enable-fail-if-missing"
 
 # ubuntu 13.04 did something weird to the python config directory
-if [ -x /usr/bin/dpkg-architecture ]; then
-    FEATURES="$FEATURES --with-python-config-dir=/usr/lib/python2.7/config-$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
-fi
+# but modern vim learned to cope
+# besides I'm on python3 now
+##if [ -x /usr/bin/dpkg-architecture ]; then
+##    FEATURES="$FEATURES --with-python-config-dir=/usr/lib/python2.7/config-$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+##fi
 
 # let's not let vim see ~/.venv/bin/ptython
 export PATH=/usr/lib/ccache:/usr/bin:/bin
