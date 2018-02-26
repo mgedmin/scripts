@@ -1,0 +1,21 @@
+#!/bin/bash
+# whatmac XX:XX:XX[:XX:XX:XX]
+# prints the vendor of a network card
+
+if [ $# -lt 1 ]; then 
+    echo "usage: $(basename "$0") ab:cd:ef" 1>&2
+    exit 1
+fi
+
+if ! [ -f /var/lib/ieee-data/oui.txt ]; then
+    echo "/var/lib/ieee-data/oui36.txt missing" 1>&2
+    echo "sudo apt-get install ieee-data" 1>&2
+    exit 1
+fi
+for mac; do
+    mac=${mac:0:8}
+    mac=${mac//:/-}
+    cat /var/lib/ieee-data/*.txt | grep -i "^$mac" || {
+        echo "$mac			<unknown>"
+    }
+done
