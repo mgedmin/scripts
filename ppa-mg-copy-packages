@@ -38,6 +38,7 @@ except ImportError:
 
 __author__ = 'Marius Gedminas <marius@pov.lt>'
 __version__ = '1.4.6'
+__url__ = 'https://gist.github.com/mgedmin/7689218'
 
 
 #

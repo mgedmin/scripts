@@ -1,14 +1,17 @@
 #!/usr/bin/python
-"""Copy published precise PPA packages to quantal raring saucy.
+"""Copy published PPA packages from one release pocket to another.
 
 Typical usage:
 
     - build a gtimelog package for precise
-    - dput ppa:gtimelog-dev gtimelog_0.8.1-0ppa0_source.changes
+    - dput ppa:gtimelog-dev gtimelog_*_source.changes
     - wait for it to be built
     - run ppa-gtimelog-copy-packages
 
 Based on https://gist.github.com/mgedmin/6306694
+
+A slightly newer version of a related tool was published at
+https://gist.github.com/mgedmin/7689218
 """
 
 import functools
@@ -16,13 +19,26 @@ import logging
 import optparse
 import sys
 import time
+import webbrowser
 from collections import defaultdict
 
 from launchpadlib.launchpad import Launchpad
 
+try:
+    # Suppress
+    #   /usr/lib/python2.7/dist-packages/keyring/backends/Gnome.py:6:
+    #   PyGIWarning: GnomeKeyring was imported without specifying a version
+    #   first. Use gi.require_version('GnomeKeyring', '1.0') before import to
+    #   ensure that the right version gets loaded.
+    # produced by Launchpad.login_with() on Ubuntu 15.10 (+ gnome3-staging PPA)
+    import gi
+    gi.require_version('GnomeKeyring', '1.0')
+except ImportError:
+    pass
+
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '1.0.4'
+__version__ = '1.4.6'
 __url__ = 'https://gist.github.com/mgedmin/7689218'
 
 
@@ -32,12 +48,15 @@ __url__ = 'https://gist.github.com/mgedmin/7689218'
 
 PPA_OWNER = 'gtimelog-dev'
 PPA_NAME = 'ppa'
-PACKAGE_WHITELIST = ['gtimelog']
+PACKAGE_WHITELIST = [
+    'gtimelog',
+]
 
 SOURCE_SERIES = 'xenial'  # aka 16.04 LTS
 TARGET_SERIESES = [
     'artful',   # aka 17.10
 ]
+ARCHITECTURES = ['i386', 'amd64']
 POCKET = 'Release'
 
 APP_NAME = 'ppa-gtimelog-copy-packages'
@@ -67,7 +86,8 @@ class DebugFormatter(logging.Formatter):
         LAST_LOG_TIME = now
         delta_requests = REQUESTS - LAST_REQUESTS
         LAST_REQUESTS = REQUESTS
-        return "\n%.3fs (%+.3fs) [%d/+%d] %s" % (elapsed, delta, REQUESTS, delta_requests, msg)
+        return "\n%.3fs (%+.3fs) [%d/+%d] %s" % (elapsed, delta, REQUESTS,
+                                                 delta_requests, msg)
 
 
 def enable_http_debugging():
@@ -78,11 +98,13 @@ def enable_http_debugging():
 def install_request_counter():
     import httplib2
     orig = httplib2.Http.request
+
     @functools.wraps(orig)
     def wrapper(*args, **kw):
         global REQUESTS
         REQUESTS += 1
         return orig(*args, **kw)
+
     httplib2.Http.request = wrapper
 
 
@@ -120,6 +142,7 @@ class once(object):
 def cache(fn):
     """Trivial memoization decorator."""
     cache = fn.cache = {}
+
     @functools.wraps(fn)
     def inner(*args):
         # The way we use the cache is suboptimal for methods: it is
@@ -141,6 +164,10 @@ def cache(fn):
 # Launchpad API wrapper with heavy caching
 #
 
+class AnnotatedList(list):
+    pass
+
+
 class LaunchpadWrapper(object):
     application_name = APP_NAME
     launchpad_instance = LAUNCHPAD_INSTANCE
@@ -153,11 +180,21 @@ class LaunchpadWrapper(object):
 
     # Trivial caching wrappers for Launchpad API
 
+    def clear_caches(self):
+        log.debug("Clearing caches...")
+        # self.get_series.cache can be kept
+        self.get_published_sources.cache.clear()
+        self.get_published_binaries.cache.clear()
+        self.get_builds_for_source.cache.clear()
+        self.get_source_packages.cache.clear()
+        self.get_usable_sources.cache.clear()
+
     @once
     def lp(self):
         log.debug("Logging in...")
         # cost: 2 HTTP requests
-        return Launchpad.login_with(self.application_name, self.launchpad_instance)
+        return Launchpad.login_with(self.application_name,
+                                    self.launchpad_instance)
 
     @once
     def owner(self):
@@ -181,11 +218,26 @@ class LaunchpadWrapper(object):
         return ppa.distribution.getSeries(name_or_version=name)
 
     @cache
+    def get_arch_series(self, name, archtag):
+        series = self.get_series(name)  # ensure correct ordering of messages
+        log.debug("Locating the arch series: %s %s...", name, archtag)
+        # cost: 1 HTTP request
+        return series.getDistroArchSeries(archtag=archtag)
+
+    @cache
     def get_published_sources(self, series_name):
         series = self.get_series(series_name)
         log.debug("Listing source packages for %s...", series_name)
         # cost: 1 HTTP request
         return self.ppa.getPublishedSources(distro_series=series)
+
+    @cache
+    def get_published_binaries(self, series_name, archtag):
+        series = self.get_arch_series(series_name, archtag)
+        log.debug("Listing binary packages for %s...", series_name)
+        # cost: 1 HTTP request
+        return self.ppa.getPublishedBinaries(distro_arch_series=series,
+                                             status="Published")
 
     @cache
     def get_builds_for_source(self, source):
@@ -240,24 +292,32 @@ class LaunchpadWrapper(object):
         return self.get_builds_for_source(source)
 
     def has_published_binaries(self, name, version, series_name):
-        builds = self.get_builds_for(name, version, series_name)
-        # XXX: this is probably somewhat bogus
-        # e.g. it doesn't check that the binary has been published
-        return not builds or builds[0].buildstate == u'Successfully built'
+        for archtag in ARCHITECTURES:
+            binaries = self.get_published_binaries(series_name, archtag)
+            if not any(b.binary_package_name == name
+                       and b.binary_package_version == version
+                       for b in binaries):
+                log.debug("%s %s has no published binary for %s %s",
+                          name, version, series_name, archtag)
+                return False
+        return True
 
     @cache
     def get_usable_sources(self, package_names, series_name):
-        res = []
+        res = AnnotatedList()
+        res.pending = []
         for source in self.get_published_sources(series_name):
             name = source.source_package_name
             if name not in package_names:
                 continue
             version = source.source_package_version
             if source.status in ('Superseded', 'Deleted', 'Obsolete'):
-                log.info("%s %s is %s in %s", name, version,
-                         source.status.lower(), series_name)
+                log.debug("%s %s is %s in %s", name, version,
+                          source.status.lower(), series_name)
                 continue
             if source.status != ('Published'):
+                if source.status == 'Pending':
+                    res.pending.append((name, version, 'pending'))
                 log.warning("%s %s is %s in %s", name, version,
                             source.status.lower(), series_name)
                 continue
@@ -267,48 +327,40 @@ class LaunchpadWrapper(object):
     def queue_copy(self, name, source_series, target_series, pocket):
         self.queue[source_series, target_series, pocket].add(name)
 
-    def perform_queued_copies(self):
+    def perform_queued_copies(self, dry_run=False):
         first = True
-        for (source_series, target_series, pocket), names in self.queue.items():
+        for (src_series, target_series, pocket), names in self.queue.items():
             if not names:
                 continue
             if first:
                 log.info("")
                 first = False
-            log.info("Copying %s to %s", ', '.join(sorted(names)),
-                     target_series)
-            self.ppa.syncSources(from_archive=self.ppa,
-                                 to_series=target_series,
-                                 to_pocket=pocket,
-                                 include_binaries=True,
-                                 source_names=sorted(names))
+            if dry_run:
+                log.warning("Would copy %s to %s", ', '.join(sorted(names)),
+                            target_series)
+            else:
+                log.warning("Copying %s to %s", ', '.join(sorted(names)),
+                            target_series)
+                # DEPRECATED: syncSource and syncSources are deprecated, and
+                # will be removed entirely in the future. Use the asynchronous
+                # copyPackage method instead, and poll getPublishedSources if
+                # you need to await completion
+                self.ppa.syncSources(from_archive=self.ppa,
+                                     to_series=target_series,
+                                     to_pocket=pocket,
+                                     include_binaries=True,
+                                     source_names=sorted(names))
 
 
-def main():
-    parser = optparse.OptionParser('usage: %prog [options]',
-        description="copy ppa:%s/%s packages from %s to %s"
-                    % (PPA_OWNER, PPA_NAME, SOURCE_SERIES, ', '.join(TARGET_SERIESES)))
-    parser.add_option('-v', '--verbose', action='count')
-    parser.add_option('-q', '--quiet', action='store_true')
-    parser.add_option('--debug', action='store_true')
-    opts, args = parser.parse_args()
+def get_ppa_url():
+    return 'https://launchpad.net/~{owner}/+archive/{name}/+packages'.format(
+        owner=PPA_OWNER, name=PPA_NAME)
 
-    if opts.debug:
-        enable_http_debugging()
-        install_request_counter()
-        set_up_logging(logging.DEBUG)
-    elif opts.verbose > 1:
-        install_request_counter()
-        set_up_logging(logging.DEBUG)
-    elif opts.verbose:
-        set_up_logging(logging.INFO)
-    else:
-        set_up_logging(logging.WARNING)
 
-    lp = LaunchpadWrapper()
-
-    for (name, version) in lp.get_usable_sources(tuple(PACKAGE_WHITELIST),
-                                                 SOURCE_SERIES):
+def process_packages(lp, dry_run):
+    sources = lp.get_usable_sources(tuple(PACKAGE_WHITELIST), SOURCE_SERIES)
+    any_pending = set(sources.pending)
+    for (name, version) in sources:
         mentioned = False
         notices = []
         for target_series_name in TARGET_SERIESES:
@@ -324,26 +376,92 @@ def main():
                 else:
                     builds = lp.get_builds_for(name, version, SOURCE_SERIES)
                     if builds:
-                        log.info("  but it isn't built yet (state: %s) - %s",
+                        if builds[0].buildstate == 'Currently building':
+                            any_pending.add((name, version, 'building'))
+                        log.info("  but binaries aren't published yet (state: %s) - %s",
                                  builds[0].buildstate, builds[0].web_link)
             elif source.status != 'Published':
+                any_pending.add((name, version, '%s in %s' %
+                                 (source.status.lower(), target_series_name)))
                 notices.append("  but it is %s in %s" %
                                (source.status.lower(), target_series_name))
-            elif not lp.has_published_binaries(name, version, target_series_name):
+            elif not lp.has_published_binaries(name, version,
+                                               target_series_name):
                 builds = lp.get_builds_for(name, version, target_series_name)
                 if builds:
-                    notices.append("  but it isn't built yet for %s (state: %s) - %s" %
+                    notices.append("  but binaries aren't published yet for %s (state: %s) - %s" %
                                    (target_series_name, builds[0].buildstate,
-                                   builds[0].web_link))
+                                    builds[0].web_link))
         if not mentioned or notices:
             log.info("%s %s", name, version)
             for notice in notices:
                 log.info(notice)
 
-    lp.perform_queued_copies()
+    lp.perform_queued_copies(dry_run=dry_run)
+    return any_pending
+
+
+def main():
+    parser = optparse.OptionParser(
+        'usage: %prog [options]',
+        description=("copy ppa:%s/%s packages from %s to %s"
+                     % (PPA_OWNER, PPA_NAME,
+                        SOURCE_SERIES, ', '.join(TARGET_SERIESES))))
+    parser.add_option(
+        '-v', '--verbose', action='count')
+    parser.add_option(
+        '-q', '--quiet', action='store_true')
+    parser.add_option(
+        '-n', '--dry-run', action='store_true')
+    parser.add_option(
+        '-w', '--wait', action='store_true',
+        help="Wait for pending packages to be published")
+    parser.add_option(
+        '-b', '--browse', action='store_true',
+        help="Open the PPA page in a browser, don't do anything else.")
+    parser.add_option(
+        '--debug', action='store_true')
+    opts, args = parser.parse_args()
+
+    if opts.browse:
+        webbrowser.open(get_ppa_url())
+        sys.exit(0)
+
+    if opts.debug:
+        enable_http_debugging()
+        install_request_counter()
+        set_up_logging(logging.DEBUG)
+    elif opts.verbose > 1:
+        install_request_counter()
+        set_up_logging(logging.DEBUG)
+    elif opts.verbose:
+        set_up_logging(logging.INFO)
+    else:
+        set_up_logging(logging.WARNING)
+
+    lp = LaunchpadWrapper()
+
+    wait_time = 60
+
+    while True:
+        any_pending = process_packages(lp, opts.dry_run)
+        if opts.wait and any_pending and not opts.dry_run:
+            reasons = dict((name, reason)
+                           for name, version, reason in sorted(any_pending))
+            log.warning("\nWaiting for %s: sleeping for %d seconds\n",
+                        ", ".join('%s (%s)' % (name, reason)
+                                  for name, reason in sorted(reasons.items())),
+                        wait_time)
+            time.sleep(wait_time)
+            lp.clear_caches()
+        else:
+            break
 
     log.debug("All done")
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.exit(2)
