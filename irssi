@@ -1,0 +1,3 @@
+#!/bin/sh
+irc-tunnel
+exec /usr/bin/irssi "$@"
