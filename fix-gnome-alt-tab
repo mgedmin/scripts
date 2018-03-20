@@ -1,4 +1,21 @@
 #!/bin/sh
-# make alt-tab switch windows, not applications
-gsettings set org.gnome.desktop.wm.keybindings switch-applications '@as []'
-gsettings set org.gnome.desktop.wm.keybindings switch-windows '["<Alt>Tab"]'
+
+case "$1" in
+    --help)
+        echo "usage: $0 [--undo]"
+        ;;
+    "")
+        # make alt-tab switch windows, not applications
+        gsettings set org.gnome.desktop.wm.keybindings switch-applications '@as []'
+        gsettings set org.gnome.desktop.wm.keybindings switch-windows '["<Alt>Tab"]'
+        ;;
+    --undo)
+        # make alt-tab switch applications, not windows
+        gsettings reset org.gnome.desktop.wm.keybindings switch-applications
+        gsettings reset org.gnome.desktop.wm.keybindings switch-windows
+        ;;
+    *)
+        echo "unrecognized option: $1" 1>&2
+        exit 1
+        ;;
+esac
