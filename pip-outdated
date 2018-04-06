@@ -1,0 +1,19 @@
+#!/bin/sh
+# list names of outdated python packages
+# usable for shell scripting, e.g. pip outdated | xargs pip install -U
+version=$(pip --version)
+opts=
+case "$version" in
+    "pip 10.*")
+        opts=--exclude-editable
+        ;;
+esac
+local=-l
+for arg in "$@"; do
+    case "$arg" in
+        --user)
+            local=
+            ;;
+    esac
+done
+pip list -o --format columns $opts $local "$@" | tail -n +3 | awk '{print $1}'
