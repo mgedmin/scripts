@@ -1,5 +1,31 @@
 #!/bin/bash
 where=~/src/neomutt
+
+
+case "$1" in
+    --valgrind)
+        prefix="valgrind --log-file=valgrind.log"
+        prefix+=" --track-origins=yes"  # slow but better info
+        prefix+=" --malloc-fill=cc"
+        if [ -e $where/valgrind-suppression.txt ]; then
+            # source: https://flatcap.org/mutt/valgrind-suppression.txt.gz
+            prefix+=" --suppressions=$where/valgrind-suppression.txt"
+        fi
+        shift
+        ;;
+    --gdb)
+        # https://stackoverflow.com/questions/8657648/how-to-have-gdb-exit-if-program-succeeds-break-if-program-crashes
+        # note that "set confirm on" appears to be default, so I don't have to
+        # worry about escaping arguments with spaces
+        prefix="gdb -silent -return-child-result -ex run -ex quit --args"
+        shift
+        ;;
+    *)
+        prefix=
+        ;;
+esac
+
+
 if [ -x $where/neomutt ]; then
     if ! [ -e $where/po/lt.mo ] || ! [ $where/po/lt.mo -nt $where/po/lt.po ]; then
       make -C $where/po lt.mo
@@ -9,7 +35,7 @@ if [ -x $where/neomutt ]; then
       ln -sfr $where/po/lt.mo ~/.local/share/locale/lt/LC_MESSAGES/neomutt.mo
     fi
     export TEXTDOMAINDIR=~/.local/share/locale/
-    exec $where/neomutt "$@"
+    exec $prefix $where/neomutt "$@"
 else
-    exec /usr/bin/mutt "$@"
+    exec $prefix /usr/bin/mutt "$@"
 fi
