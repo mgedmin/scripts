@@ -3,6 +3,7 @@ set -e
 
 pull=no
 branch=
+clean=no
 for arg; do
     case "$arg" in
         -h|--help)
@@ -10,6 +11,7 @@ for arg; do
             echo "Options:"
             echo "  --pull              git pull before building"
             echo "  --branch=BRANCH     git checkout BRANCH before building"
+            echo "  --clean             git clean -dfx before building"
             exit
             ;;
         --pull)
@@ -17,6 +19,9 @@ for arg; do
             ;;
         --branch=*)
             branch=${arg%--branch=}
+            ;;
+        --clean)
+            clean=yes
             ;;
         *)
             echo "unrecognized argument: $arg" 1>&2
@@ -30,12 +35,15 @@ test -d ~/src/cpython || {
     echo "  git clone https://github.com/python/cpython/ ~/src/cpython" 1>&2
     exit 1
 }
-cd ~/src/cpython
+cd ~/src/cpython || exit 1
 if [ -n "$branch" ]; then
     git checkout "$branch"
 fi
 if [ $pull = yes ]; then
     git pull
+fi
+if [ $clean = yes ]; then
+    git clean -dfx
 fi
 
 
