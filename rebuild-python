@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -eu
 
 pull=no
 branch=
@@ -52,7 +52,12 @@ test -n "$version" || {
     echo "Failed to determine Python version from configure.ac" 1>&2
     exit 1
 }
+prefix="$HOME/opt/python${version//./}"
+if [ $clean = yes ]; then
+    echo "Cleaning $prefix"
+    rm -rf "$prefix"
+fi
 # XXX: should I add --enable-shared?
-./configure --prefix="$HOME/opt/python${version//./}"
+./configure --prefix="$prefix"
 make -j4
 make install
