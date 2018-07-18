@@ -18,7 +18,7 @@ for arg; do
             pull=yes
             ;;
         --branch=*)
-            branch=${arg%--branch=}
+            branch=${arg#--branch=}
             ;;
         --clean)
             clean=yes
