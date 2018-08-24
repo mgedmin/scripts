@@ -97,6 +97,7 @@ elif [ -x bin/test ]; then
 else
     die "I expect to find a bin/python (or bin/py, or bin/test) here"
 fi
+test $verbose -ne 0 && echo "using $python $extra_work"
 paths=$($python -c "
 import os, sys
 ${extra_work}
