@@ -1,0 +1,7 @@
+#!/bin/bash
+infile="$1"
+outfile="${2:-$1.flac}"
+echo "Converting $infile -> $outfile"
+ffmpeg -i "$infile" -vn -c:a flac "$outfile"
+echo
+echo "$outfile"
