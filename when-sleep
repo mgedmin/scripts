@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ -x /bin/journalctl ]; then
-    journalctl _COMM=systemd-sleep
+    journalctl _COMM=systemd-sleep --since='-1 day'
 else
     cat=cat
     files="/var/log/syslog.1 /var/log/syslog"
