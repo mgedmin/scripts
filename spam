@@ -10,5 +10,7 @@ if [ -f ~/.hammiedb ]; then
     mutt_dotlock -u ~/.hammiedb
 else
     # this is probably my laptop; I keep spambayes on a server
-    ssh musmire spam
+    # but I haven't set it up yet!
+    ##ssh plato spam
+    :
 fi
