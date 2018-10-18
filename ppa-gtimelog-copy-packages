@@ -54,8 +54,8 @@ PACKAGE_WHITELIST = [
 
 SOURCE_SERIES = 'xenial'  # aka 16.04 LTS
 TARGET_SERIESES = [
-    'artful',   # aka 17.10
     'bionic',   # aka 18.04 LTS
+    'cosmic',   # aka 18.10
 ]
 ARCHITECTURES = ['i386', 'amd64']
 POCKET = 'Release'

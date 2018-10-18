@@ -37,7 +37,7 @@ except ImportError:
 
 
 __author__ = 'Marius Gedminas <marius@pov.lt>'
-__version__ = '1.4.7'
+__version__ = '1.4.8'
 __url__ = 'https://gist.github.com/mgedmin/7689218'
 
 
@@ -54,8 +54,8 @@ PACKAGE_WHITELIST = [
 SOURCE_SERIES = 'trusty'  # aka 14.04 LTS
 TARGET_SERIESES = [
     'xenial',   # aka 16.04 LTS
-    'artful',   # aka 17.10
     'bionic',   # aka 18.04 LTS
+    'cosmic',   # aka 18.10
 ]
 ARCHITECTURES = ['i386', 'amd64']
 POCKET = 'Release'
