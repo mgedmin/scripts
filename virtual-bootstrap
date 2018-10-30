@@ -13,7 +13,7 @@ case "$python" in
         ;;
 esac
 
-if [ -n "$(netstat -tnl | grep ':3128 ')" ]; then
+if netstat -tnl | grep -q ':3128 '; then
     export http_proxy=http://localhost:3128
     echo "Using a local Squid proxy."
 fi
