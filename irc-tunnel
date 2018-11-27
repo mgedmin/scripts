@@ -2,4 +2,4 @@
 # sometimes the existing ssh session gets stuck and doesn't immediately time out
 # so running this resets it
 fuser -n tcp 6667 -k
-ssh -o ControlMaster=no -Nf -L 6667:localhost:7777 -L 7777:localhost:7777 debesis
+ssh -o ControlMaster=no -Nf -L 6667:localhost:7777 -L 7777:localhost:7777 ranka
