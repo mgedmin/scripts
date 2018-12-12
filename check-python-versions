@@ -3,4 +3,4 @@
 # Script moved to its own git repository at
 # https://github.com/mgedmin/check-python-versions
 #
-exec ~/src/check-python-versions/check-python-versions "$@"
+exec ~/src/check-python-versions/check_python_versions.py "$@"
