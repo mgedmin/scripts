@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 import sys
 import argparse
-import functools
 
 # sudo apt install python3-yaml
 import yaml
@@ -11,7 +10,7 @@ def main():
     parser = argparse.ArgumentParser(description="Pretty-print YAML")
     parser.add_argument('filenames', metavar='file', nargs='*', default=['-'])
     args = parser.parse_args()
-    doit = functools.partial(pretty_print)
+    doit = pretty_print
     for fn in args.filenames:
         if fn == '-':
             doit(sys.stdin, fn)
