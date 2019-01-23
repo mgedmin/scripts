@@ -1,0 +1,2 @@
+#!/bin/sh
+pip install -U --upgrade-strategy=eager "$@"
