@@ -1,0 +1,6 @@
+#!/bin/sh
+if [ -x ~/opt/python38/bin/python3.8 ]; then
+    exec ~/opt/python38/bin/python3.8 "$@"
+else
+    exec /usr/bin/python3.8 "$@"
+fi
