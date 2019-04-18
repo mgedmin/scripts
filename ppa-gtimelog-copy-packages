@@ -38,7 +38,7 @@ except ImportError:
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '1.4.7'
+__version__ = '1.4.8'
 __url__ = 'https://gist.github.com/mgedmin/7689218'
 
 
@@ -56,6 +56,7 @@ SOURCE_SERIES = 'xenial'  # aka 16.04 LTS
 TARGET_SERIESES = [
     'bionic',   # aka 18.04 LTS
     'cosmic',   # aka 18.10
+    'disco',    # aka 19.04
 ]
 ARCHITECTURES = ['i386', 'amd64']
 POCKET = 'Release'
