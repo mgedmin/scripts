@@ -1,9 +1,7 @@
 #!/bin/sh
 # do not run irc-tunnel if irssi is already running, that would kill its
 # network connection!
-# NB: this script is called irssi so pgrep will always find at least one such
-# process running!
-if [ "$(pgrep -c irssi)" -ge 2 ]; then
+if [ "$(pgrep -c irssi)" -lt 1 ]; then
     irc-tunnel
 fi
 if [ -x ~/opt/irssi/bin/irssi ]; then
