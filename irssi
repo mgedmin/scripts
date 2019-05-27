@@ -1,8 +1,11 @@
 #!/bin/sh
 # do not run irc-tunnel if irssi is already running, that would kill its
 # network connection!
-if [ "$(pgrep -c irssi)" -lt 1 ]; then
+if [ "$(pgrep -c irssi)" -lt 2 ]; then
+    echo "starting IRC tunnel"
     irc-tunnel
+else
+    echo "another irssi already running, assuming IRC tunnel is up"
 fi
 if [ -x ~/opt/irssi/bin/irssi ]; then
     exec ~/opt/irssi/bin/irssi "$@"
