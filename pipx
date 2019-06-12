@@ -12,6 +12,7 @@ if ! [ -x $PIPX_ENV/bin/pipx ]; then
     $PIPX_ENV/bin/pip install pipx || exit 1
 fi
 if ! [ -x $PIPX_BINDIR/pipx ]; then
+    test -d $PIPX_BINDIR || mkdir -p $PIPX_BINDIR
     ln -sf $PIPX_ENV/bin/pipx $PIPX_BINDIR/pipx || exit 1
 fi
 
