@@ -67,6 +67,8 @@ BUILDDEPS=(
     w3m
     xsltproc
     zlib1g-dev
+    # configure fails trying to run xmlcatalog
+    libxml2-utils
 )
 
 cd ~/src/neomutt 2>/dev/null || {

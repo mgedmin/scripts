@@ -1,17 +1,19 @@
-#!/bin/sh
-set -e
+#!/bin/bash
+set -eu
 
 gui=gtk3
 ruby=yes
 terminal=yes
 termtruecolor=no
 pull=no
+builddeps=no
 for arg; do
     case "$arg" in
         -h|--help)
             echo "Usage: $0 [options]"
             echo "Options:"
             echo "  --pull              git pull before building"
+            echo "  --build-deps        sudo apt install build dependencies"
             echo "  --gtk2              build for GTK+ 2 (default: GTK+ 3)"
             echo "  --no-ruby           disable :ruby support"
             echo "  --no-terminal       disable :terminal support"
@@ -33,6 +35,9 @@ for arg; do
         --pull)
             pull=yes
             ;;
+        --build-deps)
+            builddeps=yes
+            ;;
         *)
             echo "unrecognized argument: $arg" 1>&2
             exit 1
@@ -41,69 +46,87 @@ for arg; do
 done
 
 COMPILED_BY="Marius Gedminas <marius@gedmin.as>"
-FEATURES=
-FEATURES="$FEATURES --with-features=huge"  # yum, features
-FEATURES="$FEATURES --enable-multibyte"    # vim is *crippled* without this!
-                                           # (BTW 'big' implies this)
-FEATURES="$FEATURES --enable-pythoninterp=dynamic" # most of my plugins use this
-FEATURES="$FEATURES --enable-python3interp=dynamic"
+FEATURES=(
+    "--with-features=huge"  # yum, features
+    "--enable-multibyte"    # vim is *crippled* without this!
+                            # (BTW 'big' implies this)
+    "--enable-pythoninterp=dynamic" # most of my plugins use this
+    "--enable-python3interp=dynamic"
+    "--enable-cscope"
+    "--enable-gpm"
+)
 if [ $ruby = yes ]; then
-    FEATURES="$FEATURES --enable-rubyinterp"   # Command-T wants this
+    FEATURES+=("--enable-rubyinterp")   # Command-T wants this
 else
-    FEATURES="$FEATURES --disable-rubyinterp"
+    FEATURES+=("--disable-rubyinterp")
 fi
 if [ $terminal = yes ]; then
-    FEATURES="$FEATURES --enable-terminal"
+    FEATURES+=("--enable-terminal")
 else
-    FEATURES="$FEATURES --disable-terminal"
+    FEATURES+=("--disable-terminal")
 fi
-#FEATURES="$FEATURES --enable-perlinterp"  # ruby + perl = segfault
-#FEATURES="$FEATURES --enable-luainterp"
-#FEATURES="$FEATURES --enable-mzschemeinterp"
-#FEATURES="$FEATURES --enable-tcpinterp"
-FEATURES="$FEATURES --enable-cscope"
-FEATURES="$FEATURES --enable-gpm"
+#FEATURES+=("--enable-perlinterp")  # ruby + perl = segfault
+#FEATURES+=("--enable-luainterp")
+#FEATURES+=("--enable-mzschemeinterp")
+#FEATURES+=("--enable-tcpinterp")
 
 if [ $termtruecolor = yes ]; then
-    FEATURES="$FEATURES --enable-termtruecolor"
+    FEATURES+=("--enable-termtruecolor")
 fi
 
 # taken from ubuntu's debian/rules
-FEATURES="$FEATURES --with-x"
-FEATURES="$FEATURES --enable-xim"
-FEATURES="$FEATURES --enable-gui=$gui"
-FEATURES="$FEATURES --disable-gtk2-check"
-FEATURES="$FEATURES --enable-gnome-check"
-FEATURES="$FEATURES --disable-motif-check"
-FEATURES="$FEATURES --disable-athena-check"
-FEATURES="$FEATURES --disable-fontset"
-FEATURES="$FEATURES --enable-fail-if-missing"
+FEATURES+=("--with-x")
+FEATURES+=("--enable-xim")
+FEATURES+=("--enable-gui=$gui")
+FEATURES+=("--disable-gtk2-check")
+FEATURES+=("--enable-gnome-check")
+FEATURES+=("--disable-motif-check")
+FEATURES+=("--disable-athena-check")
+FEATURES+=("--disable-fontset")
+FEATURES+=("--enable-fail-if-missing")
 
-# ubuntu 13.04 did something weird to the python config directory
-# but modern vim learned to cope
-# besides I'm on python3 now
-##if [ -x /usr/bin/dpkg-architecture ]; then
-##    FEATURES="$FEATURES --with-python-config-dir=/usr/lib/python2.7/config-$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
-##fi
+BUILDDEPS=(
+    # from https://salsa.debian.org/vim-team/vim/blob/debian/sid/debian/control
+    # (I picked a subset that looks reasonable to me)
+    autoconf
+    cscope
+    libacl1-dev
+    libgpmg1-dev
+    libgtk-3-dev
+    libncurses-dev
+    python3-dev
+    ruby-dev
+    # I remember builds failing for lack of libssl-dev
+    libssl-dev
+)
 
-# let's not let vim see ~/.venv/bin/ptython
+# let's not let vim see ~/.venv/bin/python
 export PATH=/usr/lib/ccache:/usr/bin:/bin
 
-#CFLAGS="-DUSE_FILE_CHOOSER" <-- buggy, fsync() with every keystroke is bad
 CFLAGS="-g"
+
+if [ $builddeps = yes ]; then
+    sudo apt install "${BUILDDEPS[@]}"
+fi
 
 test -d ~/src/vim || {
     echo "To get vim sources do" 1>&2
+    echo 1>&2
     echo "  git clone https://github.com/vim/vim/ ~/src/vim" 1>&2
-    exit 1
+    echo 1>&2
+    read -r -p "Would you like me to run that for you now? [y/N] " answer
+    if [ "$answer" = "y" ]; then
+        git clone https://github.com/vim/vim ~/src/vim || exit 1
+    else
+        exit 1
+    fi
 }
 cd ~/src/vim
 if [ $pull = yes ]; then
     git pull
 fi
-# make sure I have all the build-deps?
 rm -f src/auto/config.cache
-CFLAGS="$CFLAGS" ./configure $FEATURES --with-compiledby="$COMPILED_BY" \
+CFLAGS="$CFLAGS" ./configure "${FEATURES[@]}" --with-compiledby="$COMPILED_BY" \
 && make -j4 || {
     echo "Consider" 1>&2
     echo "  sudo apt-get build-dep vim" 1>&2
