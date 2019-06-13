@@ -14,11 +14,17 @@ cd ~/projects || {
 }
 
 purple=$(tput setaf 5)
+red=$(tput setaf 1)
 reset=$(tput sgr0)
 rc=0
+failures=()
 for project in *; do
     printf '\n%s+ %s%s\n\n' "$purple" "$project" "$reset"
-    (cd "$project" && "$@") || rc=1
+    (cd "$project" && "$@") || { rc=1; failures+=("$project"); }
 done
+
+if [[ ${#failures[@]} -ne 0 ]]; then
+    printf '\n%s+++ FAILED: %s%s\n' "$red" "${failures[*]}" "$reset" 1>&2
+fi
 
 exit $rc
