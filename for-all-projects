@@ -1,0 +1,24 @@
+#!/bin/bash
+set -eu
+
+if [[ $# -eq 0 || $1 = --help ]]; then
+    echo "usage: for-all-projects command [args ...]" 1>&2
+    exit 1
+fi
+
+cd ~/projects || {
+    # shellcheck disable=SC2088
+    echo '~/projects is missing, aborting' 1>&2
+    echo "(cd ~/src/mg-infra && ansible-playbook projects.yml)" 1>&2
+    exit 1
+}
+
+purple=$(tput setaf 5)
+reset=$(tput sgr0)
+rc=0
+for project in *; do
+    printf '\n%s+ %s%s\n\n' "$purple" "$project" "$reset"
+    (cd "$project" && "$@") || rc=1
+done
+
+exit $rc
