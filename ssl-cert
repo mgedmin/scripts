@@ -1,8 +1,13 @@
 #!/bin/sh
-domain=${1:?usage: $0 www.example.org[:port] [openssl args]}
+usage="usage: $0 www.example.org[:port] [openssl args]"
+domain=${1:?$usage}
 shift
 
 case $domain in
+    --help)
+        echo "$usage"
+        exit
+        ;;
     *:*)
         domain_and_port=$domain
         domain=${domain%:*}
