@@ -1,0 +1,13 @@
+#!/bin/bash
+py_ver=${0##*python}
+py_prefix=~/opt/python${py_ver/./}
+
+if [ -x "$py_prefix"/bin/python"$py_ver" ]; then
+    exec "$py_prefix"/bin/python"$py_ver" "$@"
+elif [ -x /usr/bin/python"$py_ver" ]; then
+    exec /usr/bin/python"$py_ver" "$@"
+else
+    printf 'python%s not installed, try\n\n' "$py_ver"
+    printf '  rebuild-python --branch=%s --clean\n' "$py_ver"
+    exit 1
+fi

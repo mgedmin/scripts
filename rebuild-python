@@ -30,6 +30,32 @@ for arg; do
     esac
 done
 
+check-build-deps() {
+    missing=()
+    for dep; do
+        if ! test -e /var/lib/dpkg/info/$dep:*.list; then
+            missing+=($dep)
+        fi
+    done
+    if [[ ${#missing[@]} -ne 0 ]]; then
+        printf "Some build dependencies are missing!\n\n"
+        printf "  sudo apt install %s\n" "${missing[*]}"
+        exit 1
+    fi
+}
+
+# from https://salsa.debian.org/cpython-team/python3/blob/python3.7/debian/control.in
+# (I only selected some of the more important dependencies)
+check-build-deps \
+    libreadline-dev \
+    libncursesw5-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    liblzma-dev \
+    libssl-dev \
+    libsqlite3-dev \
+    libffi-dev
+
 test -d ~/src/cpython || {
     echo "To get CPython sources do" 1>&2
     echo "  git clone https://github.com/python/cpython/ ~/src/cpython" 1>&2
@@ -45,7 +71,6 @@ fi
 if [ $clean = yes ]; then
     git clean -dfx
 fi
-
 
 version=$(perl -ne '/^m4_define[(]PYTHON_VERSION, (.*)[)]/ and print $1' configure.ac | tr -d .)
 test -n "$version" || {

@@ -3,15 +3,19 @@ pypy_url=https://bitbucket.org/pypy/pypy/downloads/pypy2.7-v7.1.0-linux64.tar.bz
 pypy_name=${pypy_url##*/}
 pypy_name=${pypy_name%.tar.bz2}
 
-if ! [ -d ~/opt/${pypy_name} ]; then
+if [ -x ~/opt/${pypy_name}/bin/pypy ]; then
+    exec ~/opt/${pypy_name}/bin/pypy "$@"
+elif [ -x /usr/bin/pypy ]; then
+    exec /usr/bin/pypy "$@"
+else
     cat 1>&2 <<.
 To install pypy2.7 please do
 
-  wget ${pypy_url}
+  cd ~/tmp
+  wget -c ${pypy_url}
   mkdir -p ~/opt
   tar -xf ${pypy_url##*/} -C ~/opt
 
 .
     exit 1
 fi
-exec ~/opt/${pypy_name}/bin/pypy "$@"
