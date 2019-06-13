@@ -1,10 +1,7 @@
 #!/bin/bash
 set -eu
 
-gui=gtk3
 ruby=yes
-terminal=yes
-termtruecolor=no
 pull=no
 builddeps=no
 for arg; do
@@ -14,23 +11,11 @@ for arg; do
             echo "Options:"
             echo "  --pull              git pull before building"
             echo "  --build-deps        sudo apt install build dependencies"
-            echo "  --gtk2              build for GTK+ 2 (default: GTK+ 3)"
             echo "  --no-ruby           disable :ruby support"
-            echo "  --no-terminal       disable :terminal support"
-            echo "  --termtruecolor     enable truecolor support in xterm (default since 7.4.1784)"
             exit
             ;;
         --no-ruby)
             ruby=no
-            ;;
-        --no-terminal)
-            terminal=no
-            ;;
-        --gtk2)
-            gui=gnome2
-            ;;
-        --termtruecolor)
-            termtruecolor=yes
             ;;
         --pull)
             pull=yes
@@ -47,43 +32,30 @@ done
 
 COMPILED_BY="Marius Gedminas <marius@gedmin.as>"
 FEATURES=(
-    "--with-features=huge"  # yum, features
-    "--enable-multibyte"    # vim is *crippled* without this!
-                            # (BTW 'big' implies this)
-    "--enable-pythoninterp=dynamic" # most of my plugins use this
-    "--enable-python3interp=dynamic"
-    "--enable-cscope"
-    "--enable-gpm"
+    "--with-features=huge"      # yum, features
+    "--enable-multibyte"        # vim is *crippled* without this!
+                                # (BTW 'big' implies this)
+    "--enable-python3interp"    # most of my plugins use this
+    "--enable-gpm"              # heh retro
+    "--enable-terminal"         # fancy!
+#   "--enable-perlinterp"       # ruby + perl = segfault
+    # taken from ubuntu's debian/rules
+    "--with-x"
+    "--enable-xim"
+    "--enable-gui=gtk3"
+    "--disable-gtk2-check"
+    "--enable-gnome-check"
+    "--disable-motif-check"
+    "--disable-athena-check"
+    "--disable-fontset"
+    "--enable-fail-if-missing"
 )
 if [ $ruby = yes ]; then
     FEATURES+=("--enable-rubyinterp")   # Command-T wants this
 else
     FEATURES+=("--disable-rubyinterp")
 fi
-if [ $terminal = yes ]; then
-    FEATURES+=("--enable-terminal")
-else
-    FEATURES+=("--disable-terminal")
-fi
-#FEATURES+=("--enable-perlinterp")  # ruby + perl = segfault
-#FEATURES+=("--enable-luainterp")
-#FEATURES+=("--enable-mzschemeinterp")
-#FEATURES+=("--enable-tcpinterp")
 
-if [ $termtruecolor = yes ]; then
-    FEATURES+=("--enable-termtruecolor")
-fi
-
-# taken from ubuntu's debian/rules
-FEATURES+=("--with-x")
-FEATURES+=("--enable-xim")
-FEATURES+=("--enable-gui=$gui")
-FEATURES+=("--disable-gtk2-check")
-FEATURES+=("--enable-gnome-check")
-FEATURES+=("--disable-motif-check")
-FEATURES+=("--disable-athena-check")
-FEATURES+=("--disable-fontset")
-FEATURES+=("--enable-fail-if-missing")
 
 BUILDDEPS=(
     # from https://salsa.debian.org/vim-team/vim/blob/debian/sid/debian/control
@@ -93,7 +65,11 @@ BUILDDEPS=(
     libacl1-dev
     libgpmg1-dev
     libgtk-3-dev
+    libselinux1-dev
     libncurses-dev
+    libxaw7-dev
+    libxpm-dev
+    libxt-dev
     python3-dev
     ruby-dev
     # I remember builds failing for lack of libssl-dev
