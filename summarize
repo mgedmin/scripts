@@ -106,9 +106,9 @@ while (<>) {
   s{Log (started|ended): \d+-\d+-\d+  \d+:\d+:\d+}{Log $1: YYYY-MM-DD  HH:MM:SS};
   s{(Writing dpkg log to '/var/log/unattended-upgrades/unattended-upgrades-dpkg_)\d+-\d+-\d+_\d+:\d+:\d+.\d+.log'}{$1YYYY-MM-DD_HH:MM:SS.ssssss.log'};
   # etckeeper
-  s{^\d+ files changed, \d+ insertions\(\+\), \d+ deletions\(-\)}{(n) files changed, (n) insertions(+), (n) deletions(-)};
-  s{^\d+ files changed, \d+ insertions\(\+\)}{(n) files changed, (n) insertions(+)};
-  s{^\d+ files changed, \d+ deletions\(-\)}{(n) files changed, (n) deletions(-)};
+  s{^ *\d+ files? changed, \d+ insertions?\(\+\), \d+ deletions?\(-\)}{(n) files changed, (n) insertions(+), (n) deletions(-)};
+  s{^ *\d+ files? changed, \d+ insertions?\(\+\)}{(n) files changed, (n) insertions(+)};
+  s{^ *\d+ files? changed, \d+ deletions?\(-\)}{(n) files changed, (n) deletions(-)};
   s{^\[master [0-9a-f]+\] (committing|saving)}{[master (commit)] $1};
   # gutsy is out of date
   s{(Failed to fetch http://[^/ ]+[.]ubuntu[.]com/ubuntu/dists/gutsy)[^ ]*}{$1/...};
