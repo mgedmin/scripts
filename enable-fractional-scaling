@@ -1,0 +1,6 @@
+#!/bin/sh
+# see https://www.linuxuprising.com/2019/04/how-to-enable-hidpi-fractional-scaling.html
+# this is the wayland-only optional (X11 needs 'x11-randr-fractional-scaling')
+gsettings set org.gnome.mutter experimental-features "['scale-monitor-framebuffer']"
+
+# to disable you'll want to gsettings reset it
