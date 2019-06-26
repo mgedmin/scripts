@@ -59,8 +59,8 @@ def dpi(w, h, d):
     #    |/        |
     #    +---------+
     #
-    # Let't use w, h, and d to mean width/height/diagonal in pixels.
-    # Let't use w', h', and d' to mean width/height/diagonal in inches.
+    # Let's use w, h, and d to mean width/height/diagonal in pixels.
+    # Let's use w', h', and d' to mean width/height/diagonal in inches.
     #
     # According to Pythagoras,
     #
