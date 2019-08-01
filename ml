@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 Check multiple mailboxes/maildirs for mail.
 
@@ -6,13 +6,14 @@ Wrapper for Debian's mailcheck package that produces more concise output.
 """
 
 import os
+import shutil
 import sys
 
 
 def parse_mailcheck(lines):
     """Parse mailcheck's output.
 
-        >>> from StringIO import StringIO
+        >>> from io import StringIO
         >>> lines = StringIO('''
         ... You have 1 saved messages in /home/mg/Mail/Work/INBOX
         ... You have 4 new messages in /home/mg/Mail/Home/IN.root
@@ -21,7 +22,7 @@ def parse_mailcheck(lines):
         ... You have mail in /var/spool/mail/root
         ... '''.lstrip())
         >>> for mailbox, new, saved in parse_mailcheck(lines):
-        ...     print mailbox, new, saved
+        ...     print(mailbox, new, saved)
         /home/mg/Mail/Work/INBOX 0 1
         /home/mg/Mail/Home/IN.root 4 0
         /home/mg/Mail/Home/IN.zope 2 18
@@ -66,13 +67,13 @@ def short_mailbox_names(mailboxes):
         [('a', 1, 2), ('b', 3, 4), ('INBOX', 5, 6)]
 
     """
-    mailboxes = list(mailboxes) # deal with iterators properly
+    mailboxes = list(mailboxes)  # deal with iterators properly
     if mailboxes:
         prefix = os.path.dirname(mailboxes[0][0])
         for mailbox, x, y in mailboxes:
             while not mailbox.startswith(prefix):
                 prefix = os.path.dirname(prefix)
-                if os.path.dirname(prefix) == prefix: # root
+                if os.path.dirname(prefix) == prefix:  # root
                     prefix = ''
         if prefix:
             count = len(prefix + os.sep)
@@ -83,23 +84,7 @@ def short_mailbox_names(mailboxes):
 
 def terminal_width():
     """Return the current terminal width."""
-    cols = 80
-    try:
-        import curses
-    except ImportError:
-        pass
-    else:
-        try:
-            curses.setupterm()
-            n = curses.tigetnum('cols')
-            if n > 0:
-                cols = n
-        except (curses.error, TypeError):
-            # the TypeError appears in doctests, when sys.stdout is a StringIO
-            # object.  It says "TypeError: argument must be an int, or have a
-            # fileno() method."
-            pass
-    return cols
+    return shutil.get_terminal_size().columns
 
 
 def print_word_wrap(words, width=None):
@@ -118,12 +103,15 @@ def print_word_wrap(words, width=None):
     cur_width = 0
     for word in words:
         if cur_width and cur_width + len(word) > width:
-            print
+            print()
             cur_width = 0
-        print word,
+        elif cur_width:
+            print(end=" ")
+        print(word, end="")
         cur_width += len(word) + 1
     if cur_width:
-        print
+        print()
+
 
 def print_info(mailboxes):
     """Print concise information about mailboxes.
@@ -178,7 +166,7 @@ def test():
     import doctest
     nfail, ntests = doctest.testmod()
     if nfail == 0:
-        print "All %d tests passed." % ntests
+        print("All %d tests passed." % ntests)
 
 
 if __name__ == '__main__':

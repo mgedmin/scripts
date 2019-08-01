@@ -1,16 +1,18 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Print a swatch using all 256 colors of 256-color-capable terminals."""
 
 import sys
 
 
 __author__ = "Marius Gedminas <marius@gedmin.as>"
-__url__ = "https://gist.github.com/mgedmin/2762225"
-__version__ = '3.0'
+__url__ = "https://github.com/mgedmin/scripts/blob/master/show-all-256-colors"
+__version__ = "3.1"
 
 
 def hrun(start, width, padding=0):
-    return [None] * padding + list(range(start, start + width)) + [None] * padding
+    return (
+        [None] * padding + list(range(start, start + width)) + [None] * padding
+    )
 
 
 def vrun(start, width, height, padding=0):
@@ -91,13 +93,15 @@ def main():
             color = int(arg)
             rgb = COLORS[color]
             print('%s%s - %s%s' % (color_bar(bg_seq, color, ' '), reset_seq,
-                                   color_bar_rgb(bg_seq_rgb, rgb, ' '), reset_seq))
+                                   color_bar_rgb(bg_seq_rgb, rgb, ' '),
+                                   reset_seq))
     else:
         for block in layout:
             print("")
             for row in block:
                 fg_bar = ''.join(color_bar(fg_seq, color, '') for color in row)
-                bg_bar = ''.join(color_bar(bg_seq, color, ' ') for color in row)
+                bg_bar = ''.join(color_bar(bg_seq, color, ' ')
+                                 for color in row)
                 print('%s%s    %s%s' % (fg_bar, reset_seq, bg_bar, reset_seq))
 
 

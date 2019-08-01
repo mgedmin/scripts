@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 Multiping version ${version} by Marius Gedminas <marius@gedmin.as>
 Licence: GPL v2 or later
@@ -28,15 +28,17 @@ from threading import Thread
 from time import time, strftime, localtime, sleep
 import os
 
-__version__ = '0.9.4'
+__version__ = '1.0'
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__url__ = 'https://gist.github.com/mgedmin/b65af068e0d239fe9c66'
+__url__ = 'https://github.com/mgedmin/scripts/blob/master/multiping.py'
 __licence__ = 'GPL v2 or later'
 
 
-QUEUE_LEN = 20  # max number of outstanding ping subprocesses
-                # so we won't fill up the OS pid table or something
-                # (guess what event made me add this limitation? ;)
+# max number of outstanding ping subprocesses
+# so we won't fill up the OS pid table or something
+# (guess what event made me add this limitation? ;)
+QUEUE_LEN = 20
+
 
 class Ping(Thread):
 
@@ -57,8 +59,8 @@ class Ping(Thread):
             os.dup2(null, 1)
             os.dup2(null, 2)
             os.execlp('ping', 'ping', '-c', '1', '-n', '-q', self.hostname)
-            sys.exit(99) # exec failed!
-            return       # exit failed?!?!?
+            sys.exit(99)  # exec failed!
+            return        # exit failed?!?!?
         status = os.waitpid(self.pid, 0)[1]
         self.pid = None
         delay = time() - start
@@ -128,7 +130,7 @@ class Pinger(Thread):
 
     def set(self, idx, result):
         while idx >= len(self.status):
-            self.status.append(ord(' '))
+            self.status.append(' ')
         self.status[idx] = result
         self.version += 1
 
@@ -200,8 +202,10 @@ class UI:
                     elif ch == '%':
                         attr = self.DGREEN
                 else:
-                    ch = ord(" ")
-                win.addch(ch, attr)
+                    ch = " "
+                # NB: win.addch(ch, attr) ignores attr if ch is a unicode
+                # string of length 1 -- things work fine if it's a bytestring
+                win.addstr(ch, attr)
                 pos += 1
             win.addstr("]")
             y += 1
@@ -292,7 +296,7 @@ def main(stdscr, hostname, interval=1):
         elif c == curses.KEY_RESIZE:
             ui.resize(stdscr.getmaxyx()[0] - 1)
             stdscr.refresh()
-        elif c == 12: # ^L
+        elif c == 12:  # ^L
             stdscr.clear()
             ui.draw()
             stdscr.refresh()
@@ -322,6 +326,7 @@ def main(stdscr, hostname, interval=1):
             pinger.status.extend(['F'] * 60 * 10)
             ui.draw()
             stdscr.refresh()
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2 or sys.argv[1] in ('-h', '--help'):

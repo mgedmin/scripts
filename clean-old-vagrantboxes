@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import itertools
 import subprocess
 
@@ -34,7 +34,9 @@ def obsolete_boxes(boxes):
 
 
 def remove_box(box, version):
-    subprocess.check_call(['vagrant', 'box', 'remove', box, '--box-version', version])
+    subprocess.check_call([
+        'vagrant', 'box', 'remove', box, '--box-version', version,
+    ])
 
 
 def remove_boxes(boxes):

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 Parse email messages with Python tracebacks, add email headers to group them.
 
@@ -31,10 +31,12 @@ import os
 import re
 import sys
 
-__version__ = '1.0'
+__version__ = '1.1'
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
 __licence__ = 'GPL'
-__url__ = 'https://gist.github.com/mgedmin/41b0419f61ea464536e3'
+__url__ = (
+    'https://github.com/mgedmin/scripts/blob/master/group-traceback-emails'
+)
 
 
 def extract_traceback_from_body(body):
@@ -47,36 +49,36 @@ def extract_traceback_from_body(body):
     lines = iter(body.splitlines())
     tb = []
     for line in lines:
-        if line.rstrip() == 'Traceback (most recent call last):':
+        if line.rstrip() == b'Traceback (most recent call last):':
             break
         # custom ivija.reportgen tracebacks
-        if line.rstrip() == 'Traceback (innermost last):':
+        if line.rstrip() == b'Traceback (innermost last):':
             break
     else:
         return None
     tb.append(line)
     for line in lines:
         tb.append(line)
-        if line and not line[0].isspace():
+        if line and line[0] not in (32, 9):
             break
     return tb
 
 
 def guess_module(filename):
     """Try to guess Python module name from filename."""
-    components = os.path.splitext(filename)[0].split('/')
+    components = os.path.splitext(filename)[0].split(b'/')
     skip = 0
     for idx, name in enumerate(components):
-        if name == 'src' or name.endswith('.egg') or '.' in name:
+        if name == b'src' or name.endswith(b'.egg') or b'.' in name:
             skip = idx + 1
-    if components[-1] == '__init__':
+    if components[-1] == b'__init__':
         del components[-1]
-    return '.'.join(components[skip:])
+    return b'.'.join(components[skip:])
 
 
 def hash_traceback(tb):
     """Compute a hash for a traceback.
-    
+
     ``tb`` should be a list of strings.
 
     Tries to be compatible with Zilch hashes, but due to heuristics taken,
@@ -86,19 +88,19 @@ def hash_traceback(tb):
         return None
     ident = []
     for line in tb:
-        m = re.match(r'^  File "([^"]*)", line \d+, in (\w+)$', line)
+        m = re.match(rb'^  File "([^"]*)", line \d+, in (\w+)$', line)
         if m is not None:
             filename, funcname = m.groups()
             ident.append(guess_module(filename))
             ident.append(funcname)
-    exc_type = tb[-1].partition(':')[0]
+    exc_type = tb[-1].partition(b':')[0]
     ident.append(exc_type)
-    return 'E-' + hash_id(' '.join(ident), 5)
+    return 'E-' + hash_id(b' '.join(ident), 5)
 
 
 def hash_id(id, length):
     """Hash an identifier.
-    
+
     A shorter version of paste.exceptions.serial_number_generator that Zilch
     uses.
     """
@@ -108,7 +110,7 @@ def hash_id(id, length):
     modulo = base ** length
     number = 0
     for c in list(bin_hash):
-        number = (number * 256 + ord(c)) % modulo
+        number = (number * 256 + c) % modulo
     result = []
     while number:
         number, next = divmod(number, base)

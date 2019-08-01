@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 Usage: watchpos {filename|pid fd}
 
@@ -22,9 +22,9 @@ def lsof(filename):
     pid = fd = None
     pipe = subprocess.Popen(['lsof', '-Fpf', filename], stdout=subprocess.PIPE)
     for line in pipe.stdout:
-        if line.startswith('p'):
+        if line.startswith(b'p'):
             pid = int(line[1:])
-        elif line.startswith('f'):
+        elif line.startswith(b'f'):
             fd = int(line[1:])
     return pid, fd
 
@@ -65,17 +65,17 @@ def format_argv(argv):
 def fmtsize(size):
     unit = "B"
     if size >= 1024:
-       size /= 1024.0
-       unit = "KiB"
+        size /= 1024.0
+        unit = "KiB"
     if size >= 1024:
-       size /= 1024.0
-       unit = "MiB"
+        size /= 1024.0
+        unit = "MiB"
     if size >= 1024:
-       size /= 1024.0
-       unit = "GiB"
+        size /= 1024.0
+        unit = "GiB"
     if size >= 1024:
-       size /= 1024.0
-       unit = "TiB"
+        size /= 1024.0
+        unit = "TiB"
     return "%.1f %s" % (size, unit)
 
 
@@ -94,7 +94,7 @@ LAST_STR_LEN = 0
 
 def do_print(str):
     global LAST_STR_LEN
-    padding = " "  * (LAST_STR_LEN - len(str))
+    padding = " " * (LAST_STR_LEN - len(str))
     sys.stdout.write("\r%s%s" % (str, padding))
     sys.stdout.flush()
     LAST_STR_LEN = len(str)
@@ -128,15 +128,16 @@ def do_main():
     lastpos = firstpos = getpos(pid, fd)
     lasttime = firsttime = time.time()
 
-    print "%s is file descriptor %d of pid %d" % (filename, fd, pid)
-    print format_argv(argv)
-    perc = ("%.1f%% " % (lastpos * 100.0 / size) if size and lastpos is not None
+    print("%s is file descriptor %d of pid %d" % (filename, fd, pid))
+    print(format_argv(argv))
+    perc = ("%.1f%% " % (lastpos * 100.0 / size)
+            if size and lastpos is not None
             else "")
     do_print("%s%s/%s" % (perc, fmtsize(lastpos), fmtsize(size)))
     while True:
         curpos = getpos(pid, fd)
         if curpos is None:
-            print "\n/proc/%d/fd/%d does not exist" % (pid, fd)
+            print("\n/proc/%d/fd/%d does not exist" % (pid, fd))
             break
         curtime = time.time()
         delta_t = curtime - lasttime
@@ -144,7 +145,7 @@ def do_main():
         if delta != 0 and delta_t != 0 or delta_t > 30:
             sp_cur = max(0, delta / delta_t)
             sp_avg = max(0, (curpos - firstpos) / (curtime - firsttime))
-            size = getsize(pid, fd) # file may have grown since we last checked
+            size = getsize(pid, fd)  # file may have grown since last check
             perc = ("%.1f%% " % (lastpos * 100.0 / size)
                     if size and lastpos is not None else "")
             eta = (" ETA: %s" % fmttime((size - curpos) / sp_avg)
@@ -161,7 +162,8 @@ def main():
     try:
         do_main()
     except KeyboardInterrupt:
-        print
+        print("")
+
 
 if __name__ == '__main__':
     main()

@@ -1,10 +1,18 @@
-#!/usr/bin/python
-import gtk.gdk
+#!/usr/bin/python3
+import gi
+gi.require_version('Gdk', '3.0')
+
+from gi.repository import Gdk  # noqa: E402
+
+
+def main():
+    display = Gdk.Display.get_default()
+    n = display.get_n_monitors()
+    for i in range(n):
+        rect = display.get_monitor(i).get_geometry()
+        print("Monitor %d: %dx%d at (%d, %d)" % (i, rect.width, rect.height,
+                                                 rect.x, rect.y))
+
 
 if __name__ == '__main__':
-    screen = gtk.gdk.screen_get_default()
-    n = screen.get_n_monitors()
-    for i in range(n):
-        rect = screen.get_monitor_geometry(i)
-        print "Monitor %d: %dx%d at (%d, %d)" % (i, rect.width, rect.height,
-    					     rect.x, rect.y)
+    main()

@@ -36,9 +36,11 @@ except ImportError:
     pass
 
 
-__author__ = 'Marius Gedminas <marius@pov.lt>'
-__version__ = '1.4.9'
-__url__ = 'https://gist.github.com/mgedmin/7689218'
+__author__ = 'Marius Gedminas <marius@gedmin.as>'
+__version__ = '1.5.0'
+__url__ = (
+    'https://github.com/mgedmin/scripts/blob/master/ppa-mg-copy-packages'
+)
 
 
 #
@@ -377,7 +379,8 @@ def process_packages(lp, dry_run):
                     if builds:
                         if builds[0].buildstate == 'Currently building':
                             any_pending.add((name, version, 'building'))
-                        log.info("  but binaries aren't published yet (state: %s) - %s",
+                        log.info("  but binaries aren't published yet"
+                                 " (state: %s) - %s",
                                  builds[0].buildstate, builds[0].web_link)
             elif source.status != 'Published':
                 any_pending.add((name, version, '%s in %s' %
@@ -388,7 +391,8 @@ def process_packages(lp, dry_run):
                                                target_series_name):
                 builds = lp.get_builds_for(name, version, target_series_name)
                 if builds:
-                    notices.append("  but binaries aren't published yet for %s (state: %s) - %s" %
+                    notices.append("  but binaries aren't published yet for %s"
+                                   " (state: %s) - %s" %
                                    (target_series_name, builds[0].buildstate,
                                     builds[0].web_link))
         if not mentioned or notices:

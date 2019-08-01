@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 """
 Computes and prints monitor resolution (dots per inch) given the size in pixels
@@ -30,7 +30,7 @@ import re
 import os
 
 
-__version__ = '2.0'
+__version__ = '2.1'
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
 __url__ = 'https://github.com/mgedmin/scripts/blob/master/monitor-dpi'
 __licence__ = 'GPLv2+'

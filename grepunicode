@@ -1,13 +1,25 @@
-#!/usr/bin/python
-import sys, subprocess, re, os
-charmap = '/usr/share/i18n/charmaps/UTF-8'
-grep = 'grep'
-if not os.path.exists(charmap) and os.path.exists(charmap + '.gz'):
-    charmap += '.gz'
-    grep = 'zgrep'
-pipe = subprocess.Popen([grep, '-hi', '-e', '.*'.join(sys.argv[1:]), charmap],
-                        stdout=subprocess.PIPE)
-rx = re.compile(r'<U([0-9A-Fa-f]{4}|[0-9A-Fa-f]{8})>')
-for line in pipe.stdout:
-    print rx.sub(lambda m: unichr(int(m.group(1), 16)) + '\t' + m.group(0),
-                 line).encode('UTF-8'),
+#!/usr/bin/python3
+import os
+import re
+import subprocess
+import sys
+
+
+def main():
+    charmap = '/usr/share/i18n/charmaps/UTF-8'
+    grep = 'grep'
+    if not os.path.exists(charmap) and os.path.exists(charmap + '.gz'):
+        charmap += '.gz'
+        grep = 'zgrep'
+
+    pipe = subprocess.Popen(
+        [grep, '-hi', '-e', '.*'.join(sys.argv[1:]), charmap],
+        stdout=subprocess.PIPE, encoding='UTF-8')
+    rx = re.compile(r'<U([0-9A-Fa-f]{4}|[0-9A-Fa-f]{8})>')
+    for line in pipe.stdout:
+        print(rx.sub(lambda m: chr(int(m.group(1), 16)) + '\t' + m.group(0),
+                     line).rstrip())
+
+
+if __name__ == "__main__":
+    main()
