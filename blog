@@ -10,7 +10,7 @@ test -d ~/blog/content || {
     exit 1
 } 1>&2
 
-cd ~/blog/content
+cd ~/blog/content || exit 1
 
 file=$1
 

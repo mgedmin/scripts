@@ -1,6 +1,6 @@
 #!/bin/sh
 # the point of this script is to mute the builtin laptop speakers even when
-# youre currently playing sound through bluetooh headphones and therefore
+# you're currently playing sound through bluetooh headphones and therefore
 # cannot use the mute button.
 
 pactl list short sinks | while read index name etc; do

@@ -14,7 +14,7 @@ test -e "$repos.old" && {
   echo "$0: $repos.old already exists" 1>&2
   exit 1
 }
-test "`cat \"$repos/db/fs-type\" 2>/dev/null`" = "fsfs" && {
+test "$(cat \"$repos/db/fs-type\" 2>/dev/null)" = "fsfs" && {
   echo "$0: $repos already uses fsfs" 1>&2
   exit 1
 }

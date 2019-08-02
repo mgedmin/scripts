@@ -9,10 +9,9 @@
 #   [extensions]
 #   color =
 
-args="$@"
 if test -t 1; then
     # stdout is a tty
-    exec hg log --color=always $args|less -R
+    exec hg log --color=always "$@" | less -R
 else
-    exec hg log $args
+    exec hg log "$@"
 fi

@@ -10,7 +10,7 @@
 progname=${0##*/}
 
 die() {
-    echo "$progname: $@" 1>&2
+    echo "$progname: $*" 1>&2
     exit 1
 }
 

@@ -1,2 +1,3 @@
 #!/bin/sh
-ls -rt ~/Pictures/Ekrano*.png|tail -n 1
+# shellcheck disable=SC2012
+ls -rt "$(xdg-user-dir PICTURES)"/Ekrano*.png | tail -n 1

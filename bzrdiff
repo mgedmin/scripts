@@ -1,9 +1,8 @@
 #!/bin/bash
 # bzr diff with nice colours
-args="--diff-options=-p $@"
 if test -t 1 && test -x /usr/bin/colordiff; then
     # stdout is a tty
-    exec bzr diff $args|colordiff|less -R
+    exec bzr diff --diff-options=-p "$@" | colordiff | less -R
 else
-    exec bzr diff $args
+    exec bzr diff --diff-options=-p "$@"
 fi

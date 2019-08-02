@@ -2,8 +2,7 @@
 NICE="nice -n 10"
 test -x /usr/bin/ionice && NICE="$NICE ionice -c3"
 if [ -x /usr/bin/apt ]; then
-    # Ubuntu 14.04 LTS has /usr/bin/apt that doesn't know -f or --auto-remove
-    $NICE sudo apt full-upgrade -u "$@"
+    $NICE sudo apt full-upgrade -u -f --auto-remove "$@"
 else
     $NICE sudo apt-get dist-upgrade -u -f --auto-remove "$@"
 fi
