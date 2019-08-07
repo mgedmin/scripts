@@ -1,8 +1,10 @@
 #!/bin/sh
-# based on https://wiki.ubuntu.com/DebuggingProgramCrash
+# based on https://wiki.ubuntu.com/DebuggingProgramCrash and
+# https://wiki.ubuntu.com/Debug%20Symbol%20Packages
 sudo apt install ubuntu-dbgsym-keyring
 # on Ubuntu before 18.04:
 # sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys F2EDC64DC5AEE1F6B9C621F0C8CAB6595FDFF622
+# NB: "-proposed" also exists on ddebs, but -security doesn't.
 printf "deb http://ddebs.ubuntu.com $(lsb_release -cs)%s main restricted universe multiverse\\n" "" "-updates" \
     | sudo tee /etc/apt/sources.list.d/ddebs.list
 sudo apt update
