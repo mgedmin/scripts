@@ -3,10 +3,40 @@
 # you're currently playing sound through bluetooh headphones and therefore
 # cannot use the mute button.
 
-pactl list short sinks | while read index name etc; do
+almost=0
+
+for arg; do
+    case "$arg" in
+        -h|--help)
+            echo "Usage: $0 [options]"
+            echo "Options:"
+            echo "  --almost   instead of muting reduce the volume"
+            echo "             (the mute LED is too bright on my X390)"
+            exit
+            ;;
+        --almost)
+            almost=1
+            ;;
+        *)
+            echo "unrecognized argument: $arg" 1>&2
+            exit 1
+            ;;
+    esac
+done
+
+
+# shellcheck disable=SC2034
+pactl list short sinks | while read -r index name etc; do
     case $name in
         alsa_output.pci-*)
-            pactl set-sink-mute $index 1
+            if [ $almost -eq 0 ]; then
+                pactl set-sink-mute "$index" 1
+            else
+                # hey turns out 0% is a valid volume, and this is distinct from
+                # setting mute!
+                pactl set-sink-volume "$index" 0
+                pactl set-sink-mute "$index" 0
+            fi
             ;;
     esac
 done
