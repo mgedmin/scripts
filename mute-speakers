@@ -25,8 +25,7 @@ for arg; do
 done
 
 
-# shellcheck disable=SC2034
-pactl list short sinks | while read -r index name etc; do
+pactl list short sinks | while read -r index name _; do
     case $name in
         alsa_output.pci-*)
             if [ $almost -eq 0 ]; then
