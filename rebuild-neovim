@@ -3,7 +3,7 @@
 pull=no
 git_clean=no
 clean=no
-helptags=no
+helptags=yes
 for arg; do
     case "$arg" in
         -h|--help)
@@ -12,7 +12,7 @@ for arg; do
             echo "  --pull              git pull before building"
             echo "  --git-clean         run git clean -dfx before building"
             echo "  --clean             run make clean before building"
-            echo "  --helptags          rebuild helptags after building"
+            echo "  --no-helptags       don't rebuild helptags after building"
             exit
             ;;
         --pull)
@@ -26,6 +26,9 @@ for arg; do
             ;;
         --helptags)
             helptags=yes
+            ;;
+        --no-helptags)
+            helptags=no
             ;;
         *)
             echo "unrecognized argument: $arg" 1>&2
