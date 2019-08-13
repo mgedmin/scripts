@@ -3,16 +3,20 @@
 # you're currently playing sound through bluetooh headphones and therefore
 # cannot use the mute button.
 
-almost=0
+almost=1
 
 for arg; do
     case "$arg" in
         -h|--help)
             echo "Usage: $0 [options]"
             echo "Options:"
-            echo "  --almost   instead of muting reduce the volume"
+            echo "  --almost   instead of muting reduce the volume [default]"
             echo "             (the mute LED is too bright on my X390)"
+            echo "  --really   really mute"
             exit
+            ;;
+        --really)
+            almost=0
             ;;
         --almost)
             almost=1
