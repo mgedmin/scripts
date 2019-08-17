@@ -3,10 +3,15 @@ pypy_url=https://bitbucket.org/pypy/pypy/downloads/pypy3.5-v7.0.0-linux64.tar.bz
 pypy_name=${pypy_url##*/}
 pypy_name=${pypy_name%.tar.bz2}
 
-if ! [ -d ~/opt/${pypy_name} ]; then
+if [ -x ~/opt/${pypy_name}/bin/pypy3 ]; then
+    exec ~/opt/${pypy_name}/bin/pypy3 "$@"
+elif [ -x /usr/bin/pypy3 ]; then
+    exec /usr/bin/pypy3 "$@"
+else
     cat 1>&2 <<.
 To install pypy3.5 please do
 
+  cd ~/tmp
   wget ${pypy_url}
   mkdir -p ~/opt
   tar -xf ${pypy_url##*/} -C ~/opt
@@ -14,4 +19,3 @@ To install pypy3.5 please do
 .
     exit 1
 fi
-exec ~/opt/${pypy_name}/bin/pypy3 "$@"
