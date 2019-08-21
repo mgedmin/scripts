@@ -1,0 +1,34 @@
+#!/bin/bash
+# Based on https://stackoverflow.com/a/46033999/110151
+
+print_heading() {
+    local heading="$*"
+    printf '%s\n' "$heading" "${heading//?/-}" ""
+}
+
+previous_tag=
+for current_tag in $(git tag --sort=-creatordate) ""; do
+    if [ -n "$previous_tag" ]; then
+        tag_date=$(git log -1 --pretty=format:'%ad' --date=short $previous_tag)
+        heading="$previous_tag ($tag_date)"
+        if [ -n "$current_tag" ]; then
+            range=$current_tag...$previous_tag
+        else
+            range=$previous_tag
+        fi
+    else
+        if [ -z "$(git describe --exact-match --tags HEAD 2>/dev/null)" ]; then
+            heading="x.x.x (unreleased)"
+            range=$current_tag..
+        else
+            heading=""
+            range=""
+        fi
+    fi
+    if [ -n "$heading" ]; then
+        print_heading "$heading"
+        git --no-pager log "$range" --pretty=format:'* %s.' --reverse --no-merges
+        printf '\n\n\n'
+    fi
+    previous_tag=$current_tag
+done
