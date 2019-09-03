@@ -1,5 +1,5 @@
 #!/bin/sh
 sudo true
 echo "Scanning..."
-IFACE=wlp3s0
+IFACE=wlp0s20f3
 sudo iwlist $IFACE scan|grep 'ESSID\|Channel:\|Quality'
