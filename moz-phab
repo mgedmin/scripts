@@ -1,0 +1,13 @@
+#!/bin/bash
+
+BASE_DIR=~/.mozbuild
+if ! [ -x $BASE_DIR/moz-phab/moz-phab ]; then
+    echo "moz-phab not found in $BASE_DIR/moz-phab, will install it for you" 1>&2
+    mkdir -p $BASE_DIR/moz-phab
+    pushd $BASE_DIR/moz-phab || exit 1
+    curl -O https://raw.githubusercontent.com/mozilla-conduit/review/"$(basename "$(curl -sLo /dev/null -w '%{url_effective}' https://github.com/mozilla-conduit/review/releases/latest)")"/moz-phab
+    chmod +x moz-phab
+    popd || exit 1
+fi
+
+exec $BASE_DIR/moz-phab/moz-phab "$@"
