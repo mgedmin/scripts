@@ -28,7 +28,7 @@ from threading import Thread
 from time import time, strftime, localtime, sleep
 import os
 
-__version__ = '1.0'
+__version__ = '1.1'
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
 __url__ = 'https://github.com/mgedmin/scripts/blob/master/multiping.py'
 __licence__ = 'GPL v2 or later'
@@ -121,8 +121,8 @@ class Pinger(Thread):
                         self.received += 1
                 last_one = queue.pop(0)
                 last_one.timeout()
-            # XXX sometimes this logic sleeps too much and skips one cell, why?
-            to_sleep = (last_time + self.interval) - time()
+            next_time = self.started + (idx + 1) * self.interval
+            to_sleep = next_time - time()
             if to_sleep > 0:
                 sleep(to_sleep)
             last_time = time()
@@ -140,7 +140,7 @@ class Pinger(Thread):
 
 class UI:
 
-    def __init__(self, win, y, x, width, height, pinger):
+    def __init__(self, win, y, x, width, height, pinger, hostname):
         self.win = win
         self.y = y
         self.x = x
@@ -148,6 +148,7 @@ class UI:
         self.height = height
         self.pinger = pinger
         self.version = -1
+        self.hostname = hostname
         self.autoscrolling = True
 
         self.row = 0
@@ -172,16 +173,15 @@ class UI:
         self.version = self.pinger.version
 
         if self.pinger.sent > 0:
-            loss = 100 - 100 * self.pinger.received / self.pinger.sent
-            if loss > 0:
-                win.addstr(y-1, x, "pinging %s: packet loss %d%%"
-                                   % (hostname, int(loss)))
-            else:
-                win.addstr(y-1, x, "pinging %s" % hostname)
-            win.clrtoeol()
+            loss = 100 - 100.0 * self.pinger.received / self.pinger.sent
         else:
-            win.addstr(y-1, x, "pinging %s" % hostname)
-            win.clrtoeol()
+            loss = 0
+        if loss > 0:
+            win.addstr(y-1, x, "pinging %s: packet loss %.1f%%"
+                               % (self.hostname, loss))
+        else:
+            win.addstr(y-1, x, "pinging %s" % self.hostname)
+        win.clrtoeol()
 
         if self.autoscroll() and this_is_an_update:
             self._scroll_to_bottom()
@@ -220,7 +220,8 @@ class UI:
         if self.pinger.started != -1:
             max_pos += int(self.pinger.started) % 60
         pos_just_past_the_screen = (self.row + self.height) * self.width
-        return pos_just_past_the_screen - self.width <= max_pos < pos_just_past_the_screen
+        return (pos_just_past_the_screen - self.width <= max_pos
+                < pos_just_past_the_screen)
 
     def autoscroll(self):
         if not self.autoscrolling:
@@ -278,11 +279,11 @@ class UI:
         self.scroll(0)
 
 
-def main(stdscr, hostname, interval=1):
+def _main(stdscr, hostname, interval=1):
     stdscr.addstr(0, 0, "pinging %s" % hostname)
     pinger = Pinger(hostname, interval)
     pinger.start()
-    ui = UI(stdscr, 1, 0, 60, curses.LINES - 1, pinger)
+    ui = UI(stdscr, 1, 0, 60, curses.LINES - 1, pinger, hostname)
     ui.draw()
     stdscr.refresh()
     curses.halfdelay(interval * 5)
@@ -328,9 +329,16 @@ def main(stdscr, hostname, interval=1):
             stdscr.refresh()
 
 
-if __name__ == "__main__":
+def main():
     if len(sys.argv) != 2 or sys.argv[1] in ('-h', '--help'):
         print(__doc__.replace('${version}', __version__))
         sys.exit(0)
     hostname = sys.argv[1]
-    curses.wrapper(main, hostname)
+    try:
+        curses.wrapper(_main, hostname)
+    except KeyboardInterrupt:
+        pass
+
+
+if __name__ == "__main__":
+    main()
