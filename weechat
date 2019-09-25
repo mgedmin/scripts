@@ -1,0 +1,10 @@
+#!/bin/sh
+# do not run irc-tunnel if weechat is already running, that would kill its
+# network connection!
+if [ "$(pgrep -c weechat)" -lt 2 ]; then
+    echo "starting IRC tunnel"
+    irc-tunnel
+else
+    echo "another weechat already running, assuming IRC tunnel is up"
+fi
+exec /usr/bin/weechat "$@"
