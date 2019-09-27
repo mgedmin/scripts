@@ -1,0 +1,3 @@
+#!/bin/sh
+# add up a column of floating point numbers in stdin
+awk '{sum += $1} END {print sum}' "$@"
