@@ -28,7 +28,7 @@ from threading import Thread
 from time import time, strftime, localtime, sleep
 import os
 
-__version__ = '1.1'
+__version__ = '1.1.1'
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
 __url__ = 'https://github.com/mgedmin/scripts/blob/master/multiping.py'
 __licence__ = 'GPL v2 or later'
@@ -161,7 +161,7 @@ class UI:
         self.DGREEN = curses.color_pair(2)
         curses.curs_set(0)
 
-    def draw(self):
+    def _draw(self):
         win = self.win
         y = self.y
         x = self.x
@@ -215,6 +215,14 @@ class UI:
             win.move(y, x)
             win.clrtobot()
 
+    def draw(self):
+        try:
+            self._draw()
+        except curses.error:
+            # let's hope it's just a momentary glitch due to a temporarily
+            # reduced window size or something
+            pass
+
     def last_row_visible(self):
         max_pos = len(self.pinger.status)
         if self.pinger.started != -1:
@@ -235,15 +243,10 @@ class UI:
 
     def update(self):
         if self.version != self.pinger.version:
-            try:
-                self.draw()
-            except curses.error:
-                # let's hope it's just a momentary glitch due to a temporarily
-                # reduced window size or something
-                pass
-            return 1
+            self.draw()
+            return True
         else:
-            return 0
+            return False
 
     def scroll(self, delta):
         self.row += delta
