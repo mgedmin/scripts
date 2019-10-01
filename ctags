@@ -1,0 +1,5 @@
+#!/bin/sh
+if [ -d .git ] && ! grep -q '^tags$' .git/info/exclude; then
+    echo tags >> .git/info/exclude
+fi
+exec /usr/bin/ctags "$@"
