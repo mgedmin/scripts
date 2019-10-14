@@ -6,10 +6,14 @@ PIPX_PYTHON=python3
 PIPX_VENV=venv
 
 if ! [ -x $PIPX_ENV/bin/pipx ]; then
+    $PIPX_PYTHON -c 'import sys; exit(sys.version_info < (3, 6))' || {
+        echo "python3 is too old, trying python3.6"
+        PIPX_PYTHON=python3.6
+    }
     echo "bootstrapping pipx"
     $PIPX_PYTHON -m $PIPX_VENV $PIPX_ENV || exit 1
     $PIPX_ENV/bin/pip install -U pip || exit 1
-    $PIPX_ENV/bin/pip install pipx || exit 1
+    $PIPX_ENV/bin/pip install -U pipx || exit 1
 fi
 if ! [ -x $PIPX_BINDIR/pipx ]; then
     test -d $PIPX_BINDIR || mkdir -p $PIPX_BINDIR
