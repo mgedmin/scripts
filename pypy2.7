@@ -15,6 +15,7 @@ To install pypy2.7 please do
   wget -c ${pypy_url}
   mkdir -p ~/opt
   tar -xf ${pypy_url##*/} -C ~/opt
+  cd ~/opt/${pypy_name}/lib_pypy && ../bin/pypy _ssl_build.py
 
 .
     exit 1

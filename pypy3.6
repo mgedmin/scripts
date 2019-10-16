@@ -13,6 +13,7 @@ To install pypy3.6 please do
   wget -c ${pypy_url}
   mkdir -p ~/opt
   tar -xf ${pypy_url##*/} -C ~/opt
+  cd ~/opt/${pypy_name}/lib_pypy && ../bin/pypy3 _ssl_build.py
 
 .
     exit 1
