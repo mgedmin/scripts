@@ -1,4 +1,4 @@
 #!/bin/sh
 UID_MIN=$(awk '$1 == "UID_MIN" { print $2 }' /etc/login.defs)
 UID_MAX=$(awk '$1 == "UID_MAX" { print $2 }' /etc/login.defs)
-awk -F: '$3 >= '"${UID_MIN:-500}"' && $3 <= '"${UID_MAX:-60000}"' { print $1 }' /etc/passwd
+awk -F: '$3 >= '"${UID_MIN:-500}"' && $3 < '"${UID_MAX:-60000}"' { print $1 }' /etc/passwd
