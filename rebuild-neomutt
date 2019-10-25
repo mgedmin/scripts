@@ -43,6 +43,7 @@ FEATURES=(
     --lua
     --notmuch
     --tokyocabinet
+    --full-doc
 )
 
 BUILDDEPS=(
@@ -72,7 +73,7 @@ BUILDDEPS=(
 )
 
 cd ~/src/neomutt 2>/dev/null || {
-    echo "To get mutt sources do" 1>&2
+    echo "To get neomutt sources do" 1>&2
     echo
     echo "  git clone https://github.com/neomutt/neomutt ~/src/neomutt" 1>&2
     echo
