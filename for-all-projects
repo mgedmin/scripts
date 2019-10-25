@@ -2,14 +2,31 @@
 set -eu
 
 if [[ $# -eq 0 || $1 = --help ]]; then
-    echo "usage: for-all-projects command [args ...]" 1>&2
-    exit 1
+    echo "usage: for-all-projects [--zope] command [args ...]"
+    echo "options:"
+    echo "  --projects    use ~/projects/* (default)"
+    echo "  --zope        use ~/src/zopefoundation/*"
+    exit 0
 fi
 
-cd ~/projects || {
+where=~/projects
+instructions="(cd ~/src/mg-infra && ansible-playbook projects.yml)"
+
+case "$1" in
+    --projects)
+        shift
+        ;;
+    --zope)
+        where=~/src/zopefoundation
+        instructions="(mkdir ~/src/zopefoundation && cd ~/src/zopefoundation && ghcloneall --init --org zopefoundation && ghcloneall)"
+        shift
+        ;;
+esac
+
+cd $where || {
     # shellcheck disable=SC2088
-    echo '~/projects is missing, aborting' 1>&2
-    echo "(cd ~/src/mg-infra && ansible-playbook projects.yml)" 1>&2
+    echo "$where is missing, aborting" 1>&2
+    echo "$instructions" 1>&2
     exit 1
 }
 
