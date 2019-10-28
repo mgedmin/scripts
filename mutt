@@ -36,6 +36,8 @@ if [ -x $where/neomutt ]; then
     fi
     export TEXTDOMAINDIR=~/.local/share/locale/
     exec $prefix $where/neomutt "$@"
+elif [ -x /usr/bin/neomutt ]; then
+    exec $prefix /usr/bin/neomutt "$@"
 else
     exec $prefix /usr/bin/mutt "$@"
 fi
