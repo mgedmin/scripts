@@ -1,54 +1,78 @@
 #!/usr/bin/python3
 import itertools
 import subprocess
+from typing import Dict, Iterable, List, NamedTuple
+import argparse
 
 
-def list_boxes():
-    # returns [str]
-    return subprocess.check_output(['vagrant', 'box', 'list']).splitlines()
+__version__ = '0.2'
+__author__ = 'Marius Gedminas <marius@gedmin.as>'
 
 
-def parse_boxes(boxes):
-    # [str] -> [(box, provider, version)]
+class BoxInfo(NamedTuple):
+    name: str
+    provider: str
+    version: str
+
+
+def list_boxes() -> List[str]:
+    return subprocess.check_output(
+        ['vagrant', 'box', 'list'], text=True).splitlines()
+
+
+def parse_boxes(boxes: Iterable[str]) -> Iterable[BoxInfo]:
     for line in boxes:
         # ubuntu/precise64 (virtualbox, 20160128.1.0)
         box, provider, version = line.split()
-        yield box, provider.strip('(,'), version.strip(')')
+        yield BoxInfo(box, provider.strip('(,'), version.strip(')'))
 
 
-def recent_boxes(boxes):
-    # [(box, provider, version)] -> {box: version}
+def recent_boxes(boxes: Iterable[BoxInfo]) -> Dict[str, BoxInfo]:
     latest = {}
-    for box, provider, version in boxes:
-        latest[box] = version
+    # we assume that newer boxes show up later!
+    for box in boxes:
+        latest[box.name] = box
     return latest
 
 
-def obsolete_boxes(boxes):
-    # [(box, provider, version)] -> [(box, version)]
+def obsolete_boxes(boxes: Iterable[BoxInfo]) -> Iterable[BoxInfo]:
     boxes1, boxes2 = itertools.tee(boxes)
     latest = recent_boxes(boxes1)
-    for box, provider, version in boxes2:
-        if version != latest[box]:
-            yield box, version
+    for box in boxes2:
+        if box.version != latest[box.name].version:
+            yield box
 
 
-def remove_box(box, version):
-    subprocess.check_call([
-        'vagrant', 'box', 'remove', box, '--box-version', version,
-    ])
+def remove_box(
+    box: BoxInfo, verbose: bool = False, dry_run: bool = False,
+) -> None:
+    if verbose or dry_run:
+        print(f"vagrant box remove {box.name} --box-version {box.version}")
+    if not dry_run:
+        subprocess.check_call([
+            'vagrant', 'box', 'remove', box.name, '--box-version', box.version,
+        ])
 
 
-def remove_boxes(boxes):
-    for box, version in boxes:
-        remove_box(box, version)
+def remove_boxes(
+    boxes: Iterable[BoxInfo], verbose: bool = False, dry_run: bool = False,
+) -> None:
+    for box in boxes:
+        remove_box(box, verbose=verbose, dry_run=dry_run)
 
 
-def main():
-    boxes = list_boxes()
-    boxes = parse_boxes(boxes)
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Remove old versions of local vagrant boxes")
+    parser.add_argument("--version", action="version",
+                        version="%(prog)s version " + __version__)
+    parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument("-n", "--dry-run", action="store_true")
+    args = parser.parse_args()
+
+    boxes = parse_boxes(list_boxes())
     boxes = obsolete_boxes(boxes)
-    remove_boxes(boxes)
+    remove_boxes(boxes, verbose=args.verbose, dry_run=args.dry_run)
 
 
 if __name__ == '__main__':
