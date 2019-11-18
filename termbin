@@ -1,0 +1,6 @@
+#!/bin/sh
+# paste into https://termbin.com/
+# usage:
+#    echo hello, paste | termbin
+#    termbin filename.txt
+nc termbin.com 9999 | sed -e 's/^http:/https:/'
