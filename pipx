@@ -15,6 +15,9 @@ if ! [ -x $PIPX_ENV/bin/pipx ]; then
     $PIPX_ENV/bin/pip install -U pip || exit 1
     $PIPX_ENV/bin/pip install -U pipx || exit 1
 fi
+if ! [ -f $PIPX_ENV/pipx_metadata.json ]; then
+    $PIPX_BINDIR/pipx install --force pipx || exit 1
+fi
 if ! [ -x $PIPX_BINDIR/pipx ]; then
     test -d $PIPX_BINDIR || mkdir -p $PIPX_BINDIR
     ln -sf $PIPX_ENV/bin/pipx $PIPX_BINDIR/pipx || exit 1
