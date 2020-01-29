@@ -1,0 +1,4 @@
+#!/bin/sh
+# XXX: this gives root access to a random container from the internet
+# but https://github.com/justone/dockviz is neat, isn't it?
+docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock nate/dockviz "$@"
