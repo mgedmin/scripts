@@ -1,15 +1,76 @@
-#!/bin/sh
-verbose=0
-case "$1" in
-  -v)
-    verbose=1
-    ;;
-esac
-grepargs=
-[ $verbose -eq 0 ] && grepargs=-h
-grep $grepargs '^deb ' /etc/apt/sources.list /etc/apt/sources.list.d/*.list \
-    | sed -e 's/^\/[^:]*\///' -e 's/\.list:deb /.list /' \
-          -e 's/^deb //' -e 's/#.*//' \
-          -e 's/http:\/\/ppa\.launchpad\.net\/\(.*\)\/ubuntu /ppa:\1 /' \
-    | LC_COLLATE=C sort -u \
-    | column -t
+#!/usr/bin/python3
+import argparse
+import pathlib
+from collections import defaultdict
+from typing import Iterable, Sequence, NamedTuple, List
+
+
+def sources_lists() -> Iterable[pathlib.Path]:
+    yield pathlib.Path('/etc/apt/sources.list')
+    yield from pathlib.Path('/etc/apt/sources.list.d').glob('*.list')
+
+
+class RepoInfo(NamedTuple):
+    url: str
+    distro: str
+    components: Sequence[str]
+
+
+def parse_sources(source_list: Iterable[str]) -> Iterable[RepoInfo]:
+    for line in source_list:
+        if line.startswith('deb'):
+            # deb url distro components # comment
+            bits = line.partition('#')[0].split()
+            yield RepoInfo(bits[1], bits[2], bits[3:])
+
+
+def simplify_url(url: str) -> str:
+    prefix = 'http://ppa.launchpad.net/'
+    suffix = '/ubuntu'
+    if url.startswith(prefix):
+        url = 'ppa:' + url[len(prefix):]
+        if url.endswith(suffix):
+            url = url[:-len(suffix)]
+    return url
+
+
+def column_widths(matrix: List[List[str]]) -> List[int]:
+    widths = []  # type: List[int]
+    for row in matrix:
+        for idx, cell in enumerate(row):
+            while idx >= len(widths):
+                widths.append(0)
+            widths[idx] = max(widths[idx], len(cell))
+    return widths
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="list enabled apt repositories")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="show what source file defined each repository")
+    args = parser.parse_args()
+
+    repos = defaultdict(set)
+    for source_list in sources_lists():
+        with source_list.open() as fp:
+            for source in parse_sources(fp):
+                key = (simplify_url(source.url), source.distro)
+                if args.verbose:
+                    key = (source_list.name, ) + key
+                repos[key].update(source.components)
+
+    rows = []
+    for key, components in sorted(repos.items()):
+        rows.append(key + tuple(sorted(components)))
+
+    widths = column_widths(rows)
+
+    for row in rows:
+        print('  '.join(
+            cell.ljust(width) for cell, width in zip(row, widths)
+        ).rstrip())
+
+
+if __name__ == "__main__":
+    main()
