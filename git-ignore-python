@@ -1,2 +1,2 @@
 #!/bin/sh
-git-ignore '*.py[co]' __pycache__/ build/ dist/ '*.egg-info/' .tox/
+git-ignore '*.py[co]' __pycache__/ build/ dist/ '*.egg-info/' .tox/ .coverage '.coverage.*'
