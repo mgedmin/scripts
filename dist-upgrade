@@ -6,3 +6,6 @@ if [ -x /usr/bin/apt ]; then
 else
     $NICE sudo apt-get dist-upgrade -u -f --auto-remove "$@"
 fi
+# @#%@#% kernel updates that leave an autoremovable old version but only after
+# the transaction ends
+$NICE sudo apt-get auto-remove "$@"
