@@ -16,7 +16,14 @@ if [ -n "$1" ] && [ -f "$1" ] && ! [ -w "$1" ]; then
 fi
 
 case "$1" in
+    --fast-valgrind)
+        export PYTHONMALLOC=malloc
+        prefix="valgrind --log-file=valgrind.log"
+        prefix+=" --suppressions=$HOME/.python.supp"
+        shift
+        ;;
     --valgrind)
+        export PYTHONMALLOC=malloc
         prefix="valgrind --log-file=valgrind.log"
         prefix+=" --suppressions=$HOME/.python.supp"
         prefix+=" --track-origins=yes"  # slow but better info
