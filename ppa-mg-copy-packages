@@ -6,6 +6,7 @@ PPA_NAME=ppa
 SOURCE_SERIES=disco     # aka 19.04 LTS
 TARGET_SERIES=(
     eoan                # aka 19.10
+    focal               # aka 20.04 LTS
 )
 PACKAGES=(
     pwsafe
