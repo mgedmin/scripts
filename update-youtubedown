@@ -1,0 +1,4 @@
+#!/bin/sh
+# jwz.org checks the User-Agent and doesn't like wget
+wget -O ~/bin/youtubedown https://www.jwz.org/hacks/youtubedown -U 'MSIE/1.0'
+chmod 755 ~/bin/youtubedown
