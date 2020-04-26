@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # we have choices here: do we want PIPX_ENV to be inside PIPX_ENV_DIR or not?
 # - inside: pipx upgrade pipx works, pipx reinstall-all breaks horribly
@@ -26,7 +26,7 @@ if ! [ -x $PIPX_SHARED_ENV/bin/pip ]; then
     $PIPX_PYTHON -m venv $PIPX_SHARED_ENV || exit 1
     $PIPX_SHARED_ENV/bin/pip install -I pip setuptools wheel || exit 1
 fi
-if ! [ -x $PIPX_BINDIR/pipx ]; then
+if ! [ -L $PIPX_BINDIR/pipx ] || ! [ $PIPX_BINDIR/pipx -ef $PIPX_ENV/bin/pipx ] ; then
     # bootstrap: make sure we have a symlink to pipx on our PATH
     test -d $PIPX_BINDIR || mkdir -p $PIPX_BINDIR
     ln -sf $PIPX_ENV/bin/pipx $PIPX_BINDIR/pipx || exit 1
