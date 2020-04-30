@@ -1,7 +1,8 @@
 #!/bin/sh
-usage="usage: $0 pipeline-id job-name"
+usage="usage: $0 pipeline-id job-name [nth-job-of-that-name]"
 pipeline=${1:?$usage}
 job=${2:?$usage}
+nth=$3
 
 project=$(git remote get-url origin | sed -e 's/[.]git$//' -e 's/^.*:\/\/[^\/]*\///' -e 's/\//%2f/') || exit 1
 if [ -z "$project" ]; then
@@ -9,5 +10,18 @@ if [ -z "$project" ]; then
     exit 1
 fi
 
-job_id=$(gitlab -o json -f id,name project-pipeline-job list --project-id="$project" --pipeline-id="$pipeline" | jq -r '.[]|select(.name=="'"$job"'")|.id') || exit 1
+job_id=$(gitlab -o json -f id,name project-pipeline-job list --project-id="$project" --pipeline-id="$pipeline" | jq -r '.[]|select(.name=="'"$job"'")|.id' | sort -n) || exit 1
+how_many=$(echo "$job_id" | wc -l)
+if [ "$how_many" -gt 1 ]; then
+    # shellcheck disable=SC2086
+    echo "Found multiple jobs:" $job_id 1>&2
+    if [ -z "$nth" ]; then
+        job_id=$(echo "$job_id" | tail -n 1)
+        echo "Selecting the last one: $job_id" 1>&2
+    else
+        job_id=$(echo "$job_id" | head -n "$nth" | tail -n 1)
+        echo "Selecting #$nth: $job_id" 1>&2
+    fi
+fi
+
 gitlab project-job trace --project-id="$project" --id="$job_id"
