@@ -5,11 +5,21 @@ import argparse
 import functools
 
 
+__author__ = 'Marius Gedminas <marius@gedmin.as>'
+__version__ = '1.1'
+
+
 def main():
     parser = argparse.ArgumentParser(description="Pretty-print JSON")
     parser.add_argument(
         '-i', '--indent', metavar='N', type=int, default=4,
         help='intent with N spaces (default: %(default)s)',
+    )
+    parser.add_argument(
+        '-S', '--no-sort', action='store_false', dest='sort', default=True,
+        help='do not sort the keys',
+        # on Python 3.6+ this preserves original order;
+        # on Python 3.5 this randomizes the order
     )
     parser.add_argument(
         '--minify', action='store_const', dest='indent', const=None,
@@ -19,7 +29,8 @@ def main():
         'filenames', metavar='file', nargs='*', default=['-'],
     )
     args = parser.parse_args()
-    doit = functools.partial(pretty_print, indent=args.indent)
+    doit = functools.partial(
+        pretty_print, indent=args.indent, sort_keys=args.sort)
     for fn in args.filenames:
         if fn == '-':
             doit(sys.stdin, fn)
@@ -28,11 +39,11 @@ def main():
                 doit(f, fn)
 
 
-def pretty_print(fp, filename, indent=4):
+def pretty_print(fp, filename, indent=4, sort_keys=True):
     separators = (',', ':') if indent is None else (',', ': ')
     try:
         json.dump(json.load(fp), sys.stdout, ensure_ascii=False,
-                  sort_keys=True, indent=indent, separators=separators)
+                  sort_keys=sort_keys, indent=indent, separators=separators)
     except json.JSONDecodeError as e:
         sys.exit('{filename}:{lineno}:{colno}: {error}'.format(
             filename=filename, lineno=e.lineno, colno=e.colno, error=e.msg))
