@@ -1,0 +1,13 @@
+#!/bin/sh
+usage="usage: $0 pipeline-id job-name"
+pipeline=${1:?$usage}
+job=${2:?$usage}
+
+project=$(git remote get-url origin | sed -e 's/[.]git$//' -e 's/^.*:\/\/[^\/]*\///' -e 's/\//%2f/') || exit 1
+if [ -z "$project" ]; then
+    echo "could not determine gitlab project" 1>&2
+    exit 1
+fi
+
+job_id=$(gitlab -o json -f id,name project-pipeline-job list --project-id="$project" --pipeline-id="$pipeline" | jq -r '.[]|select(.name=="'"$job"'")|.id') || exit 1
+gitlab project-job trace --project-id="$project" --id="$job_id"
