@@ -1,26 +1,103 @@
-#!/bin/sh
-usage="usage: $0 pipeline-id job-name [nth-job-of-that-name]"
-pipeline=${1:?$usage}
-job=${2:?$usage}
-nth=$3
+#!/bin/bash
+usage="usage: $0 [-v] (--job id|pipeline-id job-name [nth-job-of-that-name])"
+verbose=0
+job_id=
+pipeline=
+job=
+nth=
 
-project=$(git remote get-url origin | sed -e 's/[.]git$//' -e 's/^.*:\/\/[^\/]*\///' -e 's/\//%2f/') || exit 1
-if [ -z "$project" ]; then
-    echo "could not determine gitlab project" 1>&2
+info() {
+    if [ "$verbose" -ge 1 ]; then
+        printf "%s\n" "$*"
+    fi
+}
+debug() {
+    if [ "$verbose" -ge 2 ]; then
+        printf "%s\n" "$*"
+    fi
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --job=*)
+            job_id=${1:6}
+            debug "setting job_id to $job_id"
+            shift
+            ;;
+        --job)
+            job_id=$2
+            debug "setting job_id to $job_id"
+            shift 2
+            ;;
+        -v|--verbose)
+            verbose=$((verbose + 1))
+            shift
+            ;;
+        --help)
+            echo "$usage"
+            exit
+            ;;
+        -*)
+            echo "$usage" 1>&2
+            exit 1
+            ;;
+        *)
+            if [ -z "$pipeline" ]; then
+                pipeline=$1;
+            elif [ -z "$job" ]; then
+                job=$1
+            elif [ -z "$nth" ]; then
+                nth=$1
+            else
+                echo "$usage" 1>&2
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [ -z "$job_id" ] && [ -z "$pipeline" ]; then
+    echo "$usage" 1>&2
     exit 1
 fi
 
-job_id=$(gitlab -o json -f id,name project-pipeline-job list --project-id="$project" --pipeline-id="$pipeline" | jq -r '.[]|select(.name=="'"$job"'")|.id' | sort -n) || exit 1
-how_many=$(echo "$job_id" | wc -l)
-if [ "$how_many" -gt 1 ]; then
-    # shellcheck disable=SC2086
-    echo "Found multiple jobs:" $job_id 1>&2
-    if [ -z "$nth" ]; then
-        job_id=$(echo "$job_id" | tail -n 1)
-        echo "Selecting the last one: $job_id" 1>&2
+if [ -n "$job_id" ] && [ -n "$pipeline" ]; then
+    echo "Ignoring pipeline ($pipeline) because --job=$job_id is specified" 1>&2
+fi
+
+project=$(git remote get-url origin | sed -e 's/[.]git$//' -e 's/^.*:\/\/[^\/]*\///' -e 's/\//%2f/') || exit 1
+if [ -z "$project" ]; then
+    echo "Could not determine GitLab project ID" 1>&2
+    exit 1
+fi
+
+if [ -z "$job_id" ]; then
+    jobs=$(gitlab -o json -f id,name project-pipeline-job list --project-id="$project" --pipeline-id="$pipeline") || exit 1
+    if [ -n "$job" ]; then
+        job_id=$(echo "$jobs" | jq -r '.[]|select(.name=="'"$job"'")|.id' | sort -n) || exit 1
+    fi
+    how_many=$(echo "$job_id" | wc -l)
+    if [ "$how_many" -gt 1 ]; then
+        # shellcheck disable=SC2086
+        # because I want to convert newlines to spaces please
+        echo "Found multiple jobs:" $job_id 1>&2
+        if [ -z "$nth" ]; then
+            job_id=$(echo "$job_id" | tail -n 1)
+            echo "Selecting the last one: $job_id" 1>&2
+        else
+            job_id=$(echo "$job_id" | head -n "$nth" | tail -n 1)
+            echo "Selecting #$nth: $job_id" 1>&2
+        fi
+    elif [ -z "$job_id" ]; then
+        if [ -n "$job" ]; then
+            echo "Job $job not found" 1>&2
+        fi
+        echo "Available jobs for pipeline #$pipeline:"
+        echo "$jobs" | jq -r '.[] | "  \(.name) (--job=\(.id))"'
+        exit 1
     else
-        job_id=$(echo "$job_id" | head -n "$nth" | tail -n 1)
-        echo "Selecting #$nth: $job_id" 1>&2
+        info "Job ID: $job_id"
     fi
 fi
 
