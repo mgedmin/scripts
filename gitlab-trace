@@ -1,7 +1,8 @@
 #!/bin/bash
-usage="usage: $0 [-v] (--job id|pipeline-id job-name [nth-job-of-that-name])"
+usage="usage: $0 [-v] [--project id] (--job id|pipeline-id job-name [nth-job-of-that-name])"
 verbose=0
 job_id=
+project=
 pipeline=
 job=
 nth=
@@ -19,8 +20,18 @@ debug() {
 
 while [ $# -gt 0 ]; do
     case "$1" in
+        --project=*)
+            project=${1#*=}
+            debug "setting project to $project"
+            shift
+            ;;
+        --project)
+            project=$2
+            debug "setting project to $project"
+            shift 2
+            ;;
         --job=*)
-            job_id=${1:6}
+            job_id=${1#*=}
             debug "setting job_id to $job_id"
             shift
             ;;
@@ -66,7 +77,9 @@ if [ -n "$job_id" ] && [ -n "$pipeline" ]; then
     echo "Ignoring pipeline ($pipeline) because --job=$job_id is specified" 1>&2
 fi
 
-project=$(git remote get-url origin | sed -e 's/[.]git$//' -e 's/^.*:\/\/[^\/]*\///' -e 's/\//%2f/') || exit 1
+if [ -z "$project" ]; then
+    project=$(git remote get-url origin | sed -e 's/[.]git$//' -e 's/^.*:\/\/[^\/]*\///' -e 's/\//%2f/') || exit 1
+fi
 if [ -z "$project" ]; then
     echo "Could not determine GitLab project ID" 1>&2
     exit 1
