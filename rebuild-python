@@ -33,8 +33,8 @@ done
 check-build-deps() {
     missing=()
     for dep; do
-        if ! test -e /var/lib/dpkg/info/$dep:*.list; then
-            missing+=($dep)
+        if ! test -e /var/lib/dpkg/info/"$dep":*.list; then
+            missing+=("$dep")
         fi
     done
     if [[ ${#missing[@]} -ne 0 ]]; then
@@ -86,3 +86,6 @@ fi
 ./configure --prefix="$prefix"
 make -j4
 make install
+if ! test -e "$HOME/bin/python$version"; then
+    ln -s python "$HOME/bin/python$version"
+fi
