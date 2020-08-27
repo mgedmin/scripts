@@ -28,7 +28,7 @@ esac
 
 if [ -x $where/neomutt ]; then
     if ! [ -e $where/po/lt.mo ] || ! [ $where/po/lt.mo -nt $where/po/lt.po ]; then
-      make -C $where/po lt.mo
+      make -C $where po/lt.mo
     fi
     if ! [ -e ~/.local/share/locale/lt/LC_MESSAGES/neomutt.mo ]; then
       mkdir -p ~/.local/share/locale/lt/LC_MESSAGES
