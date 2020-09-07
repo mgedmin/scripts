@@ -104,6 +104,8 @@ if [ -z "$job_id" ] && [ -z "$pipeline" ]; then
     pipelines=$(gitlab -o json -f id project-pipeline list --project-id="$project" --ref="$branch") || exit 1
     if [ -n "$pipelines" ]; then
         pipeline=$(echo "$pipelines" | jq -r '.[]|.id' | head -n 1) || exit 1
+        project_url=$(gitlab -o json -f web_url project get --id="$project" |  jq -r .web_url)
+        echo "$project_url/pipelines/$pipeline"
     else
         echo "Project $project doesn't have any pipelines for branch $branch"
         exit 1
