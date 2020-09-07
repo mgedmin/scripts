@@ -133,6 +133,7 @@ if [ -z "$job_id" ]; then
         fi
         echo "Available jobs for pipeline #$pipeline:"
         echo "$jobs" | jq -r '.[] | "   --job=\(.id) - \(.status) - \(.name)"'
+        exit 0
     else
         info "Job ID: $job_id"
     fi
