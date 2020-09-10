@@ -1,16 +1,27 @@
 #!/usr/bin/python3
-import sys
 import argparse
+import sys
+from functools import partial
 
 # sudo apt install python3-yaml
 import yaml
 
 
+class MyDumper(yaml.SafeDumper):
+    def increase_indent(self, flow=False, indentless=False):
+        # workaround for https://github.com/yaml/pyyaml/issues/234, from
+        # https://stackoverflow.com/a/39681672/110151
+        return super().increase_indent(flow=flow, indentless=False)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Pretty-print YAML")
     parser.add_argument('filenames', metavar='file', nargs='*', default=['-'])
+    parser.add_argument('-w', '--width', type=int)
+    parser.add_argument('-s', '--sort-keys', action='store_true', default=False)
+    parser.add_argument('-S', '--no-sort-keys', action='store_false', dest='sort_keys')
     args = parser.parse_args()
-    doit = pretty_print
+    doit = partial(pretty_print, width=args.width, sort_keys=args.sort_keys)
     for fn in args.filenames:
         if fn == '-':
             doit(sys.stdin, fn)
@@ -19,9 +30,9 @@ def main():
                 doit(f, fn)
 
 
-def pretty_print(fp, filename):
-    yaml.safe_dump(yaml.safe_load(fp), sys.stdout,
-                   default_flow_style=False)
+def pretty_print(fp, filename, *, width=None, sort_keys=True):
+    yaml.dump(yaml.safe_load(fp), sys.stdout, Dumper=MyDumper,
+              default_flow_style=False, width=width, sort_keys=sort_keys)
 
 
 if __name__ == '__main__':
