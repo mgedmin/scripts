@@ -1,5 +1,6 @@
 #!/bin/bash
 py_ver=${0##*python}
+py_ver=${py_ver:-3}  # python == python3 yay! if you want 2.7, use python2
 py_prefix=~/opt/python${py_ver/./}
 
 if [ -x "$py_prefix"/bin/python"$py_ver" ]; then
