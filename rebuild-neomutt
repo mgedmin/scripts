@@ -44,6 +44,8 @@ FEATURES=(
     --notmuch
     --tokyocabinet
     --full-doc
+    # I keep finding bugs, so let's try to find MORE BUGS!
+    --asan
 )
 
 BUILDDEPS=(
