@@ -2,6 +2,14 @@
 where=~/src/neomutt
 
 
+# https://clang.llvm.org/docs/AddressSanitizer.html#suppressing-memory-leaks
+export LSAN_OPTIONS=suppressions=$HOME/.lsan.supp
+
+# See https://github.com/google/sanitizers/wiki/AddressSanitizer#faq
+# this makes it more accurate but not terribly slow (for accurate but slow use
+# mutt --asan)
+export ASAN_OPTIONS=fast_unwind_on_malloc=0:malloc_context_size=4
+
 case "$1" in
     --valgrind)
         prefix="valgrind --log-file=valgrind.log"
@@ -18,6 +26,13 @@ case "$1" in
         # note that "set confirm on" appears to be default, so I don't have to
         # worry about escaping arguments with spaces
         prefix="gdb -silent -return-child-result -ex run -ex quit --args"
+        shift
+        ;;
+    --asan)
+        # ASAN reports memory leaks with truncated stack traces unless I do
+        # this, which makes mutt noticeably slower (but not as slow as
+        # valgrind).  See https://github.com/google/sanitizers/wiki/AddressSanitizer#faq
+        export ASAN_OPTIONS=fast_unwind_on_malloc=0
         shift
         ;;
     *)
