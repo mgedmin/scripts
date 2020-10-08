@@ -36,5 +36,15 @@ if [ $PIPX_ENV = $PIPX_ENV_DIR/pipx ] && ! [ -f $PIPX_ENV/pipx_metadata.json ]; 
     $PIPX_BINDIR/pipx install --force pipx || exit 1
 fi
 
+# integrate with new-changelog-entry
+if [[ $1 == --changelog ]]; then
+    shift
+    new-changelog-entry "su - $USER"
+    new-changelog-entry -a "  pipx $*"
+elif [[ $1 == --changelog-append ]]; then
+    shift
+    new-changelog-entry -a "  pipx $*"
+fi
+
 # run the real pipx
 exec $PIPX_BINDIR/pipx "$@"
