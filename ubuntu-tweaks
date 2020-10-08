@@ -4,6 +4,7 @@
 # - tweak to my preferences
 # - dconf dump /
 # - remove irrelevant gunk
+# - add missing stuff
 
 dconf load / <<EOF
 [org/gnome/desktop/calendar]
@@ -17,6 +18,7 @@ xkb-options=['grp_led:scroll']
 clock-show-seconds=true
 clock-show-weekday=true
 enable-hot-corners=true
+locate-pointer=true
 show-battery-percentage=true
 
 [org/gnome/desktop/media-handling]
@@ -24,6 +26,11 @@ autorun-never=true
 
 [org/gnome/desktop/peripherals/keyboard]
 delay=uint32 250
+
+[org/gnome/desktop/wm/keybindings]
+maximize-horizontally=['<Shift><Super>h']
+maximize-vertically=['<Shift><Super>v']
+toggle-fullscreen=['<Alt>F11']
 
 [org/gnome/desktop/wm/preferences]
 button-layout=':close'
@@ -35,4 +42,17 @@ resize-with-right-button=true
 show-home=false
 show-trash=false
 
+[org/gnome/Weather]
+locations=[<(uint32 2, <('Vilnius', 'EYVI', true, [(0.95353154218847114, 0.43807764225057672)], [(0.95440420681446825, 0.44185919478099522)])>)>]
+
+[org/gnome/shell/weather]
+automatic-location=true
+locations=[<(uint32 2, <('Vilnius', 'EYVI', true, [(0.95353154218847114, 0.43807764225057672)], [(0.95440420681446825, 0.44185919478099522)])>)>]
+
+[org/gnome/clocks]
+world-clocks=[{'location': <(uint32 2, <('Coordinated Universal Time (UTC)', '@UTC', false, @a(dd) [], @a(dd) [])>)>}, {'location': <(uint32 2, <('Stockholm', 'ESSB', true, [(1.0358529110586345, 0.31328660073298215)], [(1.0355620170322046, 0.31503192998497648)])>)>}]
+
+[org/gnome/shell/world-clocks]
+locations=[<(uint32 2, <('Coordinated Universal Time (UTC)', '@UTC', false, @a(dd) [], @a(dd) [])>)>, <(uint32 2, <('Stockholm', 'ESSB', true, [(1.0358529110586345, 0.31328660073298215)], [(1.0355620170322046, 0.31503192998497648)])>)>]
 EOF
+echo "You might want to run custom-keybindings and configure-gnome-terminal too"

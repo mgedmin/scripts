@@ -1,0 +1,33 @@
+#!/bin/sh
+dconf load / <<EOF
+[org/gnome/terminal/legacy]
+menu-accelerator-enabled=false
+new-terminal-mode='tab'
+shortcuts-enabled=true
+theme-variant='light'
+
+[org/gnome/terminal/legacy/keybindings]
+full-screen='disabled'
+
+[org/gnome/terminal/legacy/profiles:]
+list=['b1dcc9dd-5262-4d8d-a863-c897e6d979b9', '4f92dbd1-4b55-47a3-9cf7-5a4c701188fd', 'c80c61f1-8e9f-46cc-b5f3-a6d8f1d61236']
+
+[org/gnome/terminal/legacy/profiles:/:4f92dbd1-4b55-47a3-9cf7-5a4c701188fd]
+use-theme-colors=false
+use-theme-transparency=false
+use-transparent-background=true
+visible-name='Permatomas'
+
+[org/gnome/terminal/legacy/profiles:/:b1dcc9dd-5262-4d8d-a863-c897e6d979b9]
+audible-bell=false
+scrollback-unlimited=true
+use-theme-colors=false
+visible-name='Tamsus'
+
+[org/gnome/terminal/legacy/profiles:/:c80c61f1-8e9f-46cc-b5f3-a6d8f1d61236]
+background-color='rgb(255,255,255)'
+foreground-color='rgb(0,0,0)'
+use-theme-colors=false
+visible-name='Šviesus'
+
+EOF
