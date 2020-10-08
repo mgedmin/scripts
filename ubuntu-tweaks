@@ -38,6 +38,10 @@ focus-mode='sloppy'
 mouse-button-modifier='<Alt>'
 resize-with-right-button=true
 
+[org/gnome/shell/extensions/dash-to-dock]
+dock-fixed=false
+multi-monitor=false
+
 [org/gnome/shell/extensions/desktop-icons]
 show-home=false
 show-trash=false
