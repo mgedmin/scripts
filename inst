@@ -1,4 +1,14 @@
-#!/bin/sh
+#!/bin/bash
+
+# integrate with new-changelog-entry
+if [[ $1 == --changelog ]]; then
+    shift
+    new-changelog-entry "apt install $*"
+elif [[ $1 == --changelog-append ]]; then
+    shift
+    new-changelog-entry -a "apt install $*"
+fi
+
 if [ -x /usr/bin/apt ]; then
     sudo apt -y install "$@"
 else
