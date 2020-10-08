@@ -2,6 +2,7 @@
 
 pull=no
 builddeps=no
+asan=no
 
 for arg; do
     case "$arg" in
@@ -11,6 +12,7 @@ for arg; do
             echo "Options:"
             echo "  --pull              git pull before building"
             echo "  --build-deps        sudo apt install build dependencies"
+            echo "  --asan              build with ASAN support (slower)"
             exit
             ;;
         --pull)
@@ -18,6 +20,9 @@ for arg; do
             ;;
         --build-deps)
             builddeps=yes
+            ;;
+        --asan)
+            asan=yes
             ;;
         *)
             echo "unrecognized argument: $arg" 1>&2
@@ -44,9 +49,12 @@ FEATURES=(
     --notmuch
     --tokyocabinet
     --full-doc
-    # I keep finding bugs, so let's try to find MORE BUGS!
-    --asan
 )
+
+if [ $asan = yes ]; then
+    # I keep finding bugs, so let's try to find MORE BUGS!
+    FEATURES+=(--asan)
+fi
 
 BUILDDEPS=(
     # Ubuntu's mutt (1.8.3+neomutt20170609-2build1) depends on this:
