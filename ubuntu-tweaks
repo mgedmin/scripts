@@ -1,0 +1,38 @@
+#!/bin/sh
+# This was produced on Ubuntu 20.04:
+# - install and run gnome-tweaks
+# - tweak to my preferences
+# - dconf dump /
+# - remove irrelevant gunk
+
+dconf load / <<EOF
+[org/gnome/desktop/calendar]
+show-weekdate=true
+
+[org/gnome/desktop/input-sources]
+sources=[('xkb', 'lt+us')]
+xkb-options=['grp_led:scroll']
+
+[org/gnome/desktop/interface]
+clock-show-seconds=true
+clock-show-weekday=true
+enable-hot-corners=true
+show-battery-percentage=true
+
+[org/gnome/desktop/media-handling]
+autorun-never=true
+
+[org/gnome/desktop/peripherals/keyboard]
+delay=uint32 250
+
+[org/gnome/desktop/wm/preferences]
+button-layout=':close'
+focus-mode='sloppy'
+mouse-button-modifier='<Alt>'
+resize-with-right-button=true
+
+[org/gnome/shell/extensions/desktop-icons]
+show-home=false
+show-trash=false
+
+EOF
