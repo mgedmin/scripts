@@ -56,11 +56,27 @@ check-build-deps \
     libsqlite3-dev \
     libffi-dev
 
-test -d ~/src/cpython || {
-    echo "To get CPython sources do" 1>&2
-    echo "  git clone https://github.com/python/cpython/ ~/src/cpython" 1>&2
-    exit 1
+autoclone() {
+    local what url dir
+    dir=$1
+    url=${2:?usage: autoclone name git-url directory}
+    what=${3:-${1##*/}}
+    if ! [ -d "$dir" ]; then
+        echo "To get $what do" 1>&2
+        echo 1>&2
+        echo "  git clone $url $dir" 1>&2
+        echo 1>&2
+        read -r -p "Would you like me to run that for you now? [y/N] " answer
+        if [ "$answer" = "y" ]; then
+            git clone "$url" "$dir" || exit 1
+        else
+            exit 1
+        fi
+    fi
 }
+
+autoclone ~/src/cpython https://github.com/python/cpython/ "CPython sources"
+
 cd ~/src/cpython || exit 1
 if [ -n "$branch" ]; then
     git checkout "$branch"
