@@ -1,0 +1,25 @@
+#!/bin/sh
+if ! [ -e ~/.pwsafe.dat ]; then
+    cat 1>&2 << EOF
+~/.pwsafe.dat is missing; please do
+
+  mkdir -p ~/Private
+  cd ~/Private
+  git clone mg@plato.gedmin.as:backups/pwsafe.git
+  pwsafe/install.sh
+EOF
+    exit 1
+fi
+if [ -x /usr/bin/pwsafe ]; then
+    exec /usr/bin/pwsafe "$@" || exit 1
+else
+    cat 1>&2 << EOF
+pwsafe is not installed; please do
+
+  sudo add-apt-repository -y ppa:mgedmin
+  sudo apt install -y pwsafe
+EOF
+    exit 1
+fi
+
+
