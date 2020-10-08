@@ -1,0 +1,24 @@
+#!/bin/bash
+autoclone() {
+    local what url dir
+    what=$1
+    url=$2
+    dir=${3:?usage: autoclone name git-url directory}
+    echo "To get $what do" 1>&2
+    echo 1>&2
+    echo "  git clone $url $dir" 1>&2
+    echo 1>&2
+    read -r -p "Would you like me to run that for you now? [y/N] " answer
+    if [ "$answer" = "y" ]; then
+        git clone "$url" "$dir" || exit 1
+    else
+        exit 1
+    fi
+}
+if ! [ -e ~/src/gtimelog ]; then
+    autoclone gtimelog https://github.com/gtimelog/gtimelog/ ~/src/gtimelog
+fi
+if ! [ -e ~/.gtimelog ]; then
+    autoclone .gtimelog mg@fridge.pov.lt:git/dotgtimelog.git ~/.gtimelog
+fi
+exec ~/src/gtimelog/gtimelog "$@"
