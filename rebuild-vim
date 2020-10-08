@@ -104,9 +104,7 @@ fi
 rm -f src/auto/config.cache
 CFLAGS="$CFLAGS" ./configure "${FEATURES[@]}" --with-compiledby="$COMPILED_BY" \
 && make -j4 || {
-    echo "Consider" 1>&2
-    echo "  sudo apt-get build-dep vim" 1>&2
-    echo "  sudo apt-get install ruby-dev libssl-dev" 1>&2
+    echo "Consider $0 --build-deps" 1>&2
     exit 1
 }
 # for that matter, if you get
