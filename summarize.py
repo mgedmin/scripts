@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Summarize log files.
 """
@@ -14,6 +14,7 @@ import errno
 import doctest
 import fileinput
 
+
 def mkrule(rx, replacement):
     r"""Build a function that replaces a given regexp.
 
@@ -23,6 +24,7 @@ def mkrule(rx, replacement):
 
     """
     return lambda s, sub=re.compile(rx).sub: sub(replacement, s)
+
 
 RULES = [
     # Get rid of date/time
@@ -53,6 +55,7 @@ RULES = [
            r'postfix/\1[(pid)]: (queueid):'),
 ]
 
+
 def uniq_with_counts(lines):
     """Collapse equal neighboring elements.
 
@@ -68,9 +71,13 @@ def uniq_with_counts(lines):
 
         >>> list(uniq_with_counts([]))
         []
+
     """
     it = iter(lines)
-    last = it.next()
+    try:
+        last = next(it)
+    except StopIteration:
+        return
     count = 1
     for line in it:
         if line == last:
@@ -81,6 +88,7 @@ def uniq_with_counts(lines):
             count = 1
     yield last, count
 
+
 def summarize(input, output=sys.stdout):
     lines = []
     for line in input:
@@ -90,13 +98,13 @@ def summarize(input, output=sys.stdout):
         lines.append(line)
     lines.sort()
     uniq_lines = list(uniq_with_counts(lines))
-    print >> output, "Processed %d lines into %d lines" % (len(lines),
-                                                           len(uniq_lines))
+    print("Processed %d lines into %d lines" % (len(lines), len(uniq_lines)),
+          file=output)
     for line, count in uniq_lines:
         if count > 1:
-            print >> output, "%s\t{*%d}" % (line, count)
+            print("%s\t{*%d}" % (line, count), file=output)
         else:
-            print >> output, line
+            print(line, file=output)
 
 
 def main():
@@ -104,14 +112,15 @@ def main():
     pager = os.popen('less -S -M', 'w')
     try:
         summarize(fileinput.input(), pager)
-    except IOError, e:
+    except IOError as e:
         if e.errno != errno.EPIPE:
-            print >> sys.stderr, e
+            print(e, file=sys.stderr)
     pager.close()
 
 
 def test():
     doctest.testmod()
+
 
 if __name__ == '__main__':
     main()
