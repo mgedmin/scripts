@@ -1,0 +1,21 @@
+#!/usr/bin/python3
+import os
+from xml.etree import ElementTree as ET
+
+
+def main():
+    filename = '~/.config/monitors.xml'
+    tree = ET.parse(os.path.expanduser(filename))
+    print(f"Stored monitor configurations in {filename}:")
+    for configuration in tree.iter('configuration'):
+        monitors = [
+            f"{monitor.findtext('connector')}:"
+            f" {monitor.findtext('vendor')}"
+            f" - {monitor.findtext('product')}"
+            for monitor in configuration.iter('monitorspec')
+        ]
+        print(f"* {', '.join(monitors)}")
+
+
+if __name__ == "__main__":
+    main()
