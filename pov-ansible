@@ -1,8 +1,3 @@
 #!/bin/sh
-test -d ~/src/deployments/provisioning || {
-    echo "~/src/deployments/provisioning is missing, please run the following command:" 1>&2
-    echo 1>&2
-    echo "  cd ~/src && git clone git@github.com:ProgrammersOfVilnius/deployments" 1>&2
-    exit 1
-}
+autoclone ~/src/deployments/provisioning https://ProgrammersOfVilnius/deployments || exit 1
 cd ~/src/deployments/provisioning/ && ansible "$@"

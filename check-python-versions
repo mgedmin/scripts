@@ -3,4 +3,5 @@
 # Script moved to its own git repository at
 # https://github.com/mgedmin/check-python-versions
 #
+autoclone ~/src/check-python-versions https://github.com/mgedmin/check-python-versions || exit 1
 exec ~/src/check-python-versions/check-python-versions "$@"

@@ -1,15 +1,7 @@
 #!/bin/bash
 # Perhaps a script will make blogging easier for me
 
-test -d ~/blog/content || {
-    echo "You don't have ~/blog/content here!"
-    echo
-    echo "  git clone fridge:git/newblog.git ~/blog"
-    echo
-    echo "and try again."
-    exit 1
-} 1>&2
-
+autoclone ~/blog fridge:git/newblog.git
 cd ~/blog/content || exit 1
 
 file=$1

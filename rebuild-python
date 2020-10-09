@@ -57,8 +57,8 @@ check-build-deps \
     libffi-dev
 
 autoclone ~/src/cpython https://github.com/python/cpython/ "CPython sources"
-
 cd ~/src/cpython || exit 1
+
 if [ -n "$branch" ]; then
     git checkout "$branch"
 fi

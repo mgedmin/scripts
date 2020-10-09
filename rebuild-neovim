@@ -37,11 +37,7 @@ for arg; do
     esac
 done
 
-test -d ~/src/neovim || {
-    echo "To get neovim sources do" 1>&2
-    echo "  git clone https://github.com/neovim/neovim ~/src/neovim" 1>&2
-    exit 1
-}
+autoclone ~/src/neovim https://github.com/neovim/neovim
 cd ~/src/neovim || exit 1
 if [ $pull = yes ]; then
     git pull
