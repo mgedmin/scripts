@@ -1,4 +1,7 @@
 #!/bin/sh
+
+autoclone ~/.weechat plato:git/dotweechat.git || exit 1
+
 # do not run irc-tunnel if weechat is already running, that would kill its
 # network connection!
 if [ "$(pgrep -c weechat)" -lt 2 ]; then
