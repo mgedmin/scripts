@@ -1,8 +1,6 @@
 #!/bin/sh
-# note the space: `-- '.
-cat <<END
 
-Marius Gedminas
--- 
-END
-python ~/sigs/tools/sig.py
+autoclone ~/sigs fridge:git/sigs.git
+
+printf "\nMarius Gedminas\n-- \n"
+python3 ~/sigs/tools/sig.py

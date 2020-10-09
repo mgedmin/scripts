@@ -1,0 +1,20 @@
+#!/bin/bash
+dir=$1
+url=${2:?usage: autoclone directory git-url [description]}
+what=${3:-${1##*/}}
+if ! [ -d "$dir" ]; then
+    echo "To get $what do" 1>&2
+    echo 1>&2
+    echo "  git clone $url ${dir/#$HOME/\~}" 1>&2
+    echo 1>&2
+    if [ -t 0 ]; then # stdin is a tty
+        read -r -p "Would you like me to run that for you now? [y/N] " answer
+        if [ "$answer" = "y" ]; then
+            git clone "$url" "$dir" || exit 1
+        else
+            exit 1
+        fi
+    else
+        exit 1
+    fi
+fi
