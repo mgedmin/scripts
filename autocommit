@@ -1,0 +1,93 @@
+#!/bin/bash
+# Automatically commit stuff in my ~
+cd "$HOME" || exit 1
+
+ionice -c3 -p $$
+
+c=$(tput setaf 5)
+r=$(tput sgr0)
+
+err=0
+dry_run=0
+verbose=0
+
+for arg; do
+    case "$arg" in
+        -h|--help)
+            echo "Usage: $(basename "$0") [options]"
+            echo
+            echo "Options:"
+            echo "  --dry-run           don't actually do anything"
+            echo "  --verbose           be more verbose"
+            exit
+            ;;
+        -v|--verbose)
+            verbose=1
+            ;;
+        -n|--dry-run)
+            dry_run=1
+            ;;
+        *)
+            echo "unrecognized argument: $arg" 1>&2
+            exit 1
+            ;;
+    esac
+done
+
+unclean() {
+    [ -d .git ] && [ -n "$(git status --porcelain)" ]
+}
+
+verbose_info() {
+    if [ $verbose -ne 0 ]; then
+        printf "%s\n" "$*"
+    fi
+}
+
+autocommit() {
+    local where=$1
+    local message=$2
+    local push=$3
+
+    if ! [ -e "$where" ]; then
+        verbose_info "$c+ skipping ${where/#$HOME/\~}$r"
+        return
+    fi
+    printf "$c+ %s$r\\n" "${where/#$HOME/\~}"
+    cd "$where" || { err=1; return; }
+    case "$push" in
+        push)
+            if [ $dry_run -eq 1 ]; then
+                printf 'git add . && git commit -m "%s" && git push\n' "$message"
+            else
+                git add . || { err=1; return; }
+                if unclean; then
+                    git commit -m "$message" && git push || err=1
+                fi
+            fi
+            ;;
+        "")
+            if [ $dry_run -eq 1 ]; then
+                printf 'git add . && git commit -m "%s"\n' "$message"
+            else
+                git add . || { err=1; return; }
+                if unclean; then
+                    git commit -m "$message" || err=1
+                fi
+            fi
+            ;;
+        *)
+            printf 'autocommit: unexpected "%s", expected "push" or nothing\n' \
+                "$push" 1>&2
+            err=1
+            return
+            ;;
+    esac
+}
+
+autocommit ~/.gtimelog "Automatic timelog update" push
+autocommit ~/books "books"
+autocommit ~/.weechat "chat chat"
+autocommit ~/Mail/Home "mail"
+
+exit $err
