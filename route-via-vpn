@@ -1,0 +1,47 @@
+#!/bin/bash
+host=${1:?usage: $0 hostname [...]}
+
+vpndev=$(ip -j link | jq -r '.[].ifname|select(.=="ppp0" or .=="tun0")' | head -n 1)
+
+if [ -z "$vpndev" ]; then
+  echo "no VPN detected"
+  exit 1
+fi
+
+resolve() {
+  local host
+  local res
+  host=$1
+  # if $host is an IP address, getent hosts will return no results
+  res=$(getent hosts "$host")
+  test -z "$res" && res=$host
+  printf "%s\n" "$res"
+}
+
+run() {
+  printf "+ %s\n" "$*"
+  sudo "$@"
+}
+
+declare -A vpn_routes
+for route in $(vpn-routes); do
+  vpn_routes[$route]=1
+done
+
+for host in "$@"; do
+  # handle https://example.com/
+  host=${host#*://}
+  host=${host%%/*}
+
+  if [ $# -gt 1 ]; then
+    printf "+ %s\n" "$host"
+  fi
+
+  resolve "$host" | while read -r ip rest; do
+    if [ -n "${vpn_routes[$ip]}" ]; then
+      echo "$ip: already using VPN"
+    else
+      run ip route add "$ip/32" dev "$vpndev" proto static metric 50
+    fi
+  done
+done

@@ -1,0 +1,40 @@
+#!/bin/bash
+host=${1:?usage: $0 hostname [...]}
+
+declare -A vpn_routes
+for route in $(vpn-routes); do
+  vpn_routes[$route]=1
+done
+
+resolve() {
+  local host
+  local res
+  host=$1
+  # if $host is an IP address, getent hosts will return no results
+  res=$(getent hosts "$host")
+  test -z "$res" && res=$host
+  printf "%s\n" "$res"
+}
+
+reset=$(tput sgr0)
+red=$(tput setaf 1)
+green=$(tput setaf 2)
+yellow=$(tput setaf 3)
+
+for host in "$@"; do
+  # handle https://example.com/
+  host=${host#*://}
+  host=${host%%/*}
+
+  if [ $# -gt 1 ]; then
+    printf "%s+ %s%s\n" "$yellow" "$host" "$reset"
+  fi
+
+  resolve "$host" | while read -r ip rest; do
+    if [ -n "${vpn_routes[$ip]}" ]; then
+      printf "%s: %syes%s\n" "$ip" "$green" "$reset"
+    else
+      printf "%s: %sno%s\n" "$ip" "$red" "$reset"
+    fi
+  done
+done

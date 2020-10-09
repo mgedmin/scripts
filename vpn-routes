@@ -1,0 +1,3 @@
+#!/bin/sh
+# list all routes going throug ppp0 (L2TP VPN) or tun0 (OpenVPN)
+ip --json r | jq -r '.[]|select(.dev=="ppp0" or .dev=="tun0")|.dst'
