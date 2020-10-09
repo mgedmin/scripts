@@ -1,0 +1,5 @@
+#!/bin/sh
+# thank you osse in #git on Freenode who suggested
+# find . -name .git -execdir sh -c 'x="$(git rev-parse --is-bare-repository)" && [ "$x" = false ] && ! git config --get-regexp "^remote.*" 2>/dev/null' ';' -print
+# and here's my variation on it:
+find . -name .git -execdir sh -c "git config --name-only --get-regexp '^remote.*.url' > /dev/null 2>&1 || pwd" ';'
