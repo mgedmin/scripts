@@ -1,23 +1,5 @@
 #!/bin/bash
-autoclone() {
-    local what url dir
-    dir=$1
-    url=${2:?usage: autoclone name git-url directory}
-    what=${3:-${1##*/}}
-    if ! [ -d "$dir" ]; then
-        echo "To get $what do" 1>&2
-        echo 1>&2
-        echo "  git clone $url $dir" 1>&2
-        echo 1>&2
-        read -r -p "Would you like me to run that for you now? [y/N] " answer
-        if [ "$answer" = "y" ]; then
-            git clone "$url" "$dir" || exit 1
-        else
-            exit 1
-        fi
-    fi
-}
-autoclone ~/src/gtimelog2jira https://github.com/ProgrammersOfVilnius/gtimelog2jira
+autoclone ~/src/gtimelog2jira https://github.com/ProgrammersOfVilnius/gtimelog2jira || exit 1
 if ! [ -e ~/.local/bin/gtimelog2jira ]; then
     pipx install -e ~/src/gtimelog2jira || exit 1
 fi
