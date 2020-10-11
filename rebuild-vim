@@ -76,9 +76,6 @@ BUILDDEPS=(
     libssl-dev
 )
 
-# let's not let vim see ~/.venv/bin/python
-export PATH=/usr/lib/ccache:/usr/bin:/bin
-
 CFLAGS="-g"
 
 if [ $builddeps = yes ]; then
@@ -91,6 +88,9 @@ if [ $pull = yes ]; then
     git pull
 fi
 rm -f src/auto/config.cache
+
+# let's not let vim's ./configure see ~/bin/python*
+export PATH=/usr/lib/ccache:/usr/bin:/bin
 if ! CFLAGS="$CFLAGS" ./configure "${FEATURES[@]}" --with-compiledby="$COMPILED_BY" && make -j4; then
     echo "Consider $0 --build-deps" 1>&2
     exit 1
