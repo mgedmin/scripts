@@ -62,10 +62,16 @@ if [ -z "$image" ]; then
 fi
 
 auth="$(jq -r '.auths["'"$registry"'"].auth' ~/.docker/config.json)"
-if [ "$auth" = "null" ]; then
-    auth=
-else
+if [ "$auth" != "null" ]; then
     info "Found credentials for $registry in ~/.docker/config.json"
+else
+    helper="$(jq -r '.credsStore' ~/.docker/config.json)"
+    if [ -n "$helper" ]; then
+        info "Using docker credential helper $helper"
+        auth="$(docker-credential-"$helper" get <<<"$registry" | jq -r '@base64 "\(.Username+":"+.Secret)"')"
+    else
+        auth=
+    fi
 fi
 
 info "Checking $registry for $image tags"
