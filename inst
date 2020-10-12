@@ -4,9 +4,11 @@
 if [[ $1 == --changelog ]]; then
     shift
     new-changelog-entry "apt install $*"
+    echo
 elif [[ $1 == --changelog-append ]]; then
     shift
     new-changelog-entry -a "apt install $*"
+    echo
 fi
 
 if [ -x /usr/bin/apt ]; then
