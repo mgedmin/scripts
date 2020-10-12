@@ -2,6 +2,11 @@
 # Inspired by http://terminalmage.net/2011/10/12/printing-to-pdf-in-mutt.html
 # and https://unix.stackexchange.com/questions/20456/pretty-print-mails-from-mutt
 
+if [ -z "$DISPLAY" ]; then
+    echo "DISPLAY not set" 1>&2
+    exit 1
+fi
+
 mkdir -p ~/tmp || exit 1
 outfile=$(mktemp ~/tmp/mutt_XXXXXXXX.pdf)
 
