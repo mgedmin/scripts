@@ -1,0 +1,81 @@
+#!/bin/bash
+# list all docker tags available from a private registry
+# if the registry requires authentication, be sure to 'docker login' first, so
+# the credentials can be cached in ~/.docker/config.json
+
+usage="usage: $0 [-v] [-r registry] image"
+# dockerhub would be registry.hub.docker.com, but note that it requires authentication
+registry=registry.vaultit.org
+image=
+verbose=0
+
+info() {
+    if [ "$verbose" -ge 1 ]; then
+        printf "%s\n" "$*"
+    fi
+}
+debug() {
+    if [ "$verbose" -ge 2 ]; then
+        printf "%s\n" "$*"
+    fi
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --registry=*)
+            registry=${1:11}
+            debug "setting registry to $registry"
+            shift
+            ;;
+        -r|--registry)
+            registry=${2:?$usage}
+            debug "setting registry to $registry"
+            shift 2
+            ;;
+        -v|--verbose)
+            verbose=$((verbose + 1))
+            shift
+            ;;
+        --help)
+            echo "$usage"
+            exit
+            ;;
+        -*)
+            echo "$usage" 1>&2
+            exit 1
+            ;;
+        *)
+            if [ -z "$image" ]; then
+                image=$1;
+            else
+                echo "$usage" 1>&2
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [ -z "$image" ]; then
+    echo "$usage" 1>&2
+    exit 1
+fi
+
+auth="$(jq -r '.auths["'"$registry"'"].auth' ~/.docker/config.json)"
+if [ "$auth" = "null" ]; then
+    auth=
+else
+    info "Found credentials for $registry in ~/.docker/config.json"
+fi
+
+info "Checking $registry for $image tags"
+[ "$verbose" -ge 2 ] && set -x
+res=$(curl -s -S -H "Accept: application/json" \
+     ${auth:+-H "Authorization: Basic $auth"} \
+     https://"$registry"/v2/"$image"/tags/list)
+errors=$(jq -r '.errors' <<<"$res")
+if [ "$errors" != "null" ]; then
+    printf "%s" "$errors" 1>&2
+    exit 1
+fi
+jq -r '.tags|sort[]' <<<"$res"

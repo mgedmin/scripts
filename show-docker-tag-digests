@@ -1,0 +1,96 @@
+#!/bin/bash
+# show docker iamge digests for docker tags
+# if the registry requires authentication, be sure to 'docker login' first, so
+# the credentials can be cached in ~/.docker/config.json
+# https://forums.docker.com/t/get-image-digest-from-remote-registry-via-api/9480
+
+usage="usage: $0 [-v] [-r registry] [-n limit] image [tag ...]"
+registry=registry.vaultit.org
+image=
+tags=()
+verbose=0
+limit=30
+
+info() {
+    if [ "$verbose" -ge 1 ]; then
+        printf "%s\n" "$*"
+    fi
+}
+debug() {
+    if [ "$verbose" -ge 2 ]; then
+        printf "%s\n" "$*"
+    fi
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --registry=*)
+            registry=${1:11}
+            debug "setting registry to $registry"
+            shift
+            ;;
+        -r|--registry)
+            registry=${2:?$usage}
+            debug "setting registry to $registry"
+            shift 2
+            ;;
+        -v|--verbose)
+            verbose=$((verbose + 1))
+            shift
+            ;;
+        --limit=*)
+            limit=${1:8}
+            debug "setting limit to $limit"
+            shift
+            ;;
+        -n|--limit)
+            limit=${2:?$usage}
+            debug "setting limit to $limit"
+            shift 2
+            ;;
+        --help)
+            echo "$usage"
+            exit
+            ;;
+        -*)
+            echo "$usage" 1>&2
+            exit 1
+            ;;
+        *)
+            if [ -z "$image" ]; then
+                image=$1;
+            else
+                tags+=("$1")
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [ -z "$image" ]; then
+    echo "$usage" 1>&2
+    exit 1
+fi
+
+if [ "${#tags[@]}" -eq 0 ]; then
+    echo "No tags specified, showing the last $limit"
+    # shellcheck disable=SC2207
+    tags=($(list-docker-tags -r "$registry" "$image" | tac | head -n "$limit")
+)
+fi
+
+auth="$(jq -r '.auths["'"$registry"'"].auth' ~/.docker/config.json)"
+if [ "$auth" = "null" ]; then
+    auth=
+else
+    info "Found credentials for $registry in ~/.docker/config.json"
+fi
+
+for tag in "${tags[@]}"; do
+    debug "checking $tag"
+    curl -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+         ${auth:+-H "Authorization: Basic $auth"} \
+         -I -s https://"$registry"/v2/"$image"/manifests/"$tag" \
+         | grep -i ^docker-content-digest: \
+         | sed -e "s/^[^:]*:/$tag:/"
+done
