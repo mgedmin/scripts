@@ -1,0 +1,6 @@
+#!/bin/bash
+filename=${1:?usage: $0 filename}
+read -r -p "Do you really want to print $filename? [y/N] " answer
+if [ "$answer" = "y" ]; then
+    lpr -o media=a4 "$filename"
+fi
