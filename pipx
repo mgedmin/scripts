@@ -37,14 +37,29 @@ if [ $PIPX_ENV = $PIPX_ENV_DIR/pipx ] && ! [ -f $PIPX_ENV/pipx_metadata.json ]; 
 fi
 
 # integrate with new-changelog-entry
-if [[ $1 == --changelog ]]; then
-    shift
-    new-changelog-entry "su - $USER"
-    new-changelog-entry -a "  pipx $*"
-elif [[ $1 == --changelog-append ]]; then
-    shift
-    new-changelog-entry -a "  pipx $*"
-fi
+nl=$'\n  '
+case "$1" in
+    --changelog)
+        shift
+        new-changelog-entry "su - $USER${nl}  pipx $*"
+        echo
+        ;;
+    --changelog-only)
+        shift
+        new-changelog-entry "su - $USER${nl}  pipx $*"
+        exit
+        ;;
+    --changelog-append)
+        shift
+        new-changelog-entry -a "  pipx $*"
+        echo
+        ;;
+    --changelog-append-only)
+        shift
+        new-changelog-entry -a "  pipx $*"
+        exit
+        ;;
+esac
 
 # run the real pipx
 exec $PIPX_BINDIR/pipx "$@"
