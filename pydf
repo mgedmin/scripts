@@ -1,3 +1,3 @@
 #!/bin/sh
 autoclone ~/src/pydf https://github.com/mgedmin/pydf
-exec ~/src/pydf/pydf "$@"
+exec python3 ~/src/pydf/pydf "$@"
