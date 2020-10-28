@@ -9,6 +9,6 @@ elif [ -x /usr/bin/python"$py_ver" ]; then
     exec /usr/bin/python"$py_ver" "$@"
 else
     printf 'python%s not installed, try\n\n' "$py_ver"
-    printf '  rebuild-python --branch=%s --clean\n' "$py_ver"
+    printf '  rebuild-python --branch=%s --pull --clean\n' "$py_ver"
     exit 1
 fi
