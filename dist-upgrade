@@ -2,8 +2,10 @@
 NICE="nice -n 10"
 test -x /usr/bin/ionice && NICE="$NICE ionice -c3"
 if [ -x /usr/bin/apt ]; then
+    set -x
     $NICE sudo apt full-upgrade -u -f --auto-remove "$@"
 else
+    set -x
     $NICE sudo apt-get dist-upgrade -u -f --auto-remove "$@"
 fi
 # @#%@#% kernel updates that leave an autoremovable old version but only after
