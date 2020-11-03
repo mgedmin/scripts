@@ -1,0 +1,3 @@
+#!/bin/sh
+# show me the last victims of the notorious "OOM killer"
+journalctl -b --grep 'Out of memory'
