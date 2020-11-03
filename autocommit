@@ -88,6 +88,7 @@ autocommit() {
 autocommit ~/.gtimelog "Automatic timelog update" push
 autocommit ~/books "books"
 autocommit ~/.weechat "chat chat"
+autocommit ~/Private/gnupg "nobody knows"
 autocommit ~/Mail/Home "mail"
 
 exit $err
