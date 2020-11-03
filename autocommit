@@ -56,7 +56,7 @@ autocommit() {
     printf "$c+ %s$r\\n" "${where/#$HOME/\~}"
     cd "$where" || { err=1; return; }
     case "$push" in
-        push)
+        --push)
             if [ $dry_run -eq 1 ]; then
                 printf 'git add . && git commit -m "%s" && git push\n' "$message"
             else
@@ -77,7 +77,7 @@ autocommit() {
             fi
             ;;
         *)
-            printf 'autocommit: unexpected "%s", expected "push" or nothing\n' \
+            printf 'autocommit: unexpected "%s", expected "--push" or nothing\n' \
                 "$push" 1>&2
             err=1
             return
@@ -85,10 +85,10 @@ autocommit() {
     esac
 }
 
-autocommit ~/.gtimelog "Automatic timelog update" push
-autocommit ~/books "books"
-autocommit ~/.weechat "chat chat"
-autocommit ~/Private/gnupg "nobody knows"
+autocommit ~/.gtimelog "Automatic timelog update" --push
+autocommit ~/books "books" --push
+autocommit ~/.weechat "chat chat" --push
+autocommit ~/Private/gnupg "nobody knows" --push
 autocommit ~/Mail/Home "mail"
 
 exit $err
