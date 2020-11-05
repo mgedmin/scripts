@@ -1,0 +1,44 @@
+#!/bin/sh
+# the point of this script is to mute the builtin laptop mic without opening
+# GUI control panels and hunting for the right control
+
+almost=1
+
+for arg; do
+    case "$arg" in
+        -h|--help)
+            echo "Usage: $0 [options]"
+            echo "Options:"
+            echo "  --almost   instead of muting reduce the volume [default]"
+            echo "             (the mute LED is too bright on my X390)"
+            echo "  --really   really mute"
+            exit
+            ;;
+        --really)
+            almost=0
+            ;;
+        --almost)
+            almost=1
+            ;;
+        *)
+            echo "unrecognized argument: $arg" 1>&2
+            exit 1
+            ;;
+    esac
+done
+
+
+pactl list short sources | while read -r index name _; do
+    case $name in
+        alsa_input.pci-*)
+            if [ $almost -eq 0 ]; then
+                pactl set-source-mute "$index" 1
+            else
+                # hey turns out 0% is a valid volume, and this is distinct from
+                # setting mute!
+                pactl set-source-volume "$index" 0
+                pactl set-source-mute "$index" 0
+            fi
+            ;;
+    esac
+done
