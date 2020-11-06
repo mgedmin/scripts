@@ -26,12 +26,13 @@ Zilch is https://github.com/bbangert/zilch
 """
 
 import email
+import email.generator
 import hashlib
 import os
 import re
 import sys
 
-__version__ = '1.1'
+__version__ = '1.1.1'
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
 __licence__ = 'GPL'
 __url__ = (
@@ -139,7 +140,8 @@ def main():
             msg['X-Traceback-Hash'] = tb_hash
             if not msg.get('References'):
                 msg['References'] = '<tb-hash-%s@localhost>' % tb_hash
-    sys.stdout.write(str(msg))
+    g = email.generator.Generator(sys.stdout)
+    g.flatten(msg, unixfrom=True)
 
 
 if __name__ == '__main__':
