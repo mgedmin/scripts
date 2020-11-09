@@ -1,0 +1,2 @@
+#!/bin/sh
+gnome-screen-brightness 100

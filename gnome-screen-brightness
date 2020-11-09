@@ -1,0 +1,15 @@
+#!/bin/sh
+# https://wiki.archlinux.org/index.php/backlight#Using_DBus_with_Gnome
+usage="usage: $0 percentage"
+value=$1
+
+if [ -z "$value" ] || [ "$value" -gt 100 ] || [ "$value" -lt 0 ]; then
+    printf "%s\n" "$usage" 1>&2
+    exit 1
+fi
+
+gdbus call --session \
+      --dest org.gnome.SettingsDaemon.Power \
+      --object-path /org/gnome/SettingsDaemon/Power \
+      --method org.freedesktop.DBus.Properties.Set \
+      org.gnome.SettingsDaemon.Power.Screen Brightness "<int32 ${value}>"
