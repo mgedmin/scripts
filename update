@@ -12,3 +12,6 @@ else
     $NICE sudo apt-get upgrade -d -u -y &&\
     $NICE sudo apt-get dist-upgrade -d -u -y
 fi
+if [ -x /usr/bin/snap ]; then
+    snap refresh --list
+fi
