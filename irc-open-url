@@ -1,0 +1,5 @@
+#!/bin/sh
+url=${1?usage: $0 url}
+# trim punctuation that follows the URL
+fixed_url=${url%[,.?!]}
+xdg-open "$fixed_url"
