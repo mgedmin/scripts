@@ -70,8 +70,8 @@ d891c55f4e657b5e3fe609cee02b2288790abb5554a544ca047f088310d129c4  pypy2.7-v7.3.2
 "
 
 pypy_url=${pypy_urls[$py_ver]:?"don't know where to get a pypy$py_ver"}
-pypy_name=${pypy_url##*/}
-pypy_name=${pypy_name%.tar.bz2}
+pypy_filename=${pypy_url##*/}
+pypy_name=${pypy_filename%.tar.bz2}
 pypy_binary=pypy3
 [[ $py_ver == 2.7 ]] && pypy_binary=pypy
 
@@ -86,8 +86,21 @@ To install ${pypy_name} please do
   cd ~/tmp
   wget -c ${pypy_url}
   mkdir -p ~/opt
-  tar -xf ${pypy_url##*/} -C ~/opt
+  tar -xf ${pypy_filename} -C ~/opt
 
 .
-    exit 1
+    if [ -t 0 ]; then # stdin is a tty
+        read -r -p "Would you like me to run that for you now? [y/N] " answer
+        if [ "$answer" = "y" ]; then
+            cd ~/tmp || exit 1
+            wget -c "$pypy_url" || exit 1
+            printf "%s" "$sha256sums" | grep "$pypy_filename" | sha256sum -c - || exit 1
+            mkdir -p ~/opt || exit 1
+            tar -xf "$pypy_filename" -C ~/opt || exit 1
+        else
+            exit 1
+        fi
+    else
+        exit 1
+    fi
 fi
