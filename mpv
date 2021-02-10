@@ -1,6 +1,6 @@
 #!/bin/sh
 # workaround for https://bugs.launchpad.net/ubuntu/+source/mpv/+bug/1875076
 # on Ubuntu 20.04 LTS
-echo "applying workaround for LP: #1875076 (MESA_LOADER_DRIVER_OVERRIDE=i965)"
-export MESA_LOADER_DRIVER_OVERRIDE=i965
+##echo "applying workaround for LP: #1875076 (MESA_LOADER_DRIVER_OVERRIDE=i965)"
+##export MESA_LOADER_DRIVER_OVERRIDE=i965
 exec gnome-session-inhibit /usr/bin/mpv "$@"
