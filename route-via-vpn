@@ -13,7 +13,7 @@ resolve() {
   local res
   host=$1
   # if $host is an IP address, getent hosts will return no results
-  res=$(getent hosts "$host")
+  res=$(getent ahostsv4 "$host" | head -n 1)
   test -z "$res" && res=$host
   printf "%s\n" "$res"
 }
