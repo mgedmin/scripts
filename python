@@ -7,6 +7,8 @@ if [ -x "$py_prefix"/bin/python"$py_ver" ]; then
     exec "$py_prefix"/bin/python"$py_ver" "$@"
 elif [ -x /usr/bin/python"$py_ver" ]; then
     exec /usr/bin/python"$py_ver" "$@"
+elif [ -x /data/data/com.termux/files/usr/bin/python"$py_ver" ]; then
+    exec /data/data/com.termux/files/usr/bin/python"$py_ver" "$@"
 else
     printf 'python%s not installed, try\n\n' "$py_ver"
     printf '  rebuild-python --branch=%s --pull --clean\n' "$py_ver"
