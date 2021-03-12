@@ -38,6 +38,10 @@ while [ $# -gt 0 ]; do
             verbose=$((verbose + 1))
             shift
             ;;
+        -vv)
+            verbose=$((verbose + 2))
+            shift
+            ;;
         --limit=*)
             limit=${1:8}
             debug "setting limit to $limit"
