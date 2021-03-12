@@ -36,6 +36,10 @@ while [ $# -gt 0 ]; do
             verbose=$((verbose + 1))
             shift
             ;;
+        -vv)
+            verbose=$((verbose + 2))
+            shift
+            ;;
         --help)
             echo "$usage"
             exit
