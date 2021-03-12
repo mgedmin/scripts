@@ -1,5 +1,5 @@
 #!/bin/bash
-# show docker image digests for docker tags
+# show docker image IDs for docker tags
 # if the registry requires authentication, be sure to 'docker login' first, so
 # the credentials can be cached in ~/.docker/config.json
 # https://forums.docker.com/t/get-image-digest-from-remote-registry-via-api/9480
@@ -98,9 +98,9 @@ fi
 
 for tag in "${tags[@]}"; do
     debug "checking $tag"
-    curl -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
-         ${auth:+-H "Authorization: Basic $auth"} \
-         -I -s https://"$registry"/v2/"$image"/manifests/"$tag" \
-         | grep -i ^docker-content-digest: \
-         | sed -e "s/^[^:]*:/$tag:/"
+    manifest=$(curl -s -S -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+               ${auth:+-H "Authorization: Basic $auth"} \
+               https://"$registry"/v2/"$image"/manifests/"$tag")
+    image_id=$(jq -r '.config.digest' <<<"$manifest")
+    printf "%s: %s\n" "$tag" "$image_id"
 done
