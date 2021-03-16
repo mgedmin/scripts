@@ -1,0 +1,11 @@
+#!/bin/sh
+# To work around https://github.com/fboender/ansible-cmdb/issues/190 we have to
+# install a fork.
+autoclone ~/src/ansible-cmdb https://github.com/mgedmin/ansible-cmdb --branch=use-entry-points || exit 1
+if ! [ -d ~/.local/pipx/venvs/ansible/ ]; then
+    pipx install ansible --include-deps || exit 1
+fi
+if ! [ -x ~/.local/bin/ansible-cmdb ]; then
+    pipx inject --include-apps --editable ansible ~/src/ansible-cmdb || exit 1
+fi
+exec ~/.local/bin/ansible-cmdb "$@"
