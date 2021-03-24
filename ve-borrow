@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Borrow a system Python package and make it available in a virtualenv."""
 
 import argparse
@@ -24,10 +24,18 @@ def get_python_version(ve_dir):
     return versions[0][len('python'):]
 
 
+def get_site_package_paths(python_version):
+    # /usr/lib/python3/dist-packages is a thing in Debian.
+    for v in python_version.partition('.')[0], python_version:
+        for site_dir in 'site-packages', 'dist-packages':
+            path = os.path.join('/usr/lib/python' + v, site_dir)
+            if os.path.isdir(path):
+                yield path
+
+
 def find_package(python_version, package_name):
-    for site_dir in 'site-packages', 'dist-packages':
-        candidate = os.path.join(
-            '/usr/lib/python' + python_version, site_dir, package_name)
+    for site_dir in get_site_package_paths(python_version):
+        candidate = os.path.join(site_dir, package_name)
         if os.path.isdir(candidate):
             return candidate
 
@@ -54,8 +62,8 @@ def main():
         link_path = os.path.join(ve_site_package_dir, package)
         link_target = find_package(python_version, package)
         if not link_target:
-            sys.exit("couldn't find {} in /usr/lib/python{}".format(
-                package, python_version))
+            sys.exit("couldn't find {} in {}".format(
+                package, ' '.join(get_site_package_paths(python_version))))
         if args.verbose or args.dry_run:
             print("ln -s {} {}".format(link_target, link_path))
         if not args.dry_run:
