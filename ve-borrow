@@ -4,9 +4,10 @@
 import argparse
 import os
 import sys
+import sysconfig
 
 
-__version__ = '0.1'
+__version__ = '0.2'
 
 
 def get_python_version(ve_dir):
@@ -34,9 +35,13 @@ def get_site_package_paths(python_version):
 
 
 def find_package(python_version, package_name):
+    ext_suffix = sysconfig.get_config_var('EXT_SUFFIX')
     for site_dir in get_site_package_paths(python_version):
         candidate = os.path.join(site_dir, package_name)
         if os.path.isdir(candidate):
+            return candidate
+        candidate = os.path.join(site_dir, package_name + ext_suffix)
+        if os.path.isfile(candidate):
             return candidate
 
 
@@ -59,11 +64,15 @@ def main():
         args.ve_path, 'lib', 'python' + python_version, 'site-packages')
 
     for package in args.package_name:
-        link_path = os.path.join(ve_site_package_dir, package)
         link_target = find_package(python_version, package)
         if not link_target:
             sys.exit("couldn't find {} in {}".format(
                 package, ' '.join(get_site_package_paths(python_version))))
+        link_path = os.path.join(ve_site_package_dir,
+                                 os.path.basename(link_target))
+        if os.path.exists(link_path):
+            print("{} already exists, skipping".format(link_path))
+            continue
         if args.verbose or args.dry_run:
             print("ln -s {} {}".format(link_target, link_path))
         if not args.dry_run:
