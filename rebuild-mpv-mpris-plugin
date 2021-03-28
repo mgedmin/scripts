@@ -1,0 +1,48 @@
+#!/bin/bash
+
+clean=no
+for arg; do
+    case "$arg" in
+        -h|--help)
+            echo "Usage: $0 [options]"
+            echo "Options:"
+            echo "  --clean             git clean -dfx before building"
+            exit
+            ;;
+        --clean)
+            clean=yes
+            ;;
+        *)
+            echo "unrecognized argument: $arg" 1>&2
+            exit 1
+            ;;
+    esac
+done
+
+check-build-deps() {
+    missing=()
+    for dep; do
+        if ! test -e /var/lib/dpkg/info/"$dep":*.list; then
+            missing+=("$dep")
+        fi
+    done
+    if [[ ${#missing[@]} -ne 0 ]]; then
+        printf "Some build dependencies are missing!\n\n"
+        printf "  sudo apt install %s\n" "${missing[*]}"
+        exit 1
+    fi
+}
+
+check-build-deps \
+    libmpv-dev \
+    libglib2.0-dev
+
+autoclone ~/src/mpv-mpris https://github.com/hoyon/mpv-mpris
+cd ~/src/mpv-mpris || exit 1
+
+if [ $clean = yes ]; then
+    git clean -dfx
+fi
+
+make || exit 1
+make install  # installs into ~/.config/mpv/scripts/
