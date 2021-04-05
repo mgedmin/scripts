@@ -2,3 +2,6 @@
 # jwz.org checks the User-Agent and doesn't like wget
 wget -O ~/bin/youtubedown https://www.jwz.org/hacks/youtubedown -U 'MSIE/1.0'
 chmod 755 ~/bin/youtubedown
+if ! test -f /usr/share/perl5/IO/Socket/SSL.pm; then
+  sudo apt install libio-socket-ssl-perl libhtml-parser-perl ffmpeg
+fi
