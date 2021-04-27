@@ -41,7 +41,7 @@ esac
 
 vimhome=$HOME/src/vim
 if test -x "$vimhome/src/vim"; then
-    VIMRUNTIME=$vimhome/runtime $prefix "$vimhome/src/vim" "$@"
+    VIMRUNTIME=$vimhome/runtime exec $prefix "$vimhome/src/vim" "$@"
 else
-    /usr/bin/vim "$@"
+    exec /usr/bin/vim "$@"
 fi
