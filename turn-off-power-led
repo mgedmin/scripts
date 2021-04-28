@@ -1,0 +1,6 @@
+#!/bin/sh
+if ! test -d /sys/class/leds/tpacpi::power; then
+    echo "This machine does not look like a ThinkPad" 1>&2
+    exit 1
+fi
+sudo sh -c 'echo 0 > /sys/class/leds/tpacpi::power/brightness'
