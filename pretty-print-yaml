@@ -18,8 +18,10 @@ def main():
     parser = argparse.ArgumentParser(description="Pretty-print YAML")
     parser.add_argument('filenames', metavar='file', nargs='*', default=['-'])
     parser.add_argument('-w', '--width', type=int)
-    parser.add_argument('-s', '--sort-keys', action='store_true', default=False)
-    parser.add_argument('-S', '--no-sort-keys', action='store_false', dest='sort_keys')
+    parser.add_argument('-s', '--sort-keys', action='store_true',
+                        default=False)
+    parser.add_argument('-S', '--no-sort-keys', action='store_false',
+                        dest='sort_keys')
     args = parser.parse_args()
     doit = partial(pretty_print, width=args.width, sort_keys=args.sort_keys)
     for fn in args.filenames:
