@@ -1,0 +1,8 @@
+#!/bin/sh
+# Workaround for https://github.com/zopefoundation/meta/issues/97
+config_base=$HOME/src/zopefoundation/meta/config
+if ! test -x "$config_base"/bin/python; then
+    (cd "$config_base" && python3 -m venv .)
+    "$config_base"/bin/pip install -r "$config_base"/requirements.txt
+fi
+"$config_base"/bin/python "$config_base"/config-package.py "$@"
