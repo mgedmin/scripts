@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+#
+# This lists all packages not from Ubuntu's (e.g. main/universe) repositories
+# To use, simply download/copy into a .py file and run with:
+# python3 list_non_ubuntu.py
+#
+# If you receive an import error, you may need to install python-apt first with
+# e.g. `sudo apt install python3-apt` but this is often not necessary
+#
+# Source: https://askubuntu.com/a/1355067/136
+
+import apt
+
+
+cache = apt.Cache()
+package_count = 0
+
+for package in cache:
+    if (
+        package.is_installed
+        and package.candidate.origins[0].origin != "Ubuntu"
+    ):
+        package_origin = package.candidate.origins[0]
+        print(
+            package.name,
+            # See https://apt-team.pages.debian.net/python-apt/library/apt.package.html#apt.package.Origin
+            # for further details on the meanings of the below
+            package_origin.origin,  # The Origin, as set in the Release file
+            package_origin.archive,  # The archive (eg. Ubuntu release name)
+            package_origin.component,  # The component (eg. main/universe)
+            package_origin.site,  # The hostname of the site.
+            # package_origin.label,  # The Label, as set in the Release file
+            # package_origin.trusted,  # Origin trusted (Release file signed by key in apt keyring)
+        )
+        package_count += 1
+
+print(package_count, "packages not from Ubuntu")
