@@ -7,6 +7,7 @@ SOURCE_SERIES=focal     # aka 20.04 LTS
 TARGET_SERIES=(
     groovy              # aka 20.10
     hirsute             # aka 21.04
+    impish              # aka 21.10
 )
 PACKAGES=(
     pwsafe
