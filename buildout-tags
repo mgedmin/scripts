@@ -114,7 +114,7 @@ print('\\n'.join(sorted(d)))
 ")
 test -n "$paths" || die "The python path is empty?  Confused."
 test $verbose -ne 0 && echo "$paths"
-test -z "$(which $ctags 2>/dev/null)" && ctags=ctags
+test -z "$(command -v $ctags 2>/dev/null)" && ctags=ctags
 opts=
 if [ $include_js -eq 0 ]; then
     opts="--languages=-JavaScript"
