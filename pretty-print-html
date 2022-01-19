@@ -1,0 +1,9 @@
+#!/bin/sh
+if [ -x /usr/bin/html-beautify ]; then
+    exec html-beautify --indent-size=2 "$@"
+elif [ -x /usr/bin/tidy ]; then
+    exec tidy -quiet -indent "$@"
+else
+    echo "No beautifier found; sudo apt install tidy or node-js-beautify" 1>&2
+    exit 1
+fi
