@@ -7,7 +7,7 @@ PIPX_ENV=~/.local/pipx/itself
 PIPX_ENV_DIR=~/.local/pipx/venvs
 PIPX_SHARED_ENV=~/.local/pipx/shared
 PIPX_BINDIR=~/.local/bin
-PIPX_PYTHON=python3
+PIPX_PYTHON=${PIPX_PYTHON:-python3}
 
 if ! [ -x $PIPX_ENV/bin/pipx ]; then
     # bootstrap: let's install pipx manually
