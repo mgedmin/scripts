@@ -8,6 +8,7 @@ TARGET_SERIES=(
     groovy              # aka 20.10
     hirsute             # aka 21.04
     impish              # aka 21.10
+    jammy               # aka 22.04 LTS
 )
 PACKAGES=(
     pwsafe
