@@ -1,0 +1,67 @@
+#!/usr/bin/python3
+
+import argparse
+import json
+import subprocess
+import sys
+
+
+def mkv_info(filename):
+    result = subprocess.run(
+        ["mkvmerge", "-J", filename], check=True, capture_output=True)
+    return json.loads(result.stdout)
+
+
+def extract_track(filename, track_id, output_filename):
+    subprocess.run(
+        ["mkvextract", filename, 'tracks', f'{track_id}:{output_filename}'],
+        check=True)
+
+
+def find_subtitle_tracks(filename):
+    info = mkv_info(filename)
+    for track in info['tracks']:
+        if track['type'] == 'subtitles':
+            yield track
+
+
+def choose_track(tracks):
+    print("Multiple subtitle tracks found:")
+    for n, track in enumerate(tracks, 1):
+        props = track['properties']
+        print(f"{n}: {props['language']} - {props['track_name']}")
+    try:
+        which = int(input("Which track do you want to extract? "))
+    except (ValueError, EOFError):
+        return None
+    if 1 <= which <= len(tracks):
+        return tracks[which - 1]
+    return None
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description=(
+            "Extract subtitles from .mkv files.  Convenience wrapper"
+            " around mkvmerge and mkvextract."),
+    )
+    parser.add_argument("filename", metavar='filename.mkv')
+    parser.add_argument("-o", "--output-file", metavar="filename.ass",
+                        default="/dev/stdout")
+    args = parser.parse_args()
+
+    tracks = list(find_subtitle_tracks(args.filename))
+    if not tracks:
+        sys.exit("No subtitle tracks found")
+    if len(tracks) > 1:
+        track = choose_track(tracks)
+        if not track:
+            sys.exit(1)
+    else:
+        track = tracks[0]
+
+    extract_track(args.filename, track['id'], args.output_file)
+
+
+if __name__ == "__main__":
+    main()
