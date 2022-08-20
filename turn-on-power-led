@@ -3,4 +3,8 @@ if ! test -d /sys/class/leds/tpacpi::power; then
     echo "This machine does not look like a ThinkPad" 1>&2
     exit 1
 fi
-pkexec sh -c 'echo 1 > /sys/class/leds/tpacpi::power/brightness'
+if test -e /etc/sudoers.d/mg-turn-off-power-led; then
+    sudo /usr/bin/systemctl stop mg-turn-off-power-led
+else
+    pkexec sh -c 'echo 1 > /sys/class/leds/tpacpi::power/brightness'
+fi
