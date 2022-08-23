@@ -4,6 +4,11 @@ if ! test -d /sys/class/leds/tpacpi::power; then
     exit 1
 fi
 if test -e /etc/sudoers.d/mg-turn-off-power-led; then
+    # when I suspend the laptop and wake it up, the /sys switch resets, but
+    # systemd thinks the unit is active, so systemctl start becomes a NOP.
+    # The side effeect is a little blink if the LED was already off, but oh
+    # well.  Why would I try to turn it off again if it was already off?
+    sudo /usr/bin/systemctl stop mg-turn-off-power-led
     sudo /usr/bin/systemctl start mg-turn-off-power-led
 else
     pkexec sh -c 'echo 0 > /sys/class/leds/tpacpi::power/brightness'
