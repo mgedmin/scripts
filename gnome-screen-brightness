@@ -8,8 +8,10 @@ if [ -z "$value" ] || [ "$value" -gt 100 ] || [ "$value" -lt 0 ]; then
     exit 1
 fi
 
+# it prints () because the call has no response
 gdbus call --session \
       --dest org.gnome.SettingsDaemon.Power \
       --object-path /org/gnome/SettingsDaemon/Power \
       --method org.freedesktop.DBus.Properties.Set \
-      org.gnome.SettingsDaemon.Power.Screen Brightness "<int32 ${value}>"
+      org.gnome.SettingsDaemon.Power.Screen Brightness "<int32 ${value}>" \
+      > /dev/null
