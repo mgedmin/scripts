@@ -32,6 +32,7 @@ case "$1" in
         ;;
     --gdb)
         prefix=gdb
+        export DEBUGINFOD_URLS="https://debuginfod.ubuntu.com"
         shift
         ;;
     *)
