@@ -5,7 +5,7 @@ for infile in "$@"; do
     echo "Converting $infile -> $outfile"
     title="${infile%.mp4}"
     title="${title%% \[*]}"
-    ffmpeg -i "$infile" -vn -c:a libmp3lame -b:a 128k -metadata title:"$title" "$outfile" || exit 1
+    ffmpeg -i "$infile" -vn -c:a libmp3lame -b:a 128k -metadata title="$title" "$outfile" || exit 1
 ##  echo
 ##  test -x /usr/bin/id3v2 || {
 ##      echo sudo apt-get install id3v2?
