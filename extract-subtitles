@@ -29,7 +29,14 @@ def choose_track(tracks):
     print("Multiple subtitle tracks found:")
     for n, track in enumerate(tracks, 1):
         props = track['properties']
-        print(f"{n}: {props['language']} - {props['track_name']}")
+        title = props['language']
+        if props.get('track_name'):
+            title += f" - {props['track_name']}"
+        if props.get('default_track'):
+            title += f" (default)"
+        if props.get('forced_track'):
+            title += f" (forced)"
+        print(f"{n}: {title}")
     try:
         which = int(input("Which track do you want to extract? "))
     except (ValueError, EOFError):
