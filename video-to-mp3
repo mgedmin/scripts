@@ -1,17 +1,21 @@
 #!/bin/bash
-infile="${1:?usage: $0 filename.mp4}"
-outfile="${1%.mp4}.mp3"
-echo "Converting $infile -> $outfile"
-# avconv -i "$infile" -vn -c:a libmp3lame -q:a 2 "$outfile"
-ffmpeg -i "$infile" -vn -c:a libmp3lame -b:a 128k "$outfile" || exit 1
-echo
-test -x /usr/bin/id3v2 || {
-    echo sudo apt-get install id3v2?
-    sudo apt-get install id3v2
+infile="${1:?usage: $0 filename.mp4 [...]}"
+for infile in "$@"; do
+    outfile="${1%.mp4}.mp3"
+    echo "Converting $infile -> $outfile"
+    title="${infile%.mp4}"
+    title="${title%% \[*]}"
+    ffmpeg -i "$infile" -vn -c:a libmp3lame -b:a 128k -metadata title:"$title" "$outfile" || exit 1
+##  echo
+##  test -x /usr/bin/id3v2 || {
+##      echo sudo apt-get install id3v2?
+##      sudo apt-get install id3v2
+##      echo
+##  }
+##  read -r -p "Artist: " artist
+##  read -r -p "Title: " title
+##  id3v2 -a "$artist" -t "$title" "$outfile"
     echo
-}
-read -r -p "Artist: " artist
-read -r -p "Title: " title
-id3v2 -a "$artist" -t "$title" "$outfile"
-echo
-echo "$outfile"
+    echo "$outfile"
+    echo
+done
