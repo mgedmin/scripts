@@ -6,6 +6,10 @@ import subprocess
 import sys
 
 
+__author__ = 'Marius Gedminas <marius@gedmin.as>'
+__version__ = '0.2'
+
+
 def mkv_info(filename):
     result = subprocess.run(
         ["mkvmerge", "-J", filename], check=True, capture_output=True)
@@ -25,19 +29,24 @@ def find_subtitle_tracks(filename):
             yield track
 
 
-def choose_track(tracks):
-    print("Multiple subtitle tracks found:")
+def list_tracks(tracks, file=sys.stdout):
     for n, track in enumerate(tracks, 1):
         props = track['properties']
         title = props['language']
         if props.get('track_name'):
             title += f" - {props['track_name']}"
         if props.get('default_track'):
-            title += f" (default)"
+            title += " (default)"
         if props.get('forced_track'):
-            title += f" (forced)"
-        print(f"{n}: {title}")
+            title += " (forced)"
+        print(f"{n}: {title}", file=file)
+
+
+def choose_track(tracks):
+    print("Multiple subtitle tracks found:", file=sys.stderr)
+    list_tracks(tracks, file=sys.stderr)
     try:
+        # XXX: how do I force input() to print its prompt to sys.stderr?
         which = int(input("Which track do you want to extract? "))
     except (ValueError, EOFError):
         return None
@@ -53,6 +62,8 @@ def main():
             " around mkvmerge and mkvextract."),
     )
     parser.add_argument("filename", metavar='filename.mkv')
+    parser.add_argument("-l", "--list-tracks", action='store_true')
+    parser.add_argument("-t", "--track", metavar="N", type=int)
     parser.add_argument("-o", "--output-file", metavar="filename.ass",
                         default="/dev/stdout")
     args = parser.parse_args()
@@ -60,7 +71,15 @@ def main():
     tracks = list(find_subtitle_tracks(args.filename))
     if not tracks:
         sys.exit("No subtitle tracks found")
-    if len(tracks) > 1:
+    if args.list_tracks:
+        list_tracks(tracks)
+        sys.exit(0)
+    if args.track and 1 <= args.track <= len(tracks):
+        track = tracks[args.track - 1]
+    elif args.track:
+        list_tracks(tracks)
+        sys.exit(f"There is no track {args.track}")
+    elif len(tracks) > 1:
         track = choose_track(tracks)
         if not track:
             sys.exit(1)
