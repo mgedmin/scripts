@@ -1,2 +1,3 @@
 #!/bin/sh
 gnome-screen-brightness 0
+turn-off-power-led
