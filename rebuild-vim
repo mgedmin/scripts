@@ -3,6 +3,7 @@ set -eu
 
 ruby=yes
 pull=no
+clean=no
 builddeps=no
 for arg; do
     case "$arg" in
@@ -10,12 +11,16 @@ for arg; do
             echo "Usage: $0 [options]"
             echo "Options:"
             echo "  --pull              git pull before building"
+            echo "  --clean             git clean -dfx before building"
             echo "  --build-deps        sudo apt install build dependencies"
             echo "  --no-ruby           disable :ruby support"
             exit
             ;;
         --no-ruby)
             ruby=no
+            ;;
+        --clean)
+            clean=yes
             ;;
         --pull)
             pull=yes
@@ -88,6 +93,9 @@ if [ $pull = yes ]; then
     git pull
 fi
 rm -f src/auto/config.cache
+if [ $clean = yes ]; then
+    git clean -dfx
+fi
 
 # let's not let vim's ./configure see ~/bin/python*
 export PATH=/usr/lib/ccache:/usr/bin:/bin
