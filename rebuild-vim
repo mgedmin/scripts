@@ -81,8 +81,6 @@ BUILDDEPS=(
     libssl-dev
 )
 
-CFLAGS="-g"
-
 if [ $builddeps = yes ]; then
     sudo apt install "${BUILDDEPS[@]}"
 fi
@@ -99,7 +97,8 @@ fi
 
 # let's not let vim's ./configure see ~/bin/python*
 export PATH=/usr/lib/ccache:/usr/bin:/bin
-if ! (CFLAGS="$CFLAGS" ./configure "${FEATURES[@]}" --with-compiledby="$COMPILED_BY" && make -j4); then
+export CFLAGS="-g"
+if ! (./configure "${FEATURES[@]}" --with-compiledby="$COMPILED_BY" && make -j8); then
     echo "Consider $0 --build-deps" 1>&2
     exit 1
 fi
