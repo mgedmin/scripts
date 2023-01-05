@@ -98,7 +98,7 @@ fi
 # let's not let vim's ./configure see ~/bin/python*
 export PATH=/usr/lib/ccache:/usr/bin:/bin
 export CFLAGS="-g"
-if ! (./configure "${FEATURES[@]}" --with-compiledby="$COMPILED_BY" && make -j8); then
+if ! (./configure "${FEATURES[@]}" --with-compiledby="$COMPILED_BY" && make -j "$(nproc)"); then
     echo "Consider $0 --build-deps" 1>&2
     exit 1
 fi
