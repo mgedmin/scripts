@@ -1,0 +1,106 @@
+#!/bin/bash
+# show docker image digests for docker tags
+# if the registry requires authentication, be sure to 'docker login' first, so
+# the credentials can be cached in ~/.docker/config.json
+# https://stackoverflow.com/a/43786939/110151
+
+usage="usage: $0 [-v] [-r registry] image tag [tag ...]"
+registry=registry.vaultit.org
+image=
+tags=()
+verbose=0
+
+info() {
+    if [ "$verbose" -ge 1 ]; then
+        printf "%s\n" "$*"
+    fi
+}
+debug() {
+    if [ "$verbose" -ge 2 ]; then
+        printf "%s\n" "$*"
+    fi
+}
+error() {
+    printf "%s\n" "$*" 1>&2
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --registry=*)
+            registry=${1:11}
+            debug "setting registry to $registry"
+            shift
+            ;;
+        -r|--registry)
+            registry=${2:?$usage}
+            debug "setting registry to $registry"
+            shift 2
+            ;;
+        -v|--verbose)
+            verbose=$((verbose + 1))
+            shift
+            ;;
+        -vv)
+            verbose=$((verbose + 2))
+            shift
+            ;;
+        --help)
+            echo "$usage"
+            exit
+            ;;
+        -*)
+            echo "$usage" 1>&2
+            exit 1
+            ;;
+        *)
+            if [ -z "$image" ]; then
+                image=$1;
+            else
+                tags+=("$1")
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [ -z "$image" ]; then
+    echo "$usage" 1>&2
+    exit 1
+fi
+
+if [ "${#tags[@]}" -eq 0 ]; then
+    error "No tags specified, maybe run list-docker-tags $image to see what are available?"
+    exit 1
+fi
+
+auth="$(jq -r '.auths["'"$registry"'"].auth' ~/.docker/config.json)"
+if [ "$auth" != "null" ]; then
+    info "Found credentials for $registry in ~/.docker/config.json"
+else
+    helper="$(jq -r '.credsStore' ~/.docker/config.json)"
+    if [ -n "$helper" ]; then
+        info "Using docker credential helper $helper"
+        auth="$(docker-credential-"$helper" get <<<"$registry" | jq -r '@base64 "\(.Username+":"+.Secret)"')"
+    else
+        auth=
+    fi
+fi
+
+for tag in "${tags[@]}"; do
+    debug "checking $tag"
+    digest=$(curl -sS -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+                  ${auth:+-H "Authorization: Basic $auth"} \
+                  -o /dev/null \
+                  -w '%header{Docker-Content-Digest}' \
+                  https://"$registry"/v2/"$image"/manifests/"$tag")
+    if [ -z "$digest" ]; then
+        error "failed to determine tag digest"
+        exit 1
+    fi
+    debug "digest is $digest"
+    curl -sS -X DELETE \
+         ${auth:+-H "Authorization: Basic $auth"} \
+         https://"$registry"/v2/"$image"/manifests/"$digest"
+    info "Deleted tag $tag"
+done
+info "Be sure to trigger garbage collection to actually free disk space!"
