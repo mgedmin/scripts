@@ -94,7 +94,7 @@ for tag in "${tags[@]}"; do
                   -w '%header{Docker-Content-Digest}' \
                   https://"$registry"/v2/"$image"/manifests/"$tag")
     if [ -z "$digest" ]; then
-        error "failed to determine tag digest"
+        error "failed to determine tag digest for $tag"
         exit 1
     fi
     debug "digest is $digest"
