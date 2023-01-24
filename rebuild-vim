@@ -44,6 +44,8 @@ FEATURES=(
     "--enable-gpm"              # heh retro
     "--enable-terminal"         # fancy!
 #   "--enable-perlinterp"       # ruby + perl = segfault
+    "--enable-luainterp"        # vim-flog v2 needs this?
+    "--with-luajit"             # vim-flog v2 needs Lua 5.1 or LuaJIT 2.1
     # taken from ubuntu's debian/rules
     "--with-x"
     "--enable-xim"
@@ -77,6 +79,9 @@ BUILDDEPS=(
     libxt-dev
     python3-dev
     ruby-dev
+    # I need LuaJIT
+    luajit
+    libluajit-5.1-dev
     # I remember builds failing for lack of libssl-dev
     libssl-dev
 )
