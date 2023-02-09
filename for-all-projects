@@ -36,7 +36,7 @@ reset=$(tput sgr0)
 rc=0
 failures=()
 for project in *; do
-    printf '\n%s+ %s%s\n\n' "$purple" "$project" "$reset"
+    printf '\n%s+ %s%s\n\n' "$purple" "$project" "$reset" 1>&2
     (cd "$project" && "$@") || { rc=1; failures+=("$project"); }
 done
 
