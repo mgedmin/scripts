@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 """
 Computes and prints monitor resolution (dots per inch) given the size in pixels
 and width/height in milimeters or diagonal in inches.
@@ -23,14 +22,14 @@ Examples:
   monitor-dpi 1366 768 277 156  # my 12.5" laptop
 
 """
-from __future__ import division
 import math
 import optparse
-import re
 import os
+import re
+import typing
+from typing import Iterable, List
 
-
-__version__ = '2.1'
+__version__ = '3.0'
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
 __url__ = 'https://github.com/mgedmin/scripts/blob/master/monitor-dpi'
 __licence__ = 'GPLv2+'
@@ -39,102 +38,52 @@ __licence__ = 'GPLv2+'
 MM_PER_INCH = 25.4
 
 
-def dpi(w, h, d):
-    """Compute the resolution (dots per inch) of a monitor.
-
-    (w, h) specify the width and height in pixels.
-
-    d specifies the diagonal in inches.
-
-    Returns (hdpi, vdpi) with horizontal an vertical resolution in dots per
-    inch, which are actually a bit bogus (i.e. they should be the same).
-    """
-    # Math!
-    #         w
-    #    +---------+
-    #    |        /|
-    #    |      /  |
-    #  h |    /    |
-    #    |  /      |
-    #    |/        |
-    #    +---------+
-    #
-    # Let's use w, h, and d to mean width/height/diagonal in pixels.
-    # Let's use w', h', and d' to mean width/height/diagonal in inches.
-    #
-    # According to Pythagoras,
-    #
-    #    d² = w² + h²
-    #
-    # therefore
-    #
-    #    d² = w²·(1 + h²/w²)
-    #    d  = w·√(1 + h²/w²)
-    #
-    # or, alternatively
-    #
-    #    d² = h²·(w²/h² + 1)
-    #    d  = h·√(1 + w²/h²)
-    #
-    # and then we can divide d / d' to get dpi, and in theory we should get the
-    # same value no matter how we compute d.
-    #
-    # But why do it this way?  Why not just compute
-    #
-    #    d = √(w² + h²)
-    #
-    # I don't know.  I think I was trying to compute w' and h', and then
-    # simplified the formula.  Assuming w/h = w'/h', we have
-    #
-    #    w' = h' · w/h
-    #    h' = w' · h/w
-    #
-    #    d'² = w'² + h'²
-    #    w'² = d'² - h'² = d'² - w'²h²/w²
-    #    h'² = d'² - w'² = d'² - h'²w²/h²
-    #    w' = √(d'² - w'²h²/w²)
-    #    h' = √(d'² - h'²w²/h²)
-    #
-    # and
-    #
-    #    vdpi = h / h' = h / √(d'² - h'²w²/h²) =
-    #         = h √(d'² - h'²w²/h²) / (d'² - h'²w²/h²) =
-    #         = √(h²d'² - h'²w²) / (d'² - h'²w²/h²) =
-    #         = √(h²d'² - h'²w²) · h² / (h²d'² - h'²w²)
-    #
-    # and that's nothing like the formula I actually use here.  I wish I'd
-    # written down my original derivation.
-    hdpi = w * math.sqrt(1 + h ** 2 / w ** 2) / d
-    vdpi = h * math.sqrt(1 + w ** 2 / h ** 2) / d
-    return (hdpi, vdpi)
+class DpiInfo(typing.NamedTuple):
+    hdpi: float
+    vdpi: float
+    ddpi: float
 
 
-def diagonal(w_mm, h_mm):
-    """Compute the diagonal size (inches) of a monitor.
-
-    (w_mm, h_mm) specify the width and height in milimeters.
-    """
-    return math.hypot(w_mm, h_mm) / MM_PER_INCH
+class PixelSize(typing.NamedTuple):
+    w: int
+    h: int
 
 
-def dpi_mm(w_px, h_px, w_mm, h_mm):
-    """Compute the resolution (dots per inch) of a monitor.
+class PhysicalSize(typing.NamedTuple):
+    w_mm: float
+    h_mm: float
 
-    (w_px, h_px) specify the width and height in pixels.
+    @property
+    def diagonal_inches(self) -> float:
+        return math.hypot(self.w_mm, self.h_mm) / MM_PER_INCH
 
-    (w_mm, h_mm) specify the width and height in milimeters.
-
-    Returns (hdpi, vdpi) with horizontal an vertical resolution in dots per
-    inch.
-    """
-    # w_in = w_mm / 25.4
-    # hdpi = w_px / w_in = w_px * 25.4 / w_mm
-    hdpi = w_px * MM_PER_INCH / w_mm
-    vdpi = h_px * MM_PER_INCH / h_mm
-    return (hdpi, vdpi)
+    def dpi(self, pixel_size: PixelSize) -> DpiInfo:
+        w, h = pixel_size
+        hdpi = w * MM_PER_INCH / self.w_mm
+        vdpi = h * MM_PER_INCH / self.h_mm
+        ddpi = math.hypot(w, h) * MM_PER_INCH / math.hypot(self.w_mm, self.h_mm)
+        return DpiInfo(hdpi, vdpi, ddpi)
 
 
-def parse_xrandr_output(output):
+class DiagonalSize(typing.NamedTuple):
+    inches: float
+
+    def dpi(self, pixel_size: PixelSize) -> DpiInfo:
+        w, h = pixel_size
+        d = self.inches
+        hdpi = w * math.sqrt(1 + h ** 2 / w ** 2) / d
+        vdpi = h * math.sqrt(1 + w ** 2 / h ** 2) / d
+        ddpi = math.hypot(w, h) / d
+        return DpiInfo(hdpi, vdpi, ddpi)
+
+
+class MonitorInfo(typing.NamedTuple):
+    name: str
+    pixel_size: PixelSize
+    physical_size: PhysicalSize
+
+
+def parse_xrandr_output(output: Iterable[str]) -> Iterable[MonitorInfo]:
     """Parse the output of xrandr
 
     Expects an iterable of strings (one per line).
@@ -182,14 +131,17 @@ def parse_xrandr_output(output):
     for line in output:
         m = rx.match(line)
         if m:
-            yield (m.group('name'), int(m.group('w_px')), int(m.group('h_px')),
-                   int(m.group('w_mm')), int(m.group('h_mm')))
+            yield MonitorInfo(
+                m.group('name'),
+                PixelSize(int(m.group('w_px')), int(m.group('h_px'))),
+                PhysicalSize(int(m.group('w_mm')), int(m.group('h_mm'))),
+            )
 
 
-def get_xrandr_output():
+def get_xrandr_output() -> List[MonitorInfo]:
     """Determine the sizes of connected monitors.
 
-    Returns a list of tuples (name, w_px, h_px, w_mm, h_mm), one for each
+    Returns a list of tuples (name, pixel_size, physical_size) for each
     connected monitor.
 
     Spawns xrandr to query the running X server.  Works only on Linux.
@@ -197,49 +149,41 @@ def get_xrandr_output():
     return list(parse_xrandr_output(os.popen('xrandr')))
 
 
-def report_mm(w_px, h_px, w_mm, h_mm):
+def report_mm(pixel_size: PixelSize, physical_size: PhysicalSize) -> None:
     """Report the resolution given sizes in px and mm."""
-    d = diagonal(w_mm, h_mm)
-    report_size(d, w_mm, h_mm)
-    hdpi, vdpi = dpi_mm(w_px, h_px, w_mm, h_mm)
-    report_dpi(hdpi, vdpi)
+    report_size(physical_size)
+    report_dpi(physical_size.dpi(pixel_size))
 
 
-def report_diag(w_px, h_px, d):
+def report_diag(pixel_size: PixelSize, diagonal: DiagonalSize) -> None:
     """Report the resolution given size in px and diagonal in inches."""
-    hdpi, vdpi = dpi(w_px, h_px, d)
-    report_dpi(hdpi, vdpi)
+    report_dpi(diagonal.dpi(pixel_size))
 
 
-def report_name(name, w_px, h_px, _first=[True]):
-    """Report the name of the monitor connection.
-
-    Stateful: adds blank lines between invocations.  Bleugh.
-    """
-    if _first[0]:
-        _first[0] = False
-    else:
-        print("")
-    print("%s (%dx%d)" % (name, w_px, h_px))
+def report_name(name: str, pixel_size: PixelSize) -> None:
+    """Report the name of the monitor connection."""
+    print(f"{name} ({pixel_size.w}x{pixel_size.h})")
 
 
-def report_size(d, w_mm, h_mm):
+def report_size(physical_size: PhysicalSize) -> None:
     """Report the diagonal size of a monitor in inches."""
-    d = '%.1f' % d
+    d = '%.1f' % physical_size.diagonal_inches
     if d.endswith('.0'):
         d = d[:-2]
-    print("Monitor size: %s inches (%d mm x %d mm)" % (d, w_mm, h_mm))
+    print(f"Monitor size: {d} inches ({physical_size.w_mm} mm x {physical_size.h_mm} mm)")
 
 
-def report_dpi(hdpi, vdpi):
+def report_dpi(dpi: DpiInfo) -> None:
     """Report the resolution of a monitor in dots per inch."""
-    hdpi = '%.0f' % hdpi
-    vdpi = '%.0f' % vdpi
+    hdpi = '%.0f' % dpi.hdpi
+    vdpi = '%.0f' % dpi.vdpi
+    ddpi = '%.0f' % dpi.ddpi
     if hdpi == vdpi:
-        print("Resolution: %s dots per inch" % hdpi)
+        print(f"Resolution: {hdpi} dots per inch")
     else:
-        print("Horizontal resolution: %s dots per inch" % hdpi)
-        print("Vertical resolution:   %s dots per inch" % vdpi)
+        print(f"Horizontal resolution: {hdpi} dots per inch")
+        print(f"Vertical resolution:   {vdpi} dots per inch")
+        print(f"Diagonal resolution:   {ddpi} dots per inch")
 
 
 def main():
@@ -257,23 +201,25 @@ def main():
     opts, args = parser.parse_args()
     if len(args) == 0:
         monitors = get_xrandr_output()
-        for (name, w_px, h_px, w_mm, h_mm) in monitors:
-            report_name(name, w_px, h_px)
-            report_mm(w_px, h_px, w_mm, h_mm)
+        for idx, m in enumerate(monitors):
+            if idx > 0:
+                print()
+            report_name(m.name, m.pixel_size)
+            report_mm(m.pixel_size, m.physical_size)
         return
     if len(args) < 3:
         parser.error("not enough arguments")
     if len(args) > 4:
         parser.error("too many arguments")
     try:
-        w, h = map(float, args[:2])
+        pixel_size = PhysicalSize(float(args[0]), float(args[1]))
         if len(args) == 3:
-            d = float(args[2])
-            report_diag(w, h, d)
+            diagonal_size = DiagonalSize(float(args[2]))
+            report_diag(pixel_size, diagonal_size)
         else:
-            w_mm, h_mm = float(args[2]), float(args[3])
-            report_mm(w, h, w_mm, h_mm)
-    except TypeError:
+            physical_size = PhysicalSize(float(args[2]), float(args[3]))
+            report_mm(pixel_size, physical_size)
+    except ValueError:
         parser.error("argument is not a number")
 
 
