@@ -6,3 +6,7 @@ if [ -x /usr/bin/apt ]; then
 else
     sudo $NICE apt-get upgrade -u -f "$@"
 fi
+if [ -x /usr/bin/snap ]; then
+    # pointless to nice/ionice, all the work is done by snapd, all snap does is talk to a socket
+    sudo snap refresh
+fi

@@ -11,3 +11,7 @@ fi
 # @#%@#% kernel updates that leave an autoremovable old version but only after
 # the transaction ends
 $NICE sudo apt-get auto-remove "$@"
+if [ -x /usr/bin/snap ]; then
+    # pointless to nice/ionice, all the work is done by snapd, all snap does is talk to a socket
+    sudo snap refresh
+fi
