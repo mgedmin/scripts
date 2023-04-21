@@ -6,7 +6,8 @@ PPA_NAME=ppa
 SOURCE_SERIES=focal     # aka 20.04 LTS
 TARGET_SERIES=(
     jammy               # aka 22.04 LTS
-    kinetic             # aka 21.10
+    kinetic             # aka 22.10
+    lunar               # aka 23.04
 )
 PACKAGES=(
     pwsafe
