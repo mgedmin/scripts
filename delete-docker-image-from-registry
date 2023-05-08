@@ -1,8 +1,8 @@
 #!/bin/bash
-# show docker image digests for docker tags
+# delete docker images corresponding to specific docker tags
 # if the registry requires authentication, be sure to 'docker login' first, so
 # the credentials can be cached in ~/.docker/config.json
-# https://stackoverflow.com/a/43786939/110151
+# based on https://stackoverflow.com/a/43786939/110151
 
 usage="usage: $0 [-v] [-r registry] image tag [tag ...]"
 registry=registry.vaultit.org
