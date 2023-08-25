@@ -95,7 +95,7 @@ for tag in "${tags[@]}"; do
                   https://"$registry"/v2/"$image"/manifests/"$tag")
     if [ -z "$digest" ]; then
         error "failed to determine tag digest for $tag"
-        exit 1
+        continue
     fi
     debug "digest is $digest"
     curl -sS -X DELETE \
