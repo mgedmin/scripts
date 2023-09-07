@@ -69,7 +69,7 @@ if [ $clean = yes ]; then
     git clean -dfx
 fi
 
-version=$(perl -ne '/^m4_define[(]PYTHON_VERSION, (.*)[)]/ and print $1' configure.ac)
+version=$(perl -ne '/^m4_define\(\[?PYTHON_VERSION\]?, \[?(\d\.\d+)\]?\)/ and print $1' configure.ac)
 test -n "$version" || {
     echo "Failed to determine Python version from configure.ac" 1>&2
     exit 1
