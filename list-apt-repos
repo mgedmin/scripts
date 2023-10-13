@@ -1,27 +1,52 @@
 #!/usr/bin/python3
 import argparse
+import email
 import pathlib
 from collections import defaultdict
-from typing import Iterable, Sequence, NamedTuple, List
+from typing import Iterable, Sequence, NamedTuple, List, TextIO
 
 
 def sources_lists() -> Iterable[pathlib.Path]:
     yield pathlib.Path('/etc/apt/sources.list')
     yield from pathlib.Path('/etc/apt/sources.list.d').glob('*.list')
+    yield from pathlib.Path('/etc/apt/sources.list.d').glob('*.sources')
 
 
 class RepoInfo(NamedTuple):
     url: str
-    distro: str
+    suite: str
     components: Sequence[str]
 
 
-def parse_sources(source_list: Iterable[str]) -> Iterable[RepoInfo]:
+def parse_list(source_list: TextIO) -> Iterable[RepoInfo]:
+    # legacy sources.list format
     for line in source_list:
         if line.startswith('deb'):
-            # deb url distro components # comment
+            # deb url suite components # comment
             bits = line.partition('#')[0].split()
             yield RepoInfo(bits[1], bits[2], bits[3:])
+
+
+def parse_sources(source_list: TextIO) -> Iterable[RepoInfo]:
+    # deb822 format
+    m = email.message_from_file(source_list)
+    urls = m['URIs'].split()
+    suites = m['Suites'].split()
+    components = m['Components'].split()
+    for url in urls:
+        for suite in suites:
+            yield RepoInfo(url, suite, components)
+
+
+def parse_sources_file(source_list: pathlib.Path) -> Iterable[RepoInfo]:
+    with source_list.open() as fp:
+        if source_list.name.endswith('.list'):
+            yield from parse_list(fp)
+        elif source_list.name.endswith('.sources'):
+            yield from parse_sources(fp)
+        else:
+            # can't happen
+            assert f'Unrecognized filename: {source_list}'
 
 
 def simplify_url(url: str) -> str:
@@ -53,12 +78,11 @@ def main():
 
     repos = defaultdict(set)
     for source_list in sources_lists():
-        with source_list.open() as fp:
-            for source in parse_sources(fp):
-                key = (simplify_url(source.url), source.distro)
-                if args.verbose:
-                    key = (source_list.name, ) + key
-                repos[key].update(source.components)
+        for source in parse_sources_file(source_list):
+            key = (simplify_url(source.url), source.suite)
+            if args.verbose:
+                key = (source_list.name, ) + key
+            repos[key].update(source.components)
 
     rows = []
     for key, components in sorted(repos.items()):
