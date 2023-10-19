@@ -1,7 +1,7 @@
 #!/bin/bash
 infile="${1:?usage: $0 filename.mp4 [...]}"
 for infile in "$@"; do
-    outfile="${1%.mp4}.mp3"
+    outfile="${infile%.mp4}.mp3"
     echo "Converting $infile -> $outfile"
     title="${infile%.mp4}"
     title="${title%% \[*]}"
