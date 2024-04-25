@@ -49,13 +49,26 @@ def parse_sources_file(source_list: pathlib.Path) -> Iterable[RepoInfo]:
             assert f'Unrecognized filename: {source_list}'
 
 
+PPA_PREFIXES = [
+    'http://ppa.launchpad.net/',
+    'https://ppa.launchpadcontent.net/',
+]
+
+PPA_SUFFIXES = [
+    '/ubuntu',
+    '/ubuntu/',
+]
+
+
 def simplify_url(url: str) -> str:
-    prefix = 'http://ppa.launchpad.net/'
-    suffix = '/ubuntu'
-    if url.startswith(prefix):
-        url = 'ppa:' + url[len(prefix):]
-        if url.endswith(suffix):
-            url = url[:-len(suffix)]
+    for prefix in PPA_PREFIXES:
+        if url.startswith(prefix):
+            url = 'ppa:' + url[len(prefix):]
+            for suffix in PPA_SUFFIXES:
+                if url.endswith(suffix):
+                    url = url[:-len(suffix)]
+                    break
+            break
     return url
 
 
