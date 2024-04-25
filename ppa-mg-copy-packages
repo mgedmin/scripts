@@ -9,6 +9,7 @@ TARGET_SERIES=(
     kinetic             # aka 22.10
     lunar               # aka 23.04
     mantic              # aka 23.10
+    noble               # aka 24.04 LTS
 )
 PACKAGES=(
     pwsafe
