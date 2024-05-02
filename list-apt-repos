@@ -29,13 +29,20 @@ def parse_list(source_list: TextIO) -> Iterable[RepoInfo]:
 
 def parse_sources(source_list: TextIO) -> Iterable[RepoInfo]:
     # deb822 format
-    m = email.message_from_file(source_list)
-    urls = m['URIs'].split()
-    suites = m['Suites'].split()
-    components = m['Components'].split()
-    for url in urls:
-        for suite in suites:
-            yield RepoInfo(url, suite, components)
+    for source in source_list.read().split('\n\n'):
+        m = email.message_from_string(source)
+        urls = m['URIs'].split()
+        suites = m['Suites'].split()
+        components = m['Components'].split()
+        types = m['Types'].split()  # deb, deb-src
+        if 'deb' not in types:
+            continue
+        enabled = m['Enabled']
+        if enabled == 'no':
+            continue
+        for url in urls:
+            for suite in suites:
+                yield RepoInfo(url, suite, components)
 
 
 def parse_sources_file(source_list: pathlib.Path) -> Iterable[RepoInfo]:
