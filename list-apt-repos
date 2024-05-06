@@ -6,6 +6,9 @@ from collections import defaultdict
 from typing import Iterable, Sequence, NamedTuple, List, TextIO
 
 
+__version__ = '1.0'
+
+
 def sources_lists() -> Iterable[pathlib.Path]:
     yield pathlib.Path('/etc/apt/sources.list')
     yield from pathlib.Path('/etc/apt/sources.list.d').glob('*.list')
@@ -106,7 +109,7 @@ def main():
 
     rows = []
     for key, components in sorted(repos.items()):
-        rows.append(key + tuple(sorted(components)))
+        rows.append(key + (' '.join(sorted(components)), ))
 
     widths = column_widths(rows)
 
