@@ -46,9 +46,11 @@ check-build-deps() {
 
 # from https://salsa.debian.org/cpython-team/python3/blob/python3.7/debian/control.in
 # (I only selected some of the more important dependencies)
+# later adjusted to depend on libncurses-dev instead of libncursesw5-dev
+# which is no longer available in Ubuntu 24.04 LTS
 check-build-deps \
     libreadline-dev \
-    libncursesw5-dev \
+    libncurses-dev \
     zlib1g-dev \
     libbz2-dev \
     liblzma-dev \
