@@ -3,4 +3,4 @@
 # on Ubuntu 20.04 LTS
 ##echo "applying workaround for LP: #1875076 (MESA_LOADER_DRIVER_OVERRIDE=i965)"
 ##export MESA_LOADER_DRIVER_OVERRIDE=i965
-exec gnome-session-inhibit /usr/bin/mpv "$@"
+exec gnome-session-inhibit --app-id mpv --reason 'playing a movie' /usr/bin/mpv "$@"
