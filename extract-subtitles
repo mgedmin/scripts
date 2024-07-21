@@ -7,7 +7,7 @@ import sys
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.2'
+__version__ = '0.3'
 
 
 def mkv_info(filename):
@@ -65,8 +65,13 @@ def main():
     parser.add_argument("-l", "--list-tracks", action='store_true')
     parser.add_argument("-t", "--track", metavar="N", type=int)
     parser.add_argument("-o", "--output-file", metavar="filename.ass",
-                        default="/dev/stdout")
+                        default=None)
     args = parser.parse_args()
+
+    if not args.output_file:
+        args.output_file = args.filename + '.ass'
+    elif args.output_file == '-':
+        args.output_file = '/dev/stdout'
 
     tracks = list(find_subtitle_tracks(args.filename))
     if not tracks:
