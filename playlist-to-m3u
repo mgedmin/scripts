@@ -2,3 +2,4 @@
 # Download a YouTube playlist as an .m3u file
 url=${1:?usage: $0 url-of-youtube-playlist > playlist.m3u}
 yt-dlp --flat-playlist -J "$url" | ( echo "#EXTM3U"; jq '.entries[]|"#EXTINF:" + (.duration|tostring) + "," + .title + "\n" + .url' -r )
+printf "# Playlist URL: %s\n" "$url"
