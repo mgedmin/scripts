@@ -36,6 +36,11 @@ if [ $PIPX_ENV = $PIPX_ENV_DIR/pipx ] && ! [ -f $PIPX_ENV/pipx_metadata.json ]; 
     $PIPX_BINDIR/pipx install --force pipx || exit 1
 fi
 
+if [ "$1" = "--upgrade" ]; then
+    $PIPX_ENV/bin/pip install -U pipx
+    exit
+fi
+
 # integrate with new-changelog-entry
 nl=$'\n  '
 case "$1" in
