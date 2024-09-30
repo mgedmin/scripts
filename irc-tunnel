@@ -1,5 +1,11 @@
 #!/bin/sh
 # sometimes the existing ssh session gets stuck and doesn't immediately time out
 # so running this resets it
-fuser -n tcp 6667 -k
-ssh -o ControlMaster=no -Nf -L 6667:localhost:7777 -L 7777:localhost:7777 egle >/dev/null 2>&1
+use_wireguard=1
+
+if [ $use_wireguard -eq 1 ]; then
+    nmcli con up 'Egle (ZNC)'
+else
+    fuser -n tcp 6667 -k
+    ssh -o ControlMaster=no -Nf -L 6667:localhost:7777 -L 7777:localhost:7777 egle >/dev/null 2>&1
+fi
