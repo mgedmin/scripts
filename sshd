@@ -1,0 +1,10 @@
+#!/bin/sh
+if [ -n "$TERMUX_VERSION" ]; then
+    # make sure the wireguard server knows where to find me
+    ping -q -c 1 10.98.0.1 >/dev/null 2>&1 &
+    pid=$(pidof -o $$ sshd)
+    if [ -n "$pid" ]; then
+        echo "sshd already running (pid $pid)"
+    fi
+fi
+exec /usr/bin/sshd "$@"
