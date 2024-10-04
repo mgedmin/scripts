@@ -1,5 +1,7 @@
 #!/bin/sh
-if [ -n "$SSH_AGENT_PID" ]; then
+if [ -n "$TERMUX_VERSION" ] && [ -x "$PREFIX/bin/source-ssh-agent" ]; then
+    . "$PREFIX"/bin/source-ssh-agent
+elif [ -n "$SSH_AUTH_SOCK" ]; then
     # See if ssh-agent has any identities, and if not, add some
     ssh-add -l > /dev/null || ssh-add
 fi
