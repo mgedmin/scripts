@@ -11,7 +11,9 @@ elif [[ $1 == --changelog-append ]]; then
     echo
 fi
 
-if [ -x /usr/bin/apt ]; then
+if [ -n "$TERMUX_VERSION" ]; then
+    pkg install "$@"
+elif [ -x /usr/bin/apt ]; then
     sudo apt -y install "$@"
 else
     sudo apt-get -y install "$@"
