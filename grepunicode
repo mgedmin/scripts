@@ -5,6 +5,14 @@ import subprocess
 import sys
 
 
+def printable(s):
+    return ''.join(c for c in s if c.isprintable())
+
+
+def hex2char(s):
+    return chr(int(s, 16))
+
+
 def main():
     charmap = '/usr/share/i18n/charmaps/UTF-8'
     grep = 'grep'
@@ -17,8 +25,12 @@ def main():
         stdout=subprocess.PIPE, encoding='UTF-8')
     rx = re.compile(r'<U([0-9A-Fa-f]{4}|[0-9A-Fa-f]{8})>')
     for line in pipe.stdout:
-        print(rx.sub(lambda m: chr(int(m.group(1), 16)) + '\t' + m.group(0),
-                     line).rstrip())
+        print(
+            rx.sub(
+                lambda m: f'{printable(hex2char(m[1]))}\t{m[0]}',
+                line,
+            ).rstrip()
+        )
 
 
 if __name__ == "__main__":
