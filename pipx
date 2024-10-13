@@ -9,6 +9,9 @@ PIPX_SHARED_ENV=~/.local/pipx/shared
 PIPX_BINDIR=~/.local/bin
 PIPX_PYTHON=${PIPX_PYTHON:-python3}
 
+if [ "$1" = "--rebootstrap" ]; then
+    rm -rf $PIPX_ENV
+fi
 if ! [ -x $PIPX_ENV/bin/pipx ]; then
     # bootstrap: let's install pipx manually
     $PIPX_PYTHON -c 'import sys; exit(sys.version_info < (3, 6))' || {
@@ -36,6 +39,9 @@ if [ $PIPX_ENV = $PIPX_ENV_DIR/pipx ] && ! [ -f $PIPX_ENV/pipx_metadata.json ]; 
     $PIPX_BINDIR/pipx install --force pipx || exit 1
 fi
 
+if [ "$1" = "--rebootstrap" ]; then
+    exit
+fi
 if [ "$1" = "--upgrade" ]; then
     $PIPX_ENV/bin/pip install -U pipx
     exit
