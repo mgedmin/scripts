@@ -1,9 +1,16 @@
-#!/bin/sh
-url=${1?usage: $0 url}
-logger -t irc-open-url "clicked <$url>"
-# trim punctuation that follows the URL
-fixed_url=${url%[,.?!]}
-# trim surrounding parens
-fixed_url=${fixed_url#(}
-fixed_url=${fixed_url#)}
-xdg-open "$fixed_url"
+#!/usr/bin/python3
+import argparse
+import subprocess
+
+
+parser = argparse.ArgumentParser(
+    description="open a URL, after stripping punctuation that surrounds it"
+)
+parser.add_argument("url", help="the URL, possibly surrounded by punctuation")
+args = parser.parse_args()
+url = args.url
+subprocess.run(['logger', '-t', 'irc-open-url', f'clicked <{url}>'])
+
+# TODO: maybe handle URLs like https://en.wikipedia.org/wiki/X_(with_parens)
+fixed_url = url.strip(',.?!<>()[]')
+subprocess.run(['xdg-open', fixed_url])
