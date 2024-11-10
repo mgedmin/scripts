@@ -46,14 +46,14 @@ FEATURES=(
 #   "--enable-perlinterp"       # ruby + perl = segfault
     "--enable-luainterp"        # vim-flog v2 needs this?
     "--with-luajit"             # vim-flog v2 needs Lua 5.1 or LuaJIT 2.1
-    # taken from ubuntu's debian/rules
+    # taken from ubuntu's debian/rules at some time in the past
     "--with-x"
     "--enable-xim"
     "--enable-gui=gtk3"
     "--disable-gtk2-check"
     "--enable-gnome-check"
     "--disable-motif-check"
-    "--disable-athena-check"
+#   "--disable-athena-check"    # no longer exists
     "--disable-fontset"
     "--enable-fail-if-missing"
 )
