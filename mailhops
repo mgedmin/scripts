@@ -1,8 +1,8 @@
 #!/usr/bin/perl -w
 # Shows the route of an Internet mail message
-# Version 0.0.4
+# Version 0.0.5
 #
-# Copyright (c) 1999, 2000, 2011 Marius Gedminas <marius@gedmin.as>
+# Copyright (c) 1999, 2000, 2011, 2024 Marius Gedminas <marius@gedmin.as>
 #           (c) 2000 Mikko Hänninen <Mikko.Hanninen@iki.fi>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -72,7 +72,24 @@ for (@headers) {
   my $from = "";
   $from = $1 if /\sfrom\s+([a-z0-9\-_+.]+(?:\s+[(].+?[)]))\s/;
   my $time = "(unknown)";
+  # sometimes time is
+  #     Received: from MTI1NTEyNDE (unknown)
+  #             by geopod-ismtpd-5 (SG) with HTTP
+  #             id EkLbxY4GRa-tfw_YmYYN5A
+  #             Sun, 10 Nov 2024 14:22:24.335 +0000 (UTC)
+  # sometimes it's
+  #     Received: by recvd-6dc67978-bxdx8 with SMTP id recvd-6dc67978-bxdx8-1-6730C1A0-1F
+  #             2024-11-10 14:22:24.344840434 +0000 UTC m=+5084649.392920190
+  # and sometimes it's
+  #     Received: from o17.ptr8588.discord.com (o17.ptr8588.discord.com [192.254.120.211])
+  #             (using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+  #             key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+  #             (No client certificate requested)
+  #             by plato.gedmin.as (Postfix) with ESMTPS id 9B10719410E7
+  #             for <marius@gedmin.as>; Sun, 10 Nov 2024 16:32:02 +0200 (EET)
   $time = $1 if /;\s+(.+)$/;
+  $time = $1 if /\s+((?:Sun|Mon|Tue|Wed|Thu|Fri|Sat), [a-zA-Z0-9:. +\-()]+)$/ && $time eq "(unknown)";
+  $time = $1 if /\s+(\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d(?:\.\d+)? [+\-]\d\d\d\d \w+)/ && $time eq "(unknown)";
   # [Wkd,] <day> <mon> <year> <hr>:<mn>:<se> +<zone> [(<zone>)]
   my $epoch;
   if ($time =~ /^ (?:\w+,\s*)?          # Week day
@@ -81,7 +98,7 @@ for (@headers) {
                  (\d+)\s+               # Year
                  (\d+):                 # Hour
                  (\d+):                 # Minute
-                 (\d+)\s+               # Second
+                 (\d+)(?:\.\d+)?\s+     # Second
                  ([+-]\d{2})(\d{2})     # Time zone
                /x) {
     my ($day, $mon, $year, $hour, $min, $sec, $zone) =
@@ -92,6 +109,12 @@ for (@headers) {
 
     $epoch = mktime($sec, $min, $hour, $day, $mon-1, $year, 0, 0, 0)
              - ($zone * 60);
+    $epoch += time()-mktime(gmtime(time()));  # fix value for local timezone
+  } elsif ($time =~ /^(\d\d\d\d)-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d)(?:\.\d+)? ([+\-]\d\d)(\d\d)/) {
+    my ($year, $mon, $day, $hour, $min, $sec, $zone) = ($1, $2, $3, $4, $5, $6, $7 * 60 + $8);
+    $year -= 1900;
+
+    $epoch = mktime($sec, $min, $hour, $day, $mon-1, $year, 0, 0, 0) - ($zone * 60);
     $epoch += time()-mktime(gmtime(time()));  # fix value for local timezone
   }
   unshift @hops, { HOST => $host, FROM => $from, TIME => $epoch};
