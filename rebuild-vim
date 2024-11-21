@@ -3,6 +3,7 @@ set -eu
 
 ruby=yes
 pull=no
+autostash=no
 clean=no
 builddeps=no
 for arg; do
@@ -11,6 +12,7 @@ for arg; do
             echo "Usage: $0 [options]"
             echo "Options:"
             echo "  --pull              git pull before building"
+            echo "  --autostash         git stash before building"
             echo "  --clean             git clean -dfx before building"
             echo "  --build-deps        sudo apt install build dependencies"
             echo "  --no-ruby           disable :ruby support"
@@ -24,6 +26,9 @@ for arg; do
             ;;
         --pull)
             pull=yes
+            ;;
+        --autostash)
+            autostash=yes
             ;;
         --build-deps)
             builddeps=yes
@@ -93,7 +98,11 @@ fi
 autoclone ~/src/vim https://github.com/vim/vim/
 cd ~/src/vim || exit 1
 if [ $pull = yes ]; then
-    git pull
+    if [ $autostash = yes ]; then
+        git pull --autostash || exit 1
+    else
+        git pull
+    fi
 fi
 rm -f src/auto/config.cache
 if [ $clean = yes ]; then
