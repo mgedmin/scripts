@@ -10,4 +10,8 @@ if [ "$(pgrep -c weechat)" -lt 2 ]; then
 else
     echo "another weechat already running, assuming IRC tunnel is up"
 fi
-exec /usr/bin/weechat "$@"
+if [ -x ~/opt/weechat/bin/weechat ]; then
+    exec ~/opt/weechat/bin/weechat "$@"
+else
+    exec /usr/bin/weechat "$@"
+fi

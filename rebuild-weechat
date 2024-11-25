@@ -1,0 +1,88 @@
+#!/bin/bash
+
+pull=no
+builddeps=no
+
+for arg; do
+    case "$arg" in
+        -h|--help)
+            echo "Usage: $(basename "$0") [options]"
+            echo
+            echo "Options:"
+            echo "  --pull              git pull before building"
+            echo "  --build-deps        sudo apt install build dependencies"
+            exit
+            ;;
+        --pull)
+            pull=yes
+            ;;
+        --build-deps)
+            builddeps=yes
+            ;;
+        *)
+            echo "unrecognized argument: $arg" 1>&2
+            exit 1
+            ;;
+    esac
+done
+
+FEATURES=(
+    # Based on the Ubuntu package
+    -DENABLE_JAVASCRIPT:BOOL=OFF
+    -DENABLE_DOC:BOOL=ON
+    -DENABLE_MAN:BOOL=ON
+    -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo
+# The problem with these is I don't know what Debian's build scripts specify
+# for CFLAGS/LDFLAGS!  debian/rules only says
+#     export DEB_BUILD_MAINT_OPTIONS=hardening=+all
+#   -DCMAKE_C_FLAGS_RELWITHDEBINFO:STRING="$(CFLAGS) -D_FORTIFY_SOURCE=2"
+#   -DCMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO:STRING="$(LDFLAGS)"
+    -DCMAKE_SKIP_RPATH:BOOL=ON
+    -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
+    -DCMAKE_INSTALL_PREFIX="$HOME/opt/weechat"
+)
+
+BUILDDEPS=(
+    # Ubuntu's weechat (4.3.1-1)
+    asciidoctor  # (>= 1.5.4)
+    debhelper   # (>= 13)
+    debhelper-compat  # (= 13)
+    cmake
+    pkgconf
+    libncurses-dev
+    ruby-dev
+    libperl-dev
+    python3-dev
+    libaspell-dev
+    liblua5.3-dev
+    tcl8.6-dev
+    guile-3.0-dev
+    php-dev
+    libphp-embed
+    libargon2-dev
+    libsodium-dev
+    libxml2-dev
+    libcurl4-gnutls-dev
+    libgcrypt20-dev
+    libgnutls28-dev
+    libzstd-dev
+    zlib1g-dev
+    libcjson-dev
+)
+
+if [ $builddeps = yes ]; then
+    sudo apt install "${BUILDDEPS[@]}"
+fi
+
+autoclone ~/src/weechat https://github.com/weechat/weechat/
+cd ~/src/weechat || exit 1
+
+if [ $pull = yes ]; then
+    git pull
+fi
+
+mkdir build
+cd build || exit 1
+cmake .. "${FEATURES[@]}"
+make
+make install
