@@ -2,9 +2,16 @@
 
 autoclone ~/.weechat plato:git/dotweechat.git || exit 1
 
+use_wireguard=1
+
 # do not run irc-tunnel if weechat is already running, that would kill its
 # network connection!
-if [ "$(pgrep -c weechat)" -lt 2 ]; then
+if [ $use_wireguard -eq 1 ]; then
+    echo "assuming wireguard is already up"
+    # because 'nmcli con up $name' pops up a GUI notification (!) saying "could
+    # not bring up network connection" if the tunnel is already
+    # established(!!!)
+elif [ "$(pgrep -c weechat)" -lt 2 ]; then
     echo "starting IRC tunnel"
     irc-tunnel
 else
