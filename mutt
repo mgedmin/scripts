@@ -1,5 +1,6 @@
 #!/bin/bash
 where=~/src/neomutt
+where_po=~/src/neomutt-lt
 
 
 # https://clang.llvm.org/docs/AddressSanitizer.html#suppressing-memory-leaks

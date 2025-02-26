@@ -8,6 +8,8 @@ py_ver=${py_suffix:-2.7}
 declare -A pypy_urls
 pypy_urls=(
     # https://www.pypy.org/download.html
+    # NB: 7.3.19 exists but I got tired of updating the URLs and checksums as I
+    # do that more often than I actually use pypy, so.
     [3.11]=https://downloads.python.org/pypy/pypy3.11-v7.3.18-linux64.tar.bz2
     [3.10]=https://downloads.python.org/pypy/pypy3.10-v7.3.18-linux64.tar.bz2
     [2.7]=https://downloads.python.org/pypy/pypy2.7-v7.3.18-linux64.tar.bz2
