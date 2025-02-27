@@ -1,6 +1,7 @@
 #!/bin/bash
 echo "Using ~/bin/transset instead of the broken /usr/bin/transset"
-echo "See https://bugs.freedesktop.org/show_bug.cgi?id=76958"
+##echo "See https://bugs.freedesktop.org/show_bug.cgi?id=76958"
+echo "See https://gitlab.freedesktop.org/xorg/app/transset/-/issues/1"
 opacity=${1:-0.75}
 scaled=$(echo "$opacity*4294967295"|bc)
 hex=$(printf "0x%x" ${scaled%.*})
