@@ -3,7 +3,7 @@ py_suffix=${0##*pypy}
 py_ver=${py_suffix:-2.7}
 
 [[ $py_ver == 2 ]] && py_ver=2.7
-[[ $py_ver == 3 ]] && py_ver=3.10
+[[ $py_ver == 3 ]] && py_ver=3.11
 
 declare -A pypy_urls
 pypy_urls=(
