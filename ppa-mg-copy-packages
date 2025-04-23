@@ -8,6 +8,7 @@ TARGET_SERIES=(
     jammy               # aka 22.04 LTS
     noble               # aka 24.04 LTS
     oracular            # aka 24.10
+    plucky              # aka 25.04
 )
 PACKAGES=(
     pwsafe
