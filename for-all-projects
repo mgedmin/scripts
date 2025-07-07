@@ -4,8 +4,9 @@ set -eu
 if [[ $# -eq 0 || $1 = --help ]]; then
     echo "usage: for-all-projects [--zope] command [args ...]"
     echo "options:"
-    echo "  --projects    use ~/projects/* (default)"
-    echo "  --zope        use ~/src/zopefoundation/*"
+    echo "  --projects              use ~/projects/* (default)"
+    echo "  --vim, --vim-plugins    use ~/src/vim-plugins/*"
+    echo "  --zope                  use ~/src/zopefoundation/*"
     exit 0
 fi
 
@@ -19,6 +20,11 @@ case "$1" in
     --zope)
         where=~/src/zopefoundation
         instructions="(mkdir ~/src/zopefoundation && cd ~/src/zopefoundation && ghcloneall --init --org zopefoundation && ghcloneall)"
+        shift
+        ;;
+    --vim|--vim-plugins)
+        where=~/src/vim-plugins
+        instructions="(cd ~/src && git clone https://github.com/mgedmin/vim-plugins && ghcloneall && ./replace-with-symlinks && rm -rf *.BAK)"
         shift
         ;;
 esac
@@ -36,6 +42,7 @@ reset=$(tput sgr0)
 rc=0
 failures=()
 for project in *; do
+    test -d "$project" || continue
     printf '\n%s+ %s%s\n\n' "$purple" "$project" "$reset" 1>&2
     (cd "$project" && "$@") || { rc=1; failures+=("$project"); }
 done
