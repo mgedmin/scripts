@@ -1,0 +1,15 @@
+#!/bin/bash
+case "$1" in
+  drop)
+    if [ -z "$2" ]; then
+        echo "usage: $0 drop FILENAME" 1>&2
+        exit 1
+    fi
+    filename=$(realpath -- "$2")
+    printf "\x1b]51;[\"drop\", \"%s\"]\x07" "$filename"
+    ;;
+  *)
+    echo "usage: $0 drop FILENAME" 1>&2
+    exit 1
+    ;;
+esac
