@@ -1,0 +1,71 @@
+#!/usr/bin/env python
+"""
+Format Advent of Code problem statements.
+
+These get pasted from the browser as a series of long lines, with embedded
+preformatted sections and unordered lists losing their markup.
+
+Lists can be identified as they start with literal TAB characters.
+
+Preformatted sections can be identified as paragraphs that have embedded
+newlines.
+
+Expects input text as standard input, outputs to standard output.
+"""
+
+import argparse
+import sys
+import textwrap
+import re
+
+
+LIST_PREFIX = re.compile('^    ([A-Z])')
+
+
+def probably_list(p: str) -> bool:
+    lines = p.splitlines()
+    if all(LIST_PREFIX.match(line) for line in lines):
+        return True
+    return False
+
+
+def print_list(p: str) -> str:
+    lines = p.splitlines()
+    for line in lines:
+        print(
+            *textwrap.wrap(
+                line.removeprefix('    '),
+                width=76,
+                initial_indent='- ',
+                subsequent_indent='  ',
+            ),
+            sep='\n'
+        )
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.parse_args()
+    if sys.stdin.isatty():
+        parser.print_help()
+        return
+
+    text = sys.stdin.read()
+    paragraphs = text.rstrip().split('\n\n')
+
+    for n, p in enumerate(paragraphs):
+        if n != 0:
+            print()
+        if probably_list(p):
+            print_list(p)
+        elif '\n' in p:
+            print(p)  # preformatted text
+        else:
+            print(*textwrap.wrap(p, width=78), sep='\n')
+
+    if text.endswith('\n\n'):
+        print()
+
+
+if __name__ == "__main__":
+    main()
