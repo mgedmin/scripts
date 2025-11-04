@@ -19,7 +19,7 @@ import textwrap
 import re
 
 
-LIST_PREFIX = re.compile('^    ([A-Z])')
+LIST_PREFIX = re.compile('^    ([A-Z]|[0-9]+[:.])')
 
 
 def probably_list(p: str) -> bool:
@@ -59,7 +59,8 @@ def main() -> None:
         if probably_list(p):
             print_list(p)
         elif '\n' in p:
-            print(p)  # preformatted text
+            # preformatted text
+            print('\n'.join(line.rstrip() for line in p.splitlines()))
         else:
             print(*textwrap.wrap(p, width=78), sep='\n')
 
