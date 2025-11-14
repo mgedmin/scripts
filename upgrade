@@ -2,11 +2,15 @@
 NICE="nice -n 10"
 test -x /usr/bin/ionice && NICE="$NICE ionice -c3"
 if [ -x /usr/bin/apt ]; then
-    sudo $NICE apt upgrade -u -f "$@"
+    set -x
+    $NICE sudo apt upgrade -u -f "$@"
 else
-    sudo $NICE apt-get upgrade -u -f "$@"
+    set -x
+    $NICE sudo apt-get upgrade -u -f "$@"
 fi
 if [ -x /usr/bin/snap ]; then
     # pointless to nice/ionice, all the work is done by snapd, all snap does is talk to a socket
     sudo snap refresh
+    # in case some apps (*cough* firefox) were running and were not upgraded
+    snap refresh --list
 fi
