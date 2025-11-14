@@ -2,4 +2,8 @@
 if [ -d .git ] && ! grep -q '^tags$' .git/info/exclude; then
     echo tags >> .git/info/exclude
 fi
-exec /usr/bin/ctags "$@"
+if [ -x ~/src/ctags/ctags ]; then
+    exec ~/src/ctags/ctags "$@"
+else
+    exec /usr/bin/ctags "$@"
+fi
