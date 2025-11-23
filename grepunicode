@@ -1,8 +1,12 @@
 #!/usr/bin/python3
+import argparse
 import os
 import re
 import subprocess
-import sys
+import unicodedata
+
+
+__version__ = '2.0'
 
 
 def printable(s):
@@ -13,15 +17,9 @@ def hex2char(s):
     return chr(int(s, 16))
 
 
-def main():
-    charmap = '/usr/share/i18n/charmaps/UTF-8'
-    grep = 'grep'
-    if not os.path.exists(charmap) and os.path.exists(charmap + '.gz'):
-        charmap += '.gz'
-        grep = 'zgrep'
-
+def grep_charmap(grep, charmap, regex):
     pipe = subprocess.Popen(
-        [grep, '-hi', '-e', '.*'.join(sys.argv[1:]), charmap],
+        [grep, '-hi', '-e', regex, charmap],
         stdout=subprocess.PIPE, encoding='UTF-8')
     rx = re.compile(r'<U([0-9A-Fa-f]{4}|[0-9A-Fa-f]{8})>')
     for line in pipe.stdout:
@@ -31,6 +29,54 @@ def main():
                 line,
             ).rstrip()
         )
+
+
+def grep_unicodedata(regex):
+    regex = re.compile(regex, flags=re.IGNORECASE)
+    for c in range(0x0, 0x10FFFF + 1):
+        name = unicodedata.name(chr(c), None)
+        if not name:
+            continue
+        w = 4 if c <= 0xffff else 8
+        u = f'<U{c:0{w}X}>'
+        u8 = ''.join(f'/x{b:2x}' for b in chr(c).encode('UTF-8'))
+        s = f'{chr(c)}\t{u:12}{u8} {name}'
+        if regex.search(s):
+            print(s)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Search for Unicode characters"
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="%(prog)s version " + __version__,
+    )
+    parser.add_argument(
+        "--builtin",
+        action="store_true",
+        help="use Python's unicodedata instead of /usr/share/charmaps",
+    )
+    parser.add_argument(
+        "query",
+        nargs='+',
+        help="search query (case insensitive, multiple words in order)",
+    )
+    args = parser.parse_args()
+    regex = '.*'.join(args.query)
+
+    charmap = '/usr/share/i18n/charmaps/UTF-8'
+    grep = 'grep'
+    if not os.path.exists(charmap) and os.path.exists(charmap + '.gz'):
+        charmap += '.gz'
+        grep = 'zgrep'
+
+    if os.path.exists(charmap) and not args.builtin:
+        grep_charmap(grep, charmap, regex)
+    else:
+        grep_unicodedata(regex)
 
 
 if __name__ == "__main__":
