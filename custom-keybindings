@@ -13,4 +13,9 @@ binding='<Super>t'
 command='gnome-terminal'
 name='Open terminal'
 
+[org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom3]
+binding='<Super>c'
+command='connect-headset'
+name='Connect Headset'
+
 EOF
