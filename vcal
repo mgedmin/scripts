@@ -1,0 +1,969 @@
+#!/usr/bin/perl
+#
+# vcal
+#	This script searches a file and displays records in a VCALENDAR
+#	(ICALENDAR) entry.
+#
+#	Written by:  Wayne Morrison  (wayne@waynemorrison.com)
+#
+#	Revision History:
+#		1.0	Initial version.
+#		2.0	Added -mh and -version options.
+#		2.1	Modified the ordering of name lists.
+#			Aligned name list columns.
+#		2.2	Changed -version to -Version.			100530
+#		2.3	Case-insensitive checking for "mailto".		120721
+#			Suggestion from Dr.-Ing. Torsten Finke.
+#			(torsten.finke@igh-essen.com)
+#		2.4	Parse location field.				150521
+#			Suggestion and patch from Beat Vontobel.
+#			(b.vontobel@meteonews.ch)
+#		2.5	A file of '-' reads from STDIN.			150605
+#			Suggestion and patch from Ivo Ihrke.
+#			(ivo.ihrke@inria.fr)
+#		2.6	parsetime() changes for UTC and timezone.	150605
+#			Suggestion and patch from Matthias Gay.
+#			(gay.matthias@gmail.com)
+#		2.7	Fixed duplicated summary error.			150606
+#			Removed carriage returns and language
+#			markers from the lines.
+#		2.8	Added license sections.				180526
+#
+#	Copyright 2009-2018 Wayne Morrison
+#
+#	Licensed under the Apache License, Version 2.0 (the "License");
+#	you may not use this file except in compliance with the License.
+#	You may obtain a copy of the License at
+#
+#	    http://www.apache.org/licenses/LICENSE-2.0
+#
+#	Unless required by applicable law or agreed to in writing, software
+#	distributed under the License is distributed on an "AS IS" BASIS,
+#	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#	See the License for the specific language governing permissions and
+#	limitations under the License.
+#
+
+use strict;
+
+use Getopt::Long qw(:config no_ignore_case_always);
+
+#
+# Version information.
+#
+my $NAME   = "vcal";
+my $VERS   = "$NAME version: 2.7";
+
+#----------------------------------------------------------------------
+#
+# Data required for command line options.
+#
+my %options = ();                       # Filled option array.
+my @opts =
+(
+	"all",				# Display all records.
+	"chair",			# Display meeting chair.
+	"description",			# Display description.
+	"end",				# Display end time.
+	"location",			# Display location.
+	"optional",			# Display required participants.
+	"organizer",			# Display organizer.
+	"participants",			# Display participants.
+	"raw",				# Display raw data.
+	"required",			# Display required participants.
+	"scheduled",			# Display scheduled time.
+	"start",			# Display start time.
+	"summary",			# Display summary.
+
+	"mh",				# Examine a file in the MH directory.
+
+	"help",				# Help request.
+	"Version",			# Version request.
+);
+
+my $allflag	= 0;
+my $chairflag	= 0;
+my $descrflag	= 0;
+my $endflag	= 0;
+my $orgflag	= 0;
+my $locflag     = 0;
+my $partoptflag	= 0;
+my $partreqflag	= 0;
+my $partsflag	= 0;
+my $rawflag	= 0;
+my $schedflag	= 0;
+my $startflag	= 0;
+my $summaryflag	= 0;
+
+my $mhflag	= 0;
+
+my $numopts = 0;			# Count of specific-field options.
+
+#
+# Command used by -mh.
+#
+my $MHPATH = "/usr/local/nmh/bin/mhpath";
+
+#---------------------------------------------
+
+#
+# All our vcalendar/icalendar data.
+#
+my @vcalend	= ();
+
+#
+# Parsed vcalendar/icalendar data.
+#
+my @chairs	= ();			# Event chairs.
+my @descrs	= ();			# Descriptions.
+my @locations	= ();			# Locations.
+my @organizers	= ();			# CEvent organizers.
+my @partopts	= ();			# Optional participants.
+my @partreqs	= ();			# Required participants.
+my @summaries	= ();			# Summaries.
+
+my $starter	= "";			# Event start.
+my $ender	= "";			# Event end.
+my $scheduled	= "";			# Event schedule time.
+
+my $longaddrlen = -1;			# Length of longest email address.
+
+#---------------------------------------------
+
+#
+# Let 'er rip.
+#
+main();
+exit(0);
+
+#------------------------------------------------------------------------
+# Routine:      main()
+#
+sub main
+{
+	my $fcnt = 0;					# Files left to check.
+	my $ind;					# Loop index.
+
+	#
+	# Check our options.
+	#
+	doopts();
+
+	#
+	# Give a usage message if there aren't any input files.
+	#
+	$fcnt = @ARGV;
+	usage() if($fcnt < 1);
+
+	#
+	# Check the input files for vcalendar data.
+	#
+	for($ind=0; $ind < $fcnt; $ind++)
+	{
+		my $fn = shift @ARGV;			# Get the next file.
+
+		#
+		# Initialize a bunch of data.
+		#
+		@vcalend    = ();
+		@chairs	    = ();
+		@descrs	    = ();
+		@locations  = ();
+		@organizers = ();
+		@partopts   = ();
+		@partreqs   = ();
+		@summaries  = ();
+		$ender	    = "";
+		$scheduled  = "";
+		$starter    = "";
+
+		#
+		# Parse the file.
+		#
+		dofile($fn);
+
+		if(@ARGV > 0)
+		{
+			print "\n--------------------------------\n\n";
+		}
+	}
+}
+
+#-----------------------------------------------------------------------------
+# Routine:      doopts()
+#
+# Purpose:      This routine deals with the command's options.
+#
+sub doopts
+{
+	#
+	# Check our options.
+	#
+	GetOptions(\%options,@opts) || usage();
+	$allflag     = $options{'all'};
+	$chairflag   = $options{'chair'};
+	$descrflag   = $options{'description'};
+	$locflag     = $options{'location'};
+	$orgflag     = $options{'organizer'};
+	$partsflag   = $options{'participants'};
+	$partreqflag = $options{'required'};
+	$partoptflag = $options{'optional'};
+	$schedflag   = $options{'scheduled'};
+	$startflag   = $options{'start'};
+	$summaryflag = $options{'summary'};
+	$endflag     = $options{'end'};
+	$rawflag     = $options{'raw'};
+
+	$mhflag	     = $options{'mh'};
+
+	#
+	# Show the usage message if requested.
+	#
+	usage() if(defined($options{'help'}));
+
+	#
+	# Show the usage message if requested.
+	#
+	version() if(defined($options{'Version'}));
+
+	#
+	# If -all was given, set all the flags (except rawflag.)
+	#
+	if($allflag)
+	{
+		$chairflag	= 1;
+		$descrflag	= 1;
+		$endflag	= 1;
+		$locflag	= 1;
+		$orgflag	= 1;
+		$partoptflag	= 1;
+		$partreqflag	= 1;
+		$schedflag	= 1;
+		$startflag	= 1;
+		$summaryflag	= 1;
+	}
+
+	#
+	# If -participants was given, we'll set the two specific
+	# participants flags.
+	#
+	if($partsflag)
+	{
+		$partreqflag = 1;
+		$partoptflag = 1;
+	}
+
+	#
+	# Figure out how many field-specific options were set.
+	#
+	$numopts = $chairflag	+ $descrflag	+ $orgflag	+
+		   $partreqflag	+ $partoptflag	+ $schedflag	+
+		   $startflag	+ $summaryflag	+ $endflag	+
+		   $locflag;
+
+	#
+	# Set our default display if no options were given.
+	#
+	if($numopts == 0)
+	{
+		$startflag	= 1;
+		$endflag	= 1;
+		$summaryflag	= 1;
+	}
+}
+
+#------------------------------------------------------------------------
+# Routine:      dofile()
+#
+sub dofile
+{
+	my $fn = shift;
+
+	#
+	# If -mh was given, we'll get the file from the MH directory.
+	#
+	if($mhflag)
+	{
+		my $out;				# Command output.
+		my $ret;				# Command return code.
+
+		#
+		# Ensure the file exists in the MH directory.  We'll use this
+		# quiet version in case the file doesn't exist.
+		#
+		`MHPATH $fn > /dev/null 2>&1`;
+		if($? != 0)
+		{
+			print "error:  unable to read \"$fn\" from MH directory\n";
+			return(-1);
+		}
+
+		#
+		# Get the file's actual path.
+		#
+		$out =`$MHPATH $fn`;
+
+		#
+		# Adjust the name of the input file.
+		#
+		chomp $out;
+		$fn = $out;
+	}
+
+	#
+	# Get the vcalendar data from the file.
+	#
+	return if(getvcalend($fn) < 0);
+
+	#
+	# Print requested data.
+	#
+	if($rawflag)
+	{
+		listraw();
+	}
+	else
+	{
+		listfields();
+	}
+}
+
+#------------------------------------------------------------------------
+# Routine:      getvcalend()
+#
+sub getvcalend
+{
+	my $fn = shift;				# Input file.
+
+	my @vctmp = ();				# Temporary vcalendar data.
+	my $contents = "";			# File contents.
+	my $linecnt;				# Count of lines.
+	my $ind;				# Loop index.
+
+	my $found = 0;				# Vcalendar-found flag.
+
+	#
+	# Get the vcalendar data.  If a dash was given as the filename,
+	# we'll read the data from stdin instead of a file.
+	#
+	if($fn eq '-')
+	{
+		@vctmp = <STDIN>;
+	}
+	else
+	{
+		#
+		# Make sure the file exists and is readable.
+		#
+		if((! -f $fn) || (! -r $fn))
+		{
+			print "error:  unable to read \"$fn\"\n";
+			return(-1);
+		}
+
+		#
+		# Get the contents of the file.
+		#
+		open(VCARD,"<$fn");
+		@vctmp = <VCARD>;
+		close(VCARD);
+	}
+
+	#
+	# Save the line count of the vcalendar data.
+	#
+	$linecnt = @vctmp;
+
+	#
+	# Plop all the file's lines into a single line.  We'll mess around
+	# with some of the lines a bit:
+	#	- unfold the split lines into single lines
+	#	- delete the X-LOTUS lines
+	#
+	$contents = join("", @vctmp);
+	$contents =~ s/\n[ \t]//gm;
+	$contents =~ s/^X-LOTUS.*\n//gm;
+
+	#
+	# Build a new array filled with vcalendar goodness.
+	#
+	@vctmp = split /\n/, $contents;
+
+	#
+	# Copy the vcalendar data to our real vcalendar array.
+	#
+	$linecnt = @vctmp;
+	for($ind=0; $ind < $linecnt; $ind++)
+	{
+		#
+		# Set a found flag if we've found the start of the vcalendar.
+		#
+		if($vctmp[$ind] =~ /BEGIN\:VCALENDAR/)
+		{
+			$found = 1;
+		}
+
+		#
+		# Drop out if we're at the end of the vcalendar data.
+		#
+		if($vctmp[$ind] =~ /END\:VCALENDAR/)
+		{
+			push @vcalend, $vctmp[$ind];
+			last;
+		}
+
+		#
+		# Save this line if we're in the vcalendar data.
+		#
+		push @vcalend, $vctmp[$ind] if($found);
+	}
+
+	#
+	# Make sure we found some vcalendar data.
+	#
+	if($found == 0)
+	{
+		print "error:  no vcalendar data in \"$fn\"\n";
+		return(-1);
+	}
+
+	return(0);
+}
+
+#------------------------------------------------------------------------
+# Routine:      listraw()
+#
+sub listraw
+{
+	foreach my $line (@vcalend)
+	{
+		print "$line\n";
+	}
+}
+
+#------------------------------------------------------------------------
+# Routine:      listfields()
+#
+sub listfields
+{
+	foreach my $line (@vcalend)
+	{
+		my $txt = "";
+
+		#
+		# To start, we'll remove carriage returns and language
+		# markers from the line.
+		#
+		$line =~ s///g;
+		$line =~ s/LANGUAGE=(.*?)://g;
+
+		if($chairflag &&
+		   ($line =~ /^ATTENDEE/) &&
+		   ($line =~ /ROLE=CHAIR/))
+		{
+			$txt = getname($line);
+			push @chairs, $txt;
+		}
+
+		if($orgflag && ($line =~ /^ORGANIZER/))
+		{
+			$txt = getname($line);
+			push @organizers, $txt;
+		}
+
+		if($locflag && ($line =~ /^LOCATION/))
+		{
+			$txt = getdescr($line);
+			push @locations, $txt;
+		}
+
+		if($partoptflag && ($line =~ /ROLE=OPT-PARTICIPANT/))
+		{
+			$txt = getname($line);
+			push @partopts, $txt;
+		}
+
+		if($partreqflag && ($line =~ /ROLE=REQ-PARTICIPANT/))
+		{
+			$txt = getname($line);
+			push @partreqs, $txt;
+		}
+
+		if($descrflag && ($line =~ /^DESCRIPTION/))
+		{
+			$txt = getdescr($line);
+			push @descrs, $txt;
+		}
+
+		if($startflag && ($line =~ /^DTSTART/))
+		{
+			$starter = parsetime($line);
+		}
+
+		if($endflag && ($line =~ /^DTEND/))
+		{
+			$ender = parsetime($line);
+		}
+
+		if($schedflag && ($line =~ /^DTSTAMP/))
+		{
+			$scheduled = parsetime($line);
+		}
+
+		if($summaryflag && ($line =~ /^SUMMARY/))
+		{
+			$txt = getsumm($line);
+			push @summaries, $txt;
+		}
+
+	}
+
+	if($startflag)
+	{
+		print "event start:  $starter\n";
+	}
+
+	if($endflag)
+	{
+		print "event end:    $ender\n";
+	}
+
+	if($schedflag)
+	{
+		print "event scheduled:    $scheduled\n";
+	}
+
+	print "\n" if($startflag || $endflag || $schedflag);
+
+	if($summaryflag)
+	{
+		print "summary:    $scheduled\n";
+		foreach my $sum (@summaries)
+		{
+			my @lines;
+
+			@lines = split /\\n/, $sum;
+			foreach my $ln (@lines)
+			{
+				print "\t$ln\n";
+			}
+			print "\n";
+		}
+	}
+
+	if($locflag && (@locations > 0))
+	{
+		print "event location:\n";
+		foreach my $desc (@locations)
+		{
+			my @lines;
+
+			@lines = split /\\n/, $desc;
+			foreach my $ln (@lines)
+			{
+				print "\t$ln\n";
+			}
+			print "\n";
+		}
+		print "\n";
+	}
+
+	if($chairflag && (@chairs > 0))
+	{
+		print "event chair:\n";
+		foreach my $name (sort(@chairs))
+		{
+			dispname($name);
+		}
+		print "\n";
+	}
+
+	if($orgflag && (@organizers > 0))
+	{
+		print "event organizer:\n";
+		foreach my $name (sort(@organizers))
+		{
+			dispname($name);
+		}
+		print "\n";
+	}
+
+	if($partreqflag && (@partreqs > 0))
+	{
+		print "required participants:\n";
+		foreach my $name (sort(@partreqs))
+		{
+			dispname($name);
+		}
+		print "\n";
+	}
+
+	if($partoptflag && (@partopts > 0))
+	{
+		print "optional participants:\n";
+		foreach my $name (sort(@partopts))
+		{
+			dispname($name);
+		}
+		print "\n";
+	}
+
+	if($descrflag && (@descrs > 0))
+	{
+		print "description:\n";
+		foreach my $desc (@descrs)
+		{
+			my @lines;
+
+			@lines = split /\\n/, $desc;
+			foreach my $ln (@lines)
+			{
+				print "\t$ln\n";
+			}
+			print "\n";
+		}
+	}
+
+}
+
+#------------------------------------------------------------------------
+# Routine:      dispname()
+#
+sub dispname
+{
+	my $namestr = shift;			# Name/addr string.
+	my $name;				# Real name.
+	my $addr;				# Email address.
+	my $len;				# Length of address.
+	my $spaces = 0;				# Number of spaces to add.
+
+#	print "\t$name\n";
+
+	#
+	# Dig the name and email address out of the name string.
+	#
+	$namestr =~ /^\((.*)\)\t\t(.*)$/;
+	$addr = $1;
+	$name = $2;
+	$name =~ s/[ \t]*$//;
+	$len  = length($addr);
+
+	#
+	# Figure out how many spaces are needed between the name and address.
+	#
+	$spaces = $longaddrlen - $len + 8;
+
+	print "\t$addr" . (' ' x $spaces) . "$name\n";
+}
+
+#------------------------------------------------------------------------
+# Routine:      getname()
+#
+sub getname
+{
+	my $ln = shift;				# Data line.
+	my $name;				# Name from data line.
+	my $email;				# Email address from data line.
+	my $retstr;				# Return string.
+
+	#
+	# Dig the name and email address from the line.
+	#
+	$ln =~ /CN=\"(.+?)\"/i;
+	$name  = $1;
+
+	#
+	# Dig the name and email address from the line.
+	#
+	$ln =~ /:mailto:(.+)$/i;
+	$email = $1;
+
+	#
+	# Save the length of the longest email address.
+	#
+	if(length($email) > $longaddrlen)
+	{
+		$longaddrlen = length($email);
+	}
+
+	#
+	# Build our return string.
+	#
+	if(($name eq "") && ($email eq ""))
+	{
+		$retstr = '';
+	}
+	else
+	{
+		$retstr = "($email)\t\t$name";
+	}
+
+	return($retstr);
+}
+
+#------------------------------------------------------------------------
+# Routine:      getdescr()
+#
+sub getdescr
+{
+	my $line = shift;
+
+	$line =~ s/^DESCRIPTION//;
+	$line =~ s/ALTREP=".*"//;
+	$line =~ s/^[;:]*//;
+	$line =~ s/\\,/,/g;
+	$line =~ s/\\\\/\//g;
+
+	return($line);
+}
+
+#------------------------------------------------------------------------
+# Routine:      getsumm()
+#
+sub getsumm
+{
+	my $line = shift;
+	my $val;
+
+	$line =~ /^SUMMARY:(.*)$/;
+
+	$line =~ s/\\,/,/g;
+	$line =~ s/\\;/;/g;
+	$line =~ s/\\\\/\//g;
+
+	return($line);
+}
+
+#------------------------------------------------------------------------
+# Routine:      parsetime()
+#
+sub parsetime
+{
+	my $line = shift;				# Time line.
+	my $key;					# Key from line.
+	my $val;					# Value from line.
+	my $retstr;					# Return string.
+	my @chron = ();					# Time fields.
+
+	#
+	# Dig out the values from the line.
+	#
+	$line =~ /(.*?):(.*)/;
+	$key = $1;
+	$val = $2;
+
+	#
+	# Get the time values.
+	#
+	$val =~ s/[<>]//g;
+	@chron = split /T/, $val;
+#	$chron[0] =~ s/(..)(..)(..)(..)/$3\/$4\/$2/;
+	$chron[0] =~ s/(....)(..)(..)/$1\-$2\-$3/;	# ISO date format
+	$chron[1] =~ s/(..)(..)(.*)/$1:$2/;
+
+	#
+	# Deal with the time zone, if present.
+	#
+	if($key =~ /TZID/)
+	{
+#		$key =~ /TZID="(.*)"/;
+		$key =~ /TZID=(.*)/;
+		$chron[2] = $1;
+	}
+
+	#
+	# Use UTC time if 'Z' is appended to the DATE-TIME string.
+	#
+	if($val =~ /Z/)
+	{
+		$chron[2] = 'UTC';
+	}
+
+	#
+	# Build and return the return string.
+	#
+	$retstr = "$chron[0]\t$chron[1]\t$chron[2]";
+	return($retstr);
+}
+
+#------------------------------------------------------------------------
+# Routine:      usage()
+#
+sub usage
+{
+	print "usage:  vcal [options] <file1 ... fileN>\n";
+	print "\toptions:\n";
+	print "\t\t-all              show all calendar data\n";
+	print "\t\t-chair            show meeting chair\n";
+	print "\t\t-description      show event description\n";
+	print "\t\t-end              show event end time\n";
+	print "\t\t-location         show meeting locations\n";
+	print "\t\t-optional         show optional participants\n";
+	print "\t\t-organizer        show meeting organizer\n";
+	print "\t\t-participants     show participants\n";
+	print "\t\t-required         show required participants\n";
+	print "\t\t-scheduled        show event scheduled time\n";
+	print "\t\t-start            show event start time\n";
+	print "\t\t-summary          show summary information\n";
+	print "\n";
+	print "\t\t-raw              show raw vcalendar data\n";
+	print "\n";
+	print "\t\t-mh               files are taken from the current MH mailbox\n";
+	print "\n";
+	print "\t\t-help             display this message\n";
+	print "\t\t-Version          display the program version and exit\n";
+	exit(1);
+}
+
+#------------------------------------------------------------------------
+# Routine:      version()
+#
+sub version
+{
+	print "$VERS\n";
+	exit(0);
+}
+
+1;
+
+##############################################################################
+#
+
+=pod
+
+=head1 NAME
+
+B<vcal> - Display the data in a I<vcalendar> or I<icalendar> file
+
+=head1 SYNOPSIS
+
+  vcal [options] <files>
+
+=head1 DESCRIPTION
+
+B<vcal> parses a file for a I<vcalendar> or I<icalendar> record and displays
+the selected fields from the record.
+
+Normally, B<vcal> uses the specified files as absolute or relative paths,
+depending on how they are given on the command line.  However, if the B<-mh>
+flag is given, the current MH mailbox is searched for the specified files.
+The B<mhpath> command is used to determine the absolute path to the files.
+If a single dash is given as a filename, then the I<vcalendar> data will be
+read from standard input.
+
+B<vcal> takes options to allow selective display of the calendar data.
+If no options are given, then it is as if the B<-start>, B<-end>, and
+B<-summary> options are given.
+
+=head1 OPTIONS
+
+B<vcal> takes the following options:
+
+=over 4
+
+=item B<-all>
+
+Show all calendar data.  This differs from B<-raw> in that the data are
+formatted, while B<-raw> gives the data as they are read from the file.
+
+=item B<-chair>
+
+Show the meeting chair.
+
+=item B<-description>
+
+Show the event description.
+
+=item B<-end>
+
+Show the event end time.
+
+=item B<-location>
+
+Show the meeting locations.
+
+=item B<-optional>
+
+Show the optional participants.
+
+=item B<-organizer>
+
+Show the meeting organizer.
+
+=item B<-participants>
+
+Show the required and optional participants.  The participants are displayed
+in these two groups.
+
+=item B<-required>
+
+Show the required participants.
+
+=item B<-scheduled>
+
+Show the event scheduled time.
+
+=item B<-start>
+
+Show the event start time.
+
+=item B<-summary>
+
+Show the event summary information.
+
+=item B<-raw>
+
+Show all calendar data.  This differs from B<-all> in that the data are
+data displayed as they are read from the file, while B<-all> formats the data.
+
+=item B<-mh>
+
+The current MH mailbox is searched for the specified files.
+
+=item B<-help>
+
+Display a usage message and exit.
+
+=item B<-Version>
+
+Display the program version and exit.
+
+=back
+
+=head1 ACKNOWLEDGMENTS
+
+Thanks to Dr.-Ing. Torsten Finke (torsten.finke@igh-essen.com) for suggesting
+the case-insensitive checking for "mailto".  This was added in version 2.3.
+
+Thanks to Beat Vontobel (b.vontobel@meteonews.ch) for the patch for the
+B<-location> option.  The patch (used by permission) was added in version 2.4.
+
+Thanks to Ivo Ihrke (ivo.ihrke@inria.fr) for the patch for reading the
+calendar data if the input file is a dash.  The patch (used by permission)
+was added in version 2.5.
+
+Thanks to Matthias Gay (gay.matthias@gmail.com) for the UTC and timezone
+patches.  These patches (used by permission) were added in version 2.6.
+
+=head1 AUTHOR
+
+Wayne Morrison, wayne@waynemorrison.com
+
+=head1 LICENSE
+
+Copyright 2009-2018 Wayne Morrison
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+=cut
+
