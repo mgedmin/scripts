@@ -1,6 +1,7 @@
 #!/bin/bash
 where=~/src/neomutt
-where_po=~/src/neomutt-lt
+where_po=~/src/neomutt-lt/po
+where_mo=~/.local/share/locale/lt/LC_MESSAGES
 
 
 # https://clang.llvm.org/docs/AddressSanitizer.html#suppressing-memory-leaks
@@ -43,12 +44,12 @@ esac
 
 
 if [ -x $where/neomutt ]; then
-    if ! [ -e $where/po/lt.mo ] || ! [ $where/po/lt.mo -nt $where/po/lt.po ]; then
-      make -C $where po/lt.mo
+    if ! [ -e $where_po/lt.mo ] || ! [ $where_po/lt.mo -nt $where_po/lt.po ]; then
+      msgfmt -c -o $where_po/lt.mo $where_po/lt.po
     fi
-    if ! [ -e ~/.local/share/locale/lt/LC_MESSAGES/neomutt.mo ]; then
-      mkdir -p ~/.local/share/locale/lt/LC_MESSAGES
-      ln -sfr $where/po/lt.mo ~/.local/share/locale/lt/LC_MESSAGES/neomutt.mo
+    if ! [ -e $where_mo/neomutt.mo ] || ! [ $where_mo/neomutt.mo -nt $where_po/lt.mo ] ; then
+      mkdir -p $where_mo
+      ln -sfr $where_po/lt.mo $where_mo/neomutt.mo
     fi
     export TEXTDOMAINDIR=~/.local/share/locale/
     exec $prefix $where/neomutt "$@"
