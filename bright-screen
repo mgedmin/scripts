@@ -1,2 +1,4 @@
 #!/bin/sh
-gnome-screen-brightness 100
+# gnome 49: the old org.gnome.SettingsDaemon.Power method no longer works
+##gnome-screen-brightness 100
+gdctl prefs --monitor eDP-1 --backlight 24242
