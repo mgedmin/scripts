@@ -1,0 +1,3 @@
+#!/bin/bash
+TAB="	"
+paste <(ubuntu-distro-info -r --supported) <(ubuntu-distro-info -c --supported) | column -s "$TAB" -t
