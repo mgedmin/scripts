@@ -18,5 +18,5 @@ if [ -x /usr/bin/gsettings ]; then
     # use gnome-control-center to adjust the delay
     # dconf dump > /tmp/wtf2
     # diff -u /tmp/wtf1 /tmp/wtf2
-    # so maybe dconf write /org/gnome/desktop/peripherals/keyboard/delay 250 would've been simpler
+    # so maybe dconf write /org/gnome/desktop/peripherals/keyboard/delay 'uint32 250' would've been simpler
 fi
