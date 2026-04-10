@@ -2,11 +2,18 @@
 import argparse
 import email
 import pathlib
+import re
+import sys
 from collections import defaultdict
 from typing import Iterable, Sequence, NamedTuple, List, TextIO
 
 
-__version__ = '1.0'
+__version__ = '1.1'
+__date__ = '2026-04-10'
+
+
+def warn(msg: str) -> None:
+    print(msg, file=sys.stderr)
 
 
 def sources_lists() -> Iterable[pathlib.Path]:
@@ -30,18 +37,26 @@ def parse_list(source_list: TextIO) -> Iterable[RepoInfo]:
             yield RepoInfo(bits[1], bits[2], bits[3:])
 
 
+def strip_comments(multiline_text: str) -> str:
+    return re.sub(r'^#.*\n', '', multiline_text, flags=re.MULTILINE)
+
+
 def parse_sources(source_list: TextIO) -> Iterable[RepoInfo]:
     # deb822 format
-    for source in source_list.read().split('\n\n'):
-        m = email.message_from_string(source)
-        urls = m['URIs'].split()
-        suites = m['Suites'].split()
-        components = m['Components'].split()
-        types = m['Types'].split()  # deb, deb-src
-        if 'deb' not in types:
-            continue
-        enabled = m['Enabled']
-        if enabled == 'no':
+    for source in strip_comments(source_list.read()).split('\n\n'):
+        m = email.message_from_string(source.strip())
+        try:
+            urls = (m['URIs'] or '').split()
+            suites = (m['Suites'] or '').split()
+            components = (m['Components'] or '').split()
+            types = (m['Types'] or '').split()  # deb, deb-src
+            if 'deb' not in types:
+                continue
+            enabled = m['Enabled']
+            if enabled == 'no':
+                continue
+        except Exception as err:
+            warn(f"{source_list.name}: {err}")
             continue
         for url in urls:
             for suite in suites:
