@@ -3,9 +3,11 @@
 # if the registry requires authentication, be sure to 'docker login' first, so
 # the credentials can be cached in ~/.docker/config.json
 # https://forums.docker.com/t/get-image-digest-from-remote-registry-via-api/9480
+#
+# See also: list-docker-tags, show-docker-tag-digests
 
 usage="usage: $0 [-v] [-r registry] [-n limit] image [tag ...]"
-registry=registry.vaultit.org
+registry=artifactory.draeger.com
 image=
 tags=()
 verbose=0
@@ -13,12 +15,12 @@ limit=30
 
 info() {
     if [ "$verbose" -ge 1 ]; then
-        printf "%s\n" "$*"
+        printf "%s\n" "$*" 1>&2
     fi
 }
 debug() {
     if [ "$verbose" -ge 2 ]; then
-        printf "%s\n" "$*"
+        printf "%s\n" "$*" 1>&2
     fi
 }
 
@@ -83,7 +85,12 @@ if [ "${#tags[@]}" -eq 0 ]; then
 )
 fi
 
-auth="$(jq -r '.auths["'"$registry"'"].auth' ~/.docker/config.json)"
+if ! [ -e ~/.docker/config.json ]; then
+    info "No ~/.docker/config.json found, try running 'docker login' first"
+    auth=
+else
+    auth="$(jq -r '.auths["'"$registry"'"].auth' ~/.docker/config.json)"
+fi
 if [ "$auth" != "null" ]; then
     info "Found credentials for $registry in ~/.docker/config.json"
 else

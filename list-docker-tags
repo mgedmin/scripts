@@ -2,21 +2,23 @@
 # list all docker tags available from a private registry
 # if the registry requires authentication, be sure to 'docker login' first, so
 # the credentials can be cached in ~/.docker/config.json
+#
+# See also: show-docker-tag-ids, show-docker-tag-digests
 
 usage="usage: $0 [-v] [-r registry] image"
 # dockerhub would be registry.hub.docker.com, but note that it requires authentication
-registry=registry.vaultit.org
+registry=artifactory.draeger.com
 image=
 verbose=0
 
 info() {
     if [ "$verbose" -ge 1 ]; then
-        printf "%s\n" "$*"
+        printf "%s\n" "$*" 1>&2
     fi
 }
 debug() {
     if [ "$verbose" -ge 2 ]; then
-        printf "%s\n" "$*"
+        printf "%s\n" "$*" 1>&2
     fi
 }
 
@@ -65,7 +67,12 @@ if [ -z "$image" ]; then
     exit 1
 fi
 
-auth="$(jq -r '.auths["'"$registry"'"].auth' ~/.docker/config.json)"
+if ! [ -e ~/.docker/config.json ]; then
+    info "No ~/.docker/config.json found, try running 'docker login' first"
+    auth=
+else
+    auth="$(jq -r '.auths["'"$registry"'"].auth' ~/.docker/config.json)"
+fi
 if [ "$auth" != "null" ]; then
     info "Found credentials for $registry in ~/.docker/config.json"
 else
