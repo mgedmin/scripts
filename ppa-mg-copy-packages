@@ -1,5 +1,5 @@
 #!/bin/bash
-# Replaced by https://github.com/mgedmin/ppa-copy-packages
+# There are some packages I still need on Ubuntu
 
 PPA_OWNER=mgedmin
 PPA_NAME=ppa
@@ -9,6 +9,7 @@ TARGET_SERIES=(
     noble               # aka 24.04 LTS
     plucky              # aka 25.04
     questing            # aka 25.10
+    resolute            # aka 26.04 LTS
 )
 PACKAGES=(
     pwsafe
