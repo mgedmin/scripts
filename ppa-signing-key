@@ -1,0 +1,10 @@
+#!/bin/bash
+ppa_owner=${1:?usage: $0 ppa_owner [ppa_name]}
+ppa_name=${2:-ppa}
+
+echo "Fetching fingerprint for ppa:$ppa_owner/$ppa_name..."
+json=$(curl -sS --header 'Accept: application/json' "https://api.launchpad.net/devel/~${ppa_owner}/+archive/ubuntu/${ppa_name}")
+test -z "$json" && exit 1
+fp=$(jq -r '.signing_key_fingerprint' <<<"${json}")
+echo "Fingerprint: $fp"
+curl -sS "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x$fp"
