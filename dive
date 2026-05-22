@@ -1,0 +1,6 @@
+#!/bin/sh
+# https://github.com/wagoodman/dive
+
+exec docker run --rm -it \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    docker.io/wagoodman/dive:latest "${1:?usage: $0 docker_image_name}"

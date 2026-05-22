@@ -1,0 +1,540 @@
+#!/usr/bin/python3
+"""Tool to analyze Docker images.
+
+Usage:
+  analyze-docker-image image:tag outdir/
+
+This will use `docker save` to dump the container as an OCI image into a file
+in ~/.cache/, and then create
+
+  outdir/layer/00/
+  outdir/layer/01/
+  outdir/layer/02/
+  outdir/layer/NN/
+
+with the contents of each layer, an
+
+  outdir/LAYERS.txt
+
+with a list of the layers (and docker commands that produced them), and a
+
+  outdir/rootfs/
+
+with a symlink tree to files from each individual layer.
+
+See https://github.com/opencontainers/image-spec/ for the spec.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime
+import io
+import json
+import pathlib
+import shlex
+import shutil
+import subprocess
+import sys
+import tarfile
+from functools import cached_property
+from typing import Iterator, Self, TextIO
+
+
+CACHE_DIR = pathlib.Path('~/.cache/docker-images').expanduser()
+
+parser = argparse.ArgumentParser(description="Tool to analyze Docker images")
+parser.add_argument(
+    "image",
+    help='image name with optional tag',
+)
+parser.add_argument(
+    "output_dir",
+    help='directory to contain the extracted image contents',
+)
+parser.add_argument(
+    "-f", "--force",
+    help='overwrite output directory if it exists',
+    action='store_true',
+)
+parser.add_argument(
+    "--no-extract",
+    help='skip extracting the layers',
+    action='store_true',
+)
+parser.add_argument(
+    "--no-rootfs",
+    help='skip creating the rootfs symlink tree',
+    action='store_true',
+)
+
+
+class UI:
+    debug: bool = False
+
+    def info(self, msg: str) -> None:
+        print(msg)
+
+    def output(self, msg: str = '', *, file: TextIO) -> None:
+        if self.debug:
+            print(" ", msg)
+        print(msg, file=file)
+
+
+def main() -> None:
+    args = parser.parse_args()
+
+    ui = UI()
+
+    info = docker_inspect(ui, args.image)
+    if not info:
+        sys.exit(f'Image {args.image} not found')
+
+    size = info[0]["Size"]
+    ui.info(f'Image size estimate is {fmt_size(size)}')
+
+    cache_file = CACHE_DIR.joinpath(args.image + '.tar')
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    if cache_file.exists():
+        size = cache_file.stat().st_size
+        ui.info(f'Image already cached in {fmt_path(cache_file)}'
+                f' ({fmt_size(size)})')
+    else:
+        save_image_to_cache(ui, args.image, cache_file)
+
+    image = DockerImage(cache_file)
+
+    output_dir = pathlib.Path(args.output_dir)
+    if (
+        output_dir.exists()
+        and not is_empty_directory(output_dir)
+        and not args.force
+    ):
+        sys.exit(
+            f'{fmt_path(output_dir)} already exists, refusing to overwrite'
+        )
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    extract_json_file(
+        ui, image.oci_layout, output_dir.joinpath('oci-layout.json')
+    )
+    extract_json_file(
+        ui, image.oci_index, output_dir.joinpath('oci-index.json')
+    )
+    extract_json_file(
+        ui, image.oci_manifest, output_dir.joinpath('oci-manifest.json')
+    )
+    extract_json_file(ui, image.config, output_dir.joinpath('config.json'))
+    extract_json_file(
+        ui, image.docker_manifest, output_dir.joinpath('docker-manifest.json')
+    )
+    extract_json_file(
+        ui,
+        image.docker_repositories,
+        output_dir.joinpath('docker-repositories.json'),
+    )
+    write_layer_history(ui, image, output_dir)
+    if not args.no_extract:
+        extract_layers(ui, image, output_dir)
+    if not args.no_rootfs:
+        create_merged_rootfs(ui, image, output_dir)
+    ui.info(f'Created {fmt_path(output_dir)}/')
+
+
+def extract_json_file(
+    ui: UI, data: dict | list, output_path: pathlib.Path
+) -> None:
+    pprint_json(ui, data, file=output_path.open('w'))
+
+
+def extract_layers(
+    ui: UI, image: DockerImage, output_dir: pathlib.Path
+) -> None:
+    for layer in image.layers:
+        with layer.open() as tf:
+            count = len(tf.getnames())
+            ui.info(
+                f'Layer {layer.number}: {layer.digest}'
+                f' ({fmt_size(layer.size)}, {fmt_count(count, "files")})'
+            )
+            tf.extractall(output_dir.joinpath('layers', layer.number))
+
+
+def create_merged_rootfs(
+    ui: UI, image: DockerImage, output_dir: pathlib.Path
+) -> None:
+    tree = SymlinkTree()
+    for layer in image.layers:
+        for file in layer.files:
+            tree.add(file, f'layers/{layer.number}/{file}')
+    tree.materialize(ui, output_dir.joinpath('rootfs'))
+
+
+def write_layer_history(
+    ui: UI, image: DockerImage, output_dir: pathlib.Path
+) -> None:
+    if ui.debug:
+        ui.info('Container history:\n')
+    with output_dir.joinpath('LAYERS.txt').open('w') as fp:
+        prev_timestamp = None
+        prev_hdr = None
+        layer_idx = 0
+        for step in image.history:
+            timestamp = datetime.datetime.fromisoformat(step["created"])
+            command = step["created_by"]
+            comment = step.get("comment")
+            empty_layer = step.get("empty_layer")
+
+            if prev_timestamp:
+                delta = timestamp - prev_timestamp
+                if delta > datetime.timedelta(1):
+                    ui.output(file=fp)
+                    ui.output(
+                        f"# ----- {fmt_timedelta(delta)} later -----",
+                        file=fp,
+                    )
+            msg = [f'# {fmt_timestamp(timestamp)}']
+            hdr = [fmt_timestamp(timestamp)]
+            if comment:
+                msg.append(comment)
+                hdr.append(comment)
+            if empty_layer:
+                if hdr == prev_hdr:
+                    msg = []
+                else:
+                    msg.append('(empty layer)')
+            else:
+                msg.append(f'(layers/{layer_idx:02})')
+                layer_idx += 1
+            if msg:
+                if prev_timestamp:
+                    ui.output(file=fp)
+                ui.output(' '.join(msg), file=fp)
+            ui.output(command, file=fp)
+            prev_timestamp = timestamp
+            prev_hdr = hdr
+    if ui.debug:
+        ui.info('')
+
+
+def is_empty_directory(path: pathlib.Path) -> bool:
+    return path.is_dir() and next(path.iterdir(), None) is None
+
+
+def fmt_timestamp(ts: datetime.datetime) -> str:
+    return ts.strftime('%Y-%m-%d %H:%M:%S')
+
+
+def fmt_timedelta(delta: datetime.timedelta) -> str:
+    if delta.days:
+        return fmt_count(delta.days, 'days')
+    elif delta.seconds:
+        return fmt_count(delta.seconds, 'seconds')
+    elif delta.microseconds:
+        return fmt_count(delta.microseconds, 'microseconds')
+    else:
+        return '0 seconds'
+
+
+def fmt_size(size: int) -> str:
+    for unit in ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB']:
+        if size < 1024:
+            return f'{size} {unit}'
+        size //= 1024
+    return f'{size}EiB'
+
+
+def fmt_count(count: int, items: str, item: str = '') -> str:
+    if not item:
+        item = items[:-1]
+    if count == 1:
+        return f'{count} {item}'
+    return f'{count} {items}'
+
+
+def fmt_path(path: pathlib.Path) -> str:
+    home = str(pathlib.Path.home()) + '/'
+    if str(path).startswith(home):
+        return '~/' + str(path).removeprefix(home)
+    if str(path) == home:
+        return '~/'
+    return str(path)
+
+
+def fmt_command(command: list[str]) -> str:
+    return shlex.join(command)
+
+
+def pprint_json(
+    ui: UI, data: dict | list, *, file: TextIO | None = None
+) -> None:
+    text = json.dumps(data, indent=2, separators=(',', ': '))
+    if file:
+        ui.output(text, file=file)
+    else:
+        ui.info(text)
+
+
+def pipe_to_file(
+    ui: UI, command: list[str], output_file: pathlib.Path
+) -> None:
+    pv = shutil.which('pv')
+    ui.info(
+        f'Running {fmt_command(command)}'
+        f"{' | pv' if pv else ''}"
+        f' > {fmt_path(output_file)}'
+    )
+    with output_file.with_suffix('.tmp').open('wb') as fp:
+        if pv:
+            output = subprocess.Popen(
+                ['pv'], stdin=subprocess.PIPE, stdout=fp
+            ).stdin
+        else:
+            output = fp
+        subprocess.run(command, stdout=output)
+    output_file.with_suffix('.tmp').rename(output_file)
+
+
+def json_from_pipe(ui: UI, command: list[str]) -> dict:
+    ui.info(f'Running {fmt_command(command)}')
+    return json.loads(subprocess.run(command, capture_output=True).stdout)
+
+
+def docker_inspect(ui: UI, image_name: str) -> dict:
+    return json_from_pipe(ui, ['docker', 'inspect', '--', image_name])
+
+
+def save_image_to_cache(
+    ui: UI, image_name: str, cache_file: pathlib.Path
+) -> None:
+    ui.info(f'Saving {image_name}...')
+    pipe_to_file(ui, ['docker', 'save', '--', image_name], cache_file)
+
+
+class DockerImage:
+
+    def __init__(self, tar_path: pathlib.Path) -> None:
+        self.tar_path = tar_path
+        self.tarfile = tarfile.open(tar_path)
+
+    def close(self) -> None:
+        self.tarfile.close()
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *args) -> None:
+        self.close()
+
+    def blob_filename(self, digest: str) -> str:
+        alg, colon, ref = digest.partition(':')
+        assert alg == 'sha256' and colon == ':'
+        return f'blobs/{alg}/{ref}'
+
+    def get_json(self, filename: str) -> dict:
+        with self.tarfile.extractfile(filename) as fp:
+            return json.load(fp)
+
+    def get_json_from_digest(self, digest: str) -> dict:
+        return self.get_json(self.blob_filename(digest))
+
+    @cached_property
+    def docker_manifest(self) -> list[dict]:
+        # This is not part of the OCI image spec!  Docker uses it.
+        return self.get_json('manifest.json')
+
+    @cached_property
+    def docker_repositories(self) -> dict:
+        # This is not part of the OCI image spec!  Docker uses it.
+        return self.get_json('repositories')
+
+    @cached_property
+    def oci_layout(self) -> dict:
+        return self.get_json('oci-layout')
+
+    @cached_property
+    def oci_index(self) -> dict:
+        return self.get_json('index.json')
+
+    @cached_property
+    def oci_manifest_digest(self) -> str:
+        # XXX: multiarch images have multiple manifests
+        return self.oci_index['manifests'][0]['digest']
+
+    @cached_property
+    def oci_manifest(self) -> dict:
+        return self.get_json_from_digest(self.oci_manifest_digest)
+
+    @cached_property
+    def config(self) -> dict:
+        # we could do
+        #   return self.get_json(self.docker_manifest[0]['Config'])
+        # or
+        return self.get_json_from_digest(self.oci_manifest['config']['digest'])
+
+    @cached_property
+    def architecture(self) -> str:
+        return self.config['architecture']
+
+    @cached_property
+    def exposed_ports(self) -> dict[str, dict]:
+        return self.config['config']['ExposedPorts']
+
+    @cached_property
+    def environment(self) -> list[str]:
+        return self.config['config']['Env']
+
+    @cached_property
+    def labels(self) -> dict[str, str]:
+        return self.config['config']['Labels']
+
+    @cached_property
+    def history(self) -> dict:
+        return self.config['history']
+
+    @cached_property
+    def layers(self) -> list[DockerImageLayer]:
+        # We could do
+        #   return [
+        #       DockerImageLayer(self, filename, n)
+        #       for n, filename in enumerate(self.docker_manifest[0]['Layers'])
+        #   ]
+        # or
+        return [
+            DockerImageLayer(
+                self, self.blob_filename(layer['digest']), n, layer['size']
+            )
+            for n, layer in enumerate(self.oci_manifest['layers'])
+        ]
+
+
+class DockerImageLayer:
+
+    def __init__(
+        self,
+        docker_image: DockerImage,
+        filename: str,
+        index: int,
+        size: int | None = None,
+    ) -> None:
+        self.image = docker_image
+        self.filename = filename
+        self.index = index
+        if size is not None:
+            self.size = size
+
+    @cached_property
+    def number(self) -> str:
+        return f'{self.index:02}'
+
+    @cached_property
+    def digest(self) -> str:
+        return self.filename.rpartition('/')[-1]
+
+    @cached_property
+    def source(self) -> dict:
+        return self.image.docker_manifest[0]['LayerSources'][
+            f'sha256:{self.digest}'
+        ]
+
+    @cached_property
+    def size(self) -> int:
+        return self.source['size']
+
+    def open(self, buffer: bool = True) -> tarfile.TarFile:
+        with self.image.tarfile.extractfile(self.filename) as fp:
+            # If I don't buffer the nested tarfile in RAM,
+            # I will get an error during seek.
+            if buffer:
+                fp = io.BytesIO(fp.read())
+            return tarfile.open(fileobj=fp)
+
+    @cached_property
+    def files(self) -> list[str]:
+        with self.open() as tf:
+            return tf.getnames()
+
+
+class SymlinkTree:
+    # XXX: The logic here is most likely incorrect.  Consider layers/00
+    # adding a bin -> usr/bin, and then layers/01 adding a usr/bin/foo.
+    # The final rootfs will have a rootfs/bin -> layers/00/bin, and then
+    # rootfs/bin/foo will resolve to layers/00/usr/bin/foo instead of
+    # layers/01/usr/bin/foo.
+
+    def __init__(self, name: str = 'rootfs') -> None:
+        self.root: dict[str, str | SymlinkTree] = {}
+        self.name = name
+
+    def __repr__(self) -> str:
+        return f'SymlinkTree({self.name!r})'
+
+    def add(self, name: str, target: str) -> None:
+        head, slash, tail = name.partition('/')
+        if slash:
+            assert not head.startswith('.wh.')
+            match self.root.get(head):
+                case SymlinkTree():
+                    pass
+                case _:
+                    self.root[head] = SymlinkTree(f'{self.name}/{head}')
+            self.root[head].add(tail, target)
+        else:
+            if name.startswith('.wh.'):
+                self.remove(name.removeprefix('.wh.'))
+            else:
+                match self.root.get(head):
+                    case SymlinkTree():
+                        pass
+                    case _:
+                        self.root[name] = target
+
+    def remove(self, name: str) -> None:
+        head, slash, tail = name.partition('/')
+        if slash:
+            assert not head.startswith('.wh.')
+            self.root[head].remove(tail)
+        elif name == '.wh..opq':
+            # .add('.wh..wh..opq') -> .remove('.wh..opq')
+            self.root.clear()
+        else:
+            assert not name.startswith('.wh.')
+            self.root.pop(name, None)
+
+    def compute(
+        self, where: pathlib.Path, prefix: str = '../'
+    ) -> Iterator[tuple[pathlib.Path, str | None]]:
+        yield (where, None)
+        for name, target in self.root.items():
+            match target:
+                case SymlinkTree():
+                    yield from target.compute(
+                        where.joinpath(name), prefix + '../'
+                    )
+                case str():
+                    yield (where.joinpath(name), prefix + target)
+
+    def materialize(self, ui: UI, where: pathlib.Path) -> None:
+        for symlink, target in self.compute(where):
+            if target is None:
+                symlink.mkdir(exist_ok=True)
+            else:
+                try:
+                    symlink.symlink_to(target)
+                except FileExistsError:
+                    assert symlink.is_symlink()
+                    assert str(symlink.readlink()) == target
+                else:
+                    if ui.debug:
+                        ui.info(f'  {symlink} -> {target}')
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        import pdb
+        import readline  # noqa
+        import traceback
+        traceback.print_exc()
+        pdb.post_mortem()
