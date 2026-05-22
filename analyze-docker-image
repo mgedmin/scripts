@@ -50,6 +50,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "output_dir",
+    nargs='?',
     help='directory to contain the extracted image contents',
 )
 parser.add_argument(
@@ -90,6 +91,18 @@ def main() -> None:
     if not info:
         sys.exit(f'Image {args.image} not found')
 
+    if not args.output_dir:
+        args.output_dir = args.image.rpartition('/')[-1]
+    output_dir = pathlib.Path(args.output_dir)
+    if (
+        output_dir.exists()
+        and not is_empty_directory(output_dir)
+        and not args.force
+    ):
+        sys.exit(
+            f'{fmt_path(output_dir)} already exists, refusing to overwrite'
+        )
+
     size = info[0]["Size"]
     ui.info(f'Image size estimate is {fmt_size(size)}')
 
@@ -100,21 +113,10 @@ def main() -> None:
         ui.info(f'Image already cached in {fmt_path(cache_file)}'
                 f' ({fmt_size(size)})')
     else:
-        save_image_to_cache(ui, args.image, cache_file)
+        save_image_to_cache(ui, args.image, cache_file, size)
 
     image = DockerImage(cache_file)
-
-    output_dir = pathlib.Path(args.output_dir)
-    if (
-        output_dir.exists()
-        and not is_empty_directory(output_dir)
-        and not args.force
-    ):
-        sys.exit(
-            f'{fmt_path(output_dir)} already exists, refusing to overwrite'
-        )
     output_dir.mkdir(parents=True, exist_ok=True)
-
     extract_json_file(
         ui, image.oci_layout, output_dir.joinpath('oci-layout.json')
     )
@@ -276,7 +278,7 @@ def pprint_json(
 
 
 def pipe_to_file(
-    ui: UI, command: list[str], output_file: pathlib.Path
+    ui: UI, command: list[str], output_file: pathlib.Path, size_hint: int
 ) -> None:
     pv = shutil.which('pv')
     ui.info(
@@ -286,13 +288,21 @@ def pipe_to_file(
     )
     with output_file.with_suffix('.tmp').open('wb') as fp:
         if pv:
-            output = subprocess.Popen(
-                ['pv'], stdin=subprocess.PIPE, stdout=fp
-            ).stdin
+            pv_pipe = subprocess.Popen(
+                ['pv', '-s', str(size_hint)], stdin=subprocess.PIPE, stdout=fp
+            )
+            output = pv_pipe.stdin
         else:
+            pv_pipe = None
             output = fp
-        subprocess.run(command, stdout=output)
-    output_file.with_suffix('.tmp').rename(output_file)
+        result = subprocess.run(command, stdout=output)
+    if pv_pipe:
+        pv_pipe.stdin.close()
+        pv_pipe.wait()
+    if result.returncode == 0:
+        output_file.with_suffix('.tmp').rename(output_file)
+    else:
+        sys.exit('Failed to export the image')
 
 
 def json_from_pipe(ui: UI, command: list[str]) -> dict:
@@ -305,10 +315,12 @@ def docker_inspect(ui: UI, image_name: str) -> dict:
 
 
 def save_image_to_cache(
-    ui: UI, image_name: str, cache_file: pathlib.Path
+    ui: UI, image_name: str, cache_file: pathlib.Path, size_hint: int
 ) -> None:
     ui.info(f'Saving {image_name}...')
-    pipe_to_file(ui, ['docker', 'save', '--', image_name], cache_file)
+    pipe_to_file(
+        ui, ['docker', 'save', '--', image_name], cache_file, size_hint
+    )
 
 
 class DockerImage:
