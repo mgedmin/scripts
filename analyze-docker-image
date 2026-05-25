@@ -168,6 +168,8 @@ def create_merged_rootfs(
     tree = SymlinkTree()
     for layer in image.layers:
         for file in layer.files:
+            # XXX: should handle whiteouts before newly added files, according
+            # to spec, even if whiteout appears later
             tree.add(file, f'layers/{layer.number}/{file}')
     tree.materialize(ui, output_dir.joinpath('rootfs'))
 
@@ -468,11 +470,6 @@ class DockerImageLayer:
 
 
 class SymlinkTree:
-    # XXX: The logic here is most likely incorrect.  Consider layers/00
-    # adding a bin -> usr/bin, and then layers/01 adding a usr/bin/foo.
-    # The final rootfs will have a rootfs/bin -> layers/00/bin, and then
-    # rootfs/bin/foo will resolve to layers/00/usr/bin/foo instead of
-    # layers/01/usr/bin/foo.
 
     def __init__(self, name: str = 'rootfs') -> None:
         self.root: dict[str, str | SymlinkTree] = {}
@@ -531,6 +528,25 @@ class SymlinkTree:
             if target is None:
                 symlink.mkdir(exist_ok=True)
             else:
+                target_path = symlink.parent.joinpath(target)
+                if target_path.is_symlink():
+                    # suppose layer/00 has a ./bin -> usr/bin
+                    # if we create rootfs/bin -> ../layer/00/usr/bin, then
+                    # we won't be able to see usr/bin/x for any x added in
+                    # layer/01 and later
+                    # so we want symlinks to be copied directly to the rootfs
+                    # without pointing to the original layer that added them
+                    target = str(target_path.readlink())
+                    if target.startswith('/'):
+                        # symlink is <where>/<subpath>/name
+                        # we disregard the final name and want to climb up to
+                        # <where>/
+                        back_to_root = '../' * (
+                            len(symlink.relative_to(where).parents) - 1
+                        )
+                        target = back_to_root + target[1:]
+                if symlink.is_symlink() and str(symlink.readlink()) != target:
+                    symlink.unlink()
                 try:
                     symlink.symlink_to(target)
                 except FileExistsError:
