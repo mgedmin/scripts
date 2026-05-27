@@ -31,6 +31,7 @@ import argparse
 import datetime
 import io
 import json
+import os
 import pathlib
 import shlex
 import shutil
@@ -159,7 +160,33 @@ def extract_layers(
                 f'Layer {layer.number}: {layer.digest}'
                 f' ({fmt_size(layer.size)}, {fmt_count(count, "files")})'
             )
-            tf.extractall(output_dir.joinpath('layers', layer.number))
+            tf.extractall(
+                output_dir.joinpath('layers', layer.number),
+                filter=filter_existing,
+            )
+
+
+def filter_existing(
+    member: tarfile.TarInfo, dest_path: str
+) -> tarfile.TarInfo | None:
+    path = pathlib.Path(dest_path, member.name.lstrip('/' + os.path.sep))
+    if (
+        member.issym()
+        and path.exists(follow_symlinks=False)
+        and str(path.readlink()) == member.linkname
+    ):
+        # assume it was already extracted
+        # we have to check this early before calling .tar_filter() because
+        # the default filter will do an os.path.realpath() and follow the
+        # actual symlink and that can fail with an OutsideDestinationError()
+        return None
+    member = tarfile.tar_filter(member, dest_path)
+    if member is None:
+        return None
+    if path.exists() and path.stat().st_size == member.size:
+        # assume it was already extracted
+        return None
+    return member
 
 
 def create_merged_rootfs(
@@ -479,6 +506,8 @@ class SymlinkTree:
         return f'SymlinkTree({self.name!r})'
 
     def add(self, name: str, target: str) -> None:
+        if name == '.':
+            return
         head, slash, tail = name.partition('/')
         if slash:
             assert not head.startswith('.wh.')
