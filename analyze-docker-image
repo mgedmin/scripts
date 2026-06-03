@@ -44,7 +44,7 @@ import sys
 import tarfile
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Iterator, Self, TextIO
+from typing import IO, Any, Iterable, Iterator, Self, TextIO
 
 
 CACHE_DIR = pathlib.Path('~/.cache/docker-images').expanduser()
@@ -338,6 +338,7 @@ def pipe_to_file(
             output = fp
         result = subprocess.run(command, stdout=output)
     if pv_pipe:
+        assert pv_pipe.stdin is not None
         pv_pipe.stdin.close()
         pv_pipe.wait()
     if result.returncode == 0:
@@ -364,7 +365,10 @@ def save_image_to_cache(
     )
 
 
+@dataclass
 class DockerImage:
+
+    tar_path: pathlib.Path
 
     def __init__(self, tar_path: pathlib.Path) -> None:
         self.tar_path = tar_path
@@ -384,8 +388,15 @@ class DockerImage:
         assert alg == 'sha256' and colon == ':'
         return f'blobs/{alg}/{ref}'
 
-    def get_json(self, filename: str) -> dict:
-        with self.tarfile.extractfile(filename) as fp:
+    def open_member(self, filename: str) -> IO[bytes]:
+        fp = self.tarfile.extractfile(filename)
+        if fp is None:
+            # This happens when the tar member is a directory or a device node
+            raise tarfile.ReadError(f'{filename} is not a regular file')
+        return fp
+
+    def get_json(self, filename: str) -> Any:
+        with self.open_member(filename) as fp:
             return json.load(fp)
 
     def get_json_from_digest(self, digest: str) -> dict:
@@ -475,6 +486,7 @@ class DockerImageLayer:
         self.index = index
         if size is not None:
             self.size = size
+        # otherwise self.size will be computed by the cached property
 
     @cached_property
     def number(self) -> str:
@@ -496,7 +508,7 @@ class DockerImageLayer:
 
     @cached_property
     def tarfile_in_memory(self) -> bytes:
-        with self.image.tarfile.extractfile(self.filename) as fp:
+        with self.image.open_member(self.filename) as fp:
             return fp.read()
 
     def open(self, buffer: bool = True) -> tarfile.TarFile:
@@ -510,10 +522,14 @@ class DockerImageLayer:
             return tf.getnames()
 
 
+@dataclass
 class SymlinkTree:
 
+    root: dict[str, str | SymlinkTree]
+    name: str
+
     def __init__(self, name: str = 'rootfs') -> None:
-        self.root: dict[str, str | SymlinkTree] = {}
+        self.root = {}
         self.name = name
 
     def __repr__(self) -> str:
@@ -526,11 +542,12 @@ class SymlinkTree:
         if slash:
             assert not head.startswith('.wh.')
             match self.root.get(head):
-                case SymlinkTree():
+                case SymlinkTree() as subtree:
                     pass
                 case _:
-                    self.root[head] = SymlinkTree(f'{self.name}/{head}')
-            self.root[head].add(tail, target)
+                    subtree = SymlinkTree(f'{self.name}/{head}')
+                    self.root[head] = subtree
+            subtree.add(tail, target)
         else:
             if name.startswith('.wh.'):
                 self.remove(name.removeprefix('.wh.'))
@@ -545,7 +562,9 @@ class SymlinkTree:
         head, slash, tail = name.partition('/')
         if slash:
             assert not head.startswith('.wh.')
-            self.root[head].remove(tail)
+            subtree = self.root[head]
+            assert isinstance(subtree, SymlinkTree)
+            subtree.remove(tail)
         elif name == '.wh..opq':
             # .add('.wh..wh..opq') -> .remove('.wh..opq')
             self.root.clear()
