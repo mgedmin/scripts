@@ -222,6 +222,7 @@ def write_layer_history(
         prev_timestamp = None
         prev_hdr = None
         layer_idx = 0
+        blank_line_wanted = False
         for step in image.history:
             timestamp = datetime.datetime.fromisoformat(step["created"])
             command = step["created_by"]
@@ -236,24 +237,37 @@ def write_layer_history(
                         f"# ----- {fmt_timedelta(delta)} later -----",
                         file=fp,
                     )
+                    blank_line_wanted = True
             msg = [f'# {fmt_timestamp(timestamp)}']
             hdr = [fmt_timestamp(timestamp)]
             if comment:
                 msg.append(comment)
                 hdr.append(comment)
+            layer = None
             if empty_layer:
                 if hdr == prev_hdr:
                     msg = []
                 else:
                     msg.append('(empty layer)')
             else:
+                layer = image.layers[layer_idx]
                 msg.append(f'(layers/{layer_idx:02})')
                 layer_idx += 1
             if msg:
-                if prev_timestamp:
+                if blank_line_wanted:
                     ui.output(file=fp)
+                    blank_line_wanted = False
                 ui.output(' '.join(msg), file=fp)
+            if blank_line_wanted:
+                ui.output(file=fp)
+                blank_line_wanted = False
             ui.output(command, file=fp)
+            if layer:
+                ui.output(
+                    layer.summary.format(prefix='  # '),
+                    file=fp,
+                )
+                blank_line_wanted = True
             prev_timestamp = timestamp
             prev_hdr = hdr
     if ui.debug:
@@ -520,6 +534,31 @@ class DockerImageLayer:
     def files(self) -> list[str]:
         with self.open() as tf:
             return tf.getnames()
+
+    @cached_property
+    def summary(self) -> Summary:
+        return Summary(self.files, size=self.size)
+
+
+@dataclass
+class Summary:
+
+    files: list[str]
+    size: int | None = None
+
+    def __init__(
+        self, files: Iterable[str] = (), *, size: int | None = None
+    ) -> None:
+        self.size = size
+        self.files = list(files)
+
+    def format(self, prefix: str = '') -> str:
+        size = self.size
+        count = len(self.files)
+        if size is not None:
+            return f'{prefix}{fmt_size(size)}, {fmt_count(count, "files")}'
+        else:
+            return f'{prefix}{fmt_count(count, "files")}'
 
 
 @dataclass
