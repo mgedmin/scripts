@@ -540,6 +540,14 @@ class DockerImageLayer:
         return Summary(self.files, size=self.size)
 
 
+def files_without_parents(files: Iterable[str]) -> list[str]:
+    result = set()
+    for f in sorted(files):
+        result.add(f)
+        result.discard(os.path.dirname(f))
+    return sorted(result)
+
+
 @dataclass
 class Summary:
 
@@ -550,7 +558,7 @@ class Summary:
         self, files: Iterable[str] = (), *, size: int | None = None
     ) -> None:
         self.size = size
-        self.files = sorted(files)
+        self.files = files_without_parents(files)
 
     @property
     def size_summary(self) -> str:
@@ -565,6 +573,10 @@ class Summary:
         lines = [f'{prefix}{self.size_summary}']
         if len(self.files) < 10:
             lines += [f'{prefix}{filename}' for filename in self.files]
+        else:
+            where = os.path.commonpath(self.files)
+            if where:
+                lines[-1] += f' in {where}'
         return '\n'.join(lines)
 
 
