@@ -91,7 +91,7 @@ class UI:
 
     def output(self, msg: str = '', *, file: TextIO) -> None:
         if self.debug:
-            print(" ", msg)
+            print(" ", msg.replace("\n", "\n  "))
         print(msg, file=file)
 
 
@@ -550,15 +550,22 @@ class Summary:
         self, files: Iterable[str] = (), *, size: int | None = None
     ) -> None:
         self.size = size
-        self.files = list(files)
+        self.files = sorted(files)
 
-    def format(self, prefix: str = '') -> str:
+    @property
+    def size_summary(self) -> str:
         size = self.size
         count = len(self.files)
         if size is not None:
-            return f'{prefix}{fmt_size(size)}, {fmt_count(count, "files")}'
+            return f'{fmt_size(size)}, {fmt_count(count, "files")}'
         else:
-            return f'{prefix}{fmt_count(count, "files")}'
+            return f'{fmt_count(count, "files")}'
+
+    def format(self, prefix: str = '') -> str:
+        lines = [f'{prefix}{self.size_summary}']
+        if len(self.files) < 10:
+            lines += [f'{prefix}{filename}' for filename in self.files]
+        return '\n'.join(lines)
 
 
 @dataclass
