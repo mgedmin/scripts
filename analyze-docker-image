@@ -60,6 +60,11 @@ parser.add_argument(
     help='directory to contain the extracted image contents',
 )
 parser.add_argument(
+    "-u", "--update-cache",
+    help='update cached image tarball',
+    action='store_true',
+)
+parser.add_argument(
     "-f", "--force",
     help='overwrite output directory if it exists',
     action='store_true',
@@ -125,6 +130,9 @@ def main() -> None:
         size = cache_file.stat().st_size
         ui.info(f'Image already cached in {fmt_path(cache_file)}'
                 f' ({fmt_size(size)})')
+        if args.update_cache:
+            ui.info('Updating cached image')
+            save_image_to_cache(ui, args.image, cache_file, size)
     else:
         save_image_to_cache(ui, args.image, cache_file, size)
 
