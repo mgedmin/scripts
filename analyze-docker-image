@@ -42,6 +42,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+from dataclasses import dataclass
 from functools import cached_property
 from typing import Iterator, Self, TextIO
 
@@ -74,7 +75,14 @@ parser.add_argument(
     action='store_true',
 )
 
+parser.add_argument(
+    "--debug",
+    help='print verbose debug information',
+    action='store_true',
+)
 
+
+@dataclass
 class UI:
     debug: bool = False
 
@@ -90,7 +98,7 @@ class UI:
 def main() -> None:
     args = parser.parse_args()
 
-    ui = UI()
+    ui = UI(debug=args.debug)
 
     info = docker_inspect(ui, args.image)
     if not info:
