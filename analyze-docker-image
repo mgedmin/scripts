@@ -486,13 +486,15 @@ class DockerImageLayer:
     def size(self) -> int:
         return self.source['size']
 
-    def open(self, buffer: bool = True) -> tarfile.TarFile:
+    @cached_property
+    def tarfile_in_memory(self) -> bytes:
         with self.image.tarfile.extractfile(self.filename) as fp:
-            # If I don't buffer the nested tarfile in RAM,
-            # I will get an error during seek.
-            if buffer:
-                fp = io.BytesIO(fp.read())
-            return tarfile.open(fileobj=fp)
+            return fp.read()
+
+    def open(self, buffer: bool = True) -> tarfile.TarFile:
+        # If I don't buffer the nested tarfile in RAM,
+        # I will get an error during seek.
+        return tarfile.open(fileobj=io.BytesIO(self.tarfile_in_memory))
 
     @cached_property
     def files(self) -> list[str]:
