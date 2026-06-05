@@ -42,7 +42,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cached_property
 from typing import IO, Any, Iterable, Iterator, Self, TextIO
 
@@ -238,16 +238,10 @@ def write_layer_history(
     with output_dir.joinpath('LAYERS.txt').open('w') as fp:
         prev_timestamp = None
         prev_hdr = None
-        layer_idx = 0
         blank_line_wanted = False
         for step in image.history:
-            timestamp = datetime.datetime.fromisoformat(step["created"])
-            command = step["created_by"]
-            comment = step.get("comment")
-            empty_layer = step.get("empty_layer")
-
             if prev_timestamp:
-                delta = timestamp - prev_timestamp
+                delta = step.timestamp - prev_timestamp
                 if delta > datetime.timedelta(1):
                     ui.output(file=fp)
                     ui.output(
@@ -255,21 +249,19 @@ def write_layer_history(
                         file=fp,
                     )
                     blank_line_wanted = True
-            msg = [f'# {fmt_timestamp(timestamp)}']
-            hdr = [fmt_timestamp(timestamp)]
-            if comment:
-                msg.append(comment)
-                hdr.append(comment)
-            layer = None
-            if empty_layer:
+            msg = [f'# {fmt_timestamp(step.timestamp)}']
+            hdr = [fmt_timestamp(step.timestamp)]
+            if step.comment:
+                msg.append(step.comment)
+                hdr.append(step.comment)
+            layer = step.layer
+            if layer is None:
                 if hdr == prev_hdr:
                     msg = []
                 else:
                     msg.append('(empty layer)')
             else:
-                layer = image.layers[layer_idx]
-                msg.append(f'(layers/{layer_idx:02})')
-                layer_idx += 1
+                msg.append(f'(layers/{layer.index:02})')
             if msg:
                 if blank_line_wanted:
                     ui.output(file=fp)
@@ -278,14 +270,14 @@ def write_layer_history(
             if blank_line_wanted:
                 ui.output(file=fp)
                 blank_line_wanted = False
-            ui.output(command, file=fp)
+            ui.output(step.command, file=fp)
             if layer:
                 ui.output(
                     layer.summary.format(prefix='  # '),
                     file=fp,
                 )
                 blank_line_wanted = True
-            prev_timestamp = timestamp
+            prev_timestamp = step.timestamp
             prev_hdr = hdr
         ui.output(file=fp)
         ui.output(f'# Total: {image.summary.size_summary}', file=fp)
@@ -491,7 +483,7 @@ class DockerImage:
 
     @cached_property
     def history(self) -> dict:
-        return self.config['history']
+        return LayerHistory.from_image(self)
 
     @cached_property
     def layers(self) -> list[DockerImageLayer]:
@@ -728,6 +720,64 @@ class SymlinkTree:
                 else:
                     if ui.debug:
                         ui.info(f'  {symlink} -> {target}')
+
+
+@dataclass
+class LayerHistory:
+    # Each step has:
+    #   1. timestamp
+    #   2. an optional comment ("buildkit.dockerfile.v0"), usually indicating
+    #      the build tool used
+    #   3. a command ("RUN apt-get update && ...")
+    #   4. optionally a layer with files
+    #
+    # We render these as follows:
+    #
+    #   # {timestamp} {comment} ({layer})
+    #   {command}
+    #   # {layer size and number of files}
+    #   (blank line)
+    #
+    # but we omit the missing bits (comment, layer).
+    #
+    # We also want to omit the initial comment if it has the same timestamp and
+    # comment but only for empty layers.  In that case we also omit the
+    # preceding blank line.
+
+    steps: list[HistoryStep] = field(default_factory=list)
+
+    @classmethod
+    def from_image(cls, image: DockerImage) -> LayerHistory:
+        steps = []
+        idx = 0
+        for step in image.config['history']:
+            timestamp = datetime.datetime.fromisoformat(step["created"])
+            command = step["created_by"]
+            comment = step.get("comment")
+            empty_layer = step.get("empty_layer")
+            if empty_layer:
+                layer = None
+            else:
+                layer = image.layers[idx]
+                idx += 1
+            steps.append(HistoryStep(timestamp, command, comment, layer))
+        assert idx == len(image.layers)
+        return cls(steps)
+
+    def __iter__(self) -> Iterator[HistoryStep]:
+        return iter(self.steps)
+
+
+@dataclass
+class HistoryStep:
+    timestamp: datetime.datetime
+    command: str
+    comment: str | None
+    layer: DockerImageLayer | None
+
+    @property
+    def empty_layer(self) -> bool:
+        return self.layer is None
 
 
 if __name__ == "__main__":
