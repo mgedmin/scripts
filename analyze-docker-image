@@ -237,7 +237,6 @@ def write_layer_history(
         ui.info('Container history:\n')
     with output_dir.joinpath('LAYERS.txt').open('w') as fp:
         ui.output(image.history.format(), file=fp)
-        ui.output(f'\n# Total: {image.summary.size_summary}', file=fp)
     if ui.debug:
         ui.info('')
 
@@ -701,6 +700,7 @@ class LayerHistory:
     # comment but only for empty layers.  In that case we also omit the
     # preceding blank line.
 
+    image: DockerImage
     steps: list[HistoryStep] = field(default_factory=list)
 
     @classmethod
@@ -719,7 +719,7 @@ class LayerHistory:
                 idx += 1
             steps.append(HistoryStep(timestamp, command, comment, layer))
         assert idx == len(image.layers)
-        return cls(steps)
+        return cls(image, steps)
 
     def __iter__(self) -> Iterator[HistoryStep]:
         return iter(self.steps)
@@ -730,6 +730,7 @@ class LayerHistory:
         for step in self.steps:
             lines.append(step.format(prev_step))
             prev_step = step
+        lines.append(f'\n# Total: {self.image.summary.size_summary}')
         return '\n'.join(lines)
 
 
