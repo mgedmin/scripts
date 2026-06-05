@@ -70,6 +70,11 @@ parser.add_argument(
     action='store_true',
 )
 parser.add_argument(
+    "--no-json",
+    help='skip extracting the json files',
+    action='store_true',
+)
+parser.add_argument(
     "--no-extract",
     help='skip extracting the layers',
     action='store_true',
@@ -138,24 +143,27 @@ def main() -> None:
 
     image = DockerImage(cache_file)
     output_dir.mkdir(parents=True, exist_ok=True)
-    extract_json_file(
-        ui, image.oci_layout, output_dir.joinpath('oci-layout.json')
-    )
-    extract_json_file(
-        ui, image.oci_index, output_dir.joinpath('oci-index.json')
-    )
-    extract_json_file(
-        ui, image.oci_manifest, output_dir.joinpath('oci-manifest.json')
-    )
-    extract_json_file(ui, image.config, output_dir.joinpath('config.json'))
-    extract_json_file(
-        ui, image.docker_manifest, output_dir.joinpath('docker-manifest.json')
-    )
-    extract_json_file(
-        ui,
-        image.docker_repositories,
-        output_dir.joinpath('docker-repositories.json'),
-    )
+    if not args.no_json:
+        extract_json_file(
+            ui, image.oci_layout, output_dir.joinpath('oci-layout.json')
+        )
+        extract_json_file(
+            ui, image.oci_index, output_dir.joinpath('oci-index.json')
+        )
+        extract_json_file(
+            ui, image.oci_manifest, output_dir.joinpath('oci-manifest.json')
+        )
+        extract_json_file(ui, image.config, output_dir.joinpath('config.json'))
+        extract_json_file(
+            ui,
+            image.docker_manifest,
+            output_dir.joinpath('docker-manifest.json'),
+        )
+        extract_json_file(
+            ui,
+            image.docker_repositories,
+            output_dir.joinpath('docker-repositories.json'),
+        )
     write_layer_history(ui, image, output_dir)
     if not args.no_extract:
         extract_layers(ui, image, output_dir)
