@@ -1,0 +1,195 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#   "python-debian",
+# ]
+# ///
+"""
+List all packages in an APT repository.
+
+Does not verify GPG signatures.
+"""
+
+from __future__ import annotations
+
+import argparse
+import pathlib
+import urllib.request
+from dataclasses import dataclass, field
+from functools import cached_property
+from io import BytesIO
+from operator import attrgetter
+from typing import Iterator
+
+from debian import deb822, debian_support
+
+
+CACHE_DIR = pathlib.Path('~/.cache/list-repo-packages').expanduser()
+
+
+parser = argparse.ArgumentParser(
+    description="List all packages in an APT repository"
+)
+parser.add_argument("uri")
+parser.add_argument("suite", nargs='+')
+
+
+def fetch(url: str) -> bytes:
+    with urllib.request.urlopen(url) as fp:
+        return fp.read()
+
+
+def fetch_cached(url: str, key: str) -> bytes:
+    cache_file = CACHE_DIR.joinpath(key)
+    if cache_file.exists():
+        return cache_file.read_bytes()
+    data = fetch(url)
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    cache_file.with_suffix('.new').write_bytes(data)
+    cache_file.with_suffix('.new').rename(cache_file)
+    return data
+
+
+@dataclass
+class ReleaseFile:
+    uri: str
+    suite: str
+
+    @property
+    def url(self) -> str:
+        return f'{self.uri}/dists/{self.suite}/InRelease'
+
+    @cached_property
+    def data(self) -> bytes:
+        return fetch(self.url)
+
+    @cached_property
+    def _release(self) -> deb822.Release:
+        release = deb822.Release(BytesIO(self.data))
+        assert release['Suite'] == self.suite
+        assert release['Acquire-By-Hash'] == 'yes'
+        assert 'SHA256' in release
+        return release
+
+    @cached_property
+    def packages_files(self) -> list[PackagesFile]:
+        return [
+            PackagesFile(
+                self.uri,
+                self.suite,
+                path=p["name"],
+                sha256=p["sha256"],
+                size=p["size"],
+            )
+            for p in self._release['SHA256']
+            if p['name'].endswith('/Packages')
+        ]
+
+    @cached_property
+    def all_packages(self) -> list[Package]:
+        return [
+            pkg
+            for pf in self.packages_files
+            for pkg in pf.packages
+        ]
+
+    @cached_property
+    def package_set(self) -> PackageSet:
+        return PackageSet(self.all_packages)
+
+
+@dataclass
+class PackagesFile:
+    uri: str
+    suite: str
+
+    path: str = field(kw_only=True)
+    sha256: str = field(kw_only=True, repr=False)
+    size: str = field(kw_only=True, repr=False)
+
+    @property
+    def url_by_name(self) -> str:
+        return f'{self.uri}/dists/{self.suite}/{self.path}'
+
+    @property
+    def url_by_hash(self) -> str:
+        p = self.path.removesuffix('/Packages')
+        return (
+            f'{self.uri}/dists/{self.suite}/{p}/by-hash/SHA256/{self.sha256}'
+        )
+
+    @cached_property
+    def data(self) -> bytes:
+        if self.size == '0':
+            return b''
+        return fetch_cached(self.url_by_hash, self.sha256)
+
+    @cached_property
+    def packages(self) -> list[Package]:
+        return [
+            Package(pkg)
+            for pkg in deb822.Packages.iter_paragraphs(
+                self.data, use_apt_pkg=False
+            )
+        ]
+
+
+@dataclass
+class Package:
+    _pkg: deb822.Packages
+
+    @property
+    def name(self) -> str:
+        return self._pkg['Package']
+
+    @property
+    def version(self) -> debian_support.Version:
+        return self._pkg['Version']
+
+    @property
+    def source(self) -> str | None:
+        return self._pkg.source
+
+    @property
+    def source_version(self) -> debian_support.Version:
+        return self._pkg.source_version
+
+    @property
+    def arch(self) -> str:
+        return self._pkg['Architecture']
+
+
+@dataclass
+class PackageSet:
+    packages: list[Package]
+
+    # (name, arch) -> Package
+    latest: dict[tuple[str, str], Package] = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        self.latest = {}
+        for pkg in self.packages:
+            key = (pkg.name, pkg.arch)
+            missing = key not in self.latest
+            newer = not missing and pkg.version > self.latest[key].version
+            if missing or newer:
+                self.latest[pkg.name, pkg.arch] = pkg
+
+    def __iter__(self) -> Iterator[Package]:
+        return iter(sorted(self.latest.values(), key=attrgetter('name')))
+
+
+def main() -> None:
+    args = parser.parse_args()
+
+    for suite in args.suite:
+        release = ReleaseFile(args.uri, suite)
+        if len(args.suite) > 1:
+            print(f'# {release.suite}')
+        for pkg in release.package_set:
+            print(pkg.name, pkg.version, pkg.arch)
+
+
+if __name__ == "__main__":
+    main()
