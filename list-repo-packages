@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import pathlib
+import sys
 import urllib.request
 from dataclasses import dataclass, field
 from functools import cached_property
@@ -33,6 +34,10 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("uri")
 parser.add_argument("suite", nargs='+')
+
+
+def warn(msg) -> None:
+    print(msg, file=sys.stderr)
 
 
 def fetch(url: str) -> bytes:
@@ -155,11 +160,16 @@ class Package:
     arch: str
 
     def __post_init__(self) -> None:
-        if self.arch != self._pkg['Architecture']:
+        arch = self._pkg['Architecture']
+        if self.arch != arch:
             # should we warn about this?
             # I've seen .../binary-all/Packages contain Architecture: amd64.
-            pass
-        self.arch = self._pkg['Architecture']
+            if arch != 'all':
+                warn(
+                    f'Architecture mismatch for {self.name} {self.version}'
+                    f' in {self.suite}/{self.component}: {self.arch} != {arch}'
+                )
+            self.arch = arch
 
     @property
     def name(self) -> str:
