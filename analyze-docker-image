@@ -236,51 +236,8 @@ def write_layer_history(
     if ui.debug:
         ui.info('Container history:\n')
     with output_dir.joinpath('LAYERS.txt').open('w') as fp:
-        prev_timestamp = None
-        prev_hdr = None
-        blank_line_wanted = False
-        for step in image.history:
-            if prev_timestamp:
-                delta = step.timestamp - prev_timestamp
-                if delta > datetime.timedelta(1):
-                    ui.output(file=fp)
-                    ui.output(
-                        f"# ----- {fmt_timedelta(delta)} later -----",
-                        file=fp,
-                    )
-                    blank_line_wanted = True
-            msg = [f'# {fmt_timestamp(step.timestamp)}']
-            hdr = [fmt_timestamp(step.timestamp)]
-            if step.comment:
-                msg.append(step.comment)
-                hdr.append(step.comment)
-            layer = step.layer
-            if layer is None:
-                if hdr == prev_hdr:
-                    msg = []
-                else:
-                    msg.append('(empty layer)')
-            else:
-                msg.append(f'(layers/{layer.index:02})')
-            if msg:
-                if blank_line_wanted:
-                    ui.output(file=fp)
-                    blank_line_wanted = False
-                ui.output(' '.join(msg), file=fp)
-            if blank_line_wanted:
-                ui.output(file=fp)
-                blank_line_wanted = False
-            ui.output(step.command, file=fp)
-            if layer:
-                ui.output(
-                    layer.summary.format(prefix='  # '),
-                    file=fp,
-                )
-                blank_line_wanted = True
-            prev_timestamp = step.timestamp
-            prev_hdr = hdr
-        ui.output(file=fp)
-        ui.output(f'# Total: {image.summary.size_summary}', file=fp)
+        ui.output(image.history.format(), file=fp)
+        ui.output(f'\n# Total: {image.summary.size_summary}', file=fp)
     if ui.debug:
         ui.info('')
 
@@ -767,6 +724,14 @@ class LayerHistory:
     def __iter__(self) -> Iterator[HistoryStep]:
         return iter(self.steps)
 
+    def format(self) -> str:
+        lines = []
+        prev_step = None
+        for step in self.steps:
+            lines.append(step.format(prev_step))
+            prev_step = step
+        return '\n'.join(lines)
+
 
 @dataclass
 class HistoryStep:
@@ -778,6 +743,34 @@ class HistoryStep:
     @property
     def empty_layer(self) -> bool:
         return self.layer is None
+
+    @property
+    def header(self) -> str:
+        msg = [f'# {fmt_timestamp(self.timestamp)}']
+        if self.comment:
+            msg.append(self.comment)
+        if self.layer:
+            msg.append(f'(layers/{self.layer.index:02})')
+        else:
+            msg.append('(empty layer)')
+        return ' '.join(msg)
+
+    def format(self, prev_step: HistoryStep | None = None) -> str:
+        parts = []
+        if prev_step:
+            delta = self.timestamp - prev_step.timestamp
+            if delta > datetime.timedelta(days=1):
+                parts.append(f"\n# ----- {fmt_timedelta(delta)} later -----\n")
+                parts.append(self.header)
+            elif self.header != prev_step.header:
+                parts.append('')
+                parts.append(self.header)
+        else:
+            parts.append(self.header)
+        parts.append(self.command)
+        if self.layer:
+            parts.append(self.layer.summary.format(prefix='  # '))
+        return '\n'.join(parts)
 
 
 if __name__ == "__main__":
