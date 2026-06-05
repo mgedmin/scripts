@@ -439,7 +439,7 @@ class DockerImage:
         return self.config['config']['Labels']
 
     @cached_property
-    def history(self) -> dict:
+    def history(self) -> LayerHistory:
         return LayerHistory.from_image(self)
 
     @cached_property
