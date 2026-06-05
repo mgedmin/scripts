@@ -37,6 +37,7 @@ import io
 import json
 import os
 import pathlib
+import re
 import shlex
 import shutil
 import subprocess
@@ -101,7 +102,7 @@ class UI:
 
     def output(self, msg: str = '', *, file: TextIO) -> None:
         if self.debug:
-            print(" ", msg.replace("\n", "\n  "))
+            print(" ", msg.expandtabs().replace("\n", "\n  "))
         print(msg, file=file)
 
 
@@ -756,6 +757,21 @@ class HistoryStep:
             msg.append('(empty layer)')
         return ' '.join(msg)
 
+    @property
+    def nice_command(self) -> str:
+        command = self.command
+        if command.startswith('RUN |'):
+            command = re.sub(
+                r'^(RUN [|](?:\d+)(?: [^ =]+=[^ =]+)+ )(/bin/sh -c)',
+                '\\1\\\n  \\2',
+                command
+            )
+        if ' \t' in command:
+            command = re.sub(r'( )(\t+)', '\\1\\\n\\2', command)
+        elif ' &&  ' in command:
+            command = re.sub(r'( && )( +)', '\\1\\\n\\2', command)
+        return command
+
     def format(self, prev_step: HistoryStep | None = None) -> str:
         parts = []
         if prev_step:
@@ -768,7 +784,7 @@ class HistoryStep:
                 parts.append(self.header)
         else:
             parts.append(self.header)
-        parts.append(self.command)
+        parts.append(self.nice_command)
         if self.layer:
             parts.append(self.layer.summary.format(prefix='  # '))
         return '\n'.join(parts)
