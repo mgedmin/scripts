@@ -223,7 +223,7 @@ def main() -> None:
         all_packages += release.all_packages
     package_set = PackageSet(all_packages)
     for pkg in package_set:
-        print(pkg.name, pkg.version, pkg.suite, pkg.component, pkg.arch)
+        print(pkg.name, pkg.version, pkg.suite + '/' + pkg.component, pkg.arch)
 
 
 if __name__ == "__main__":
