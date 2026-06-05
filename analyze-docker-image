@@ -212,13 +212,7 @@ def filter_existing(
 def create_merged_rootfs(
     ui: UI, image: DockerImage, output_dir: pathlib.Path
 ) -> None:
-    tree = SymlinkTree()
-    for layer in image.layers:
-        for file in layer.files:
-            # XXX: should handle whiteouts before newly added files, according
-            # to spec, even if whiteout appears later
-            tree.add(file, f'layers/{layer.number}/{file}')
-    tree.materialize(ui, output_dir.joinpath('rootfs'))
+    image.tree.materialize(ui, output_dir.joinpath('rootfs'))
 
 
 def write_layer_history(
@@ -278,6 +272,8 @@ def write_layer_history(
                 blank_line_wanted = True
             prev_timestamp = timestamp
             prev_hdr = hdr
+        ui.output(file=fp)
+        ui.output(f'# Total: {image.summary.size_summary}', file=fp)
     if ui.debug:
         ui.info('')
 
@@ -314,7 +310,7 @@ def fmt_count(count: int, items: str, item: str = '') -> str:
         item = items[:-1]
     if count == 1:
         return f'{count} {item}'
-    return f'{count} {items}'
+    return f'{count:,} {items}'
 
 
 def fmt_path(path: pathlib.Path) -> str:
@@ -335,7 +331,11 @@ def pprint_json(
 ) -> None:
     text = json.dumps(data, indent=2, separators=(',', ': '))
     if file:
+        if ui.debug:
+            ui.info(f'{file.name}:\n')
         ui.output(text, file=file)
+        if ui.debug:
+            ui.info('')
     else:
         ui.info(text)
 
@@ -493,6 +493,28 @@ class DockerImage:
             for n, layer in enumerate(self.oci_manifest['layers'])
         ]
 
+    @cached_property
+    def size(self) -> int:
+        return sum(layer.size for layer in self.layers)
+
+    @cached_property
+    def tree(self) -> SymlinkTree:
+        tree = SymlinkTree()
+        for layer in self.layers:
+            for file in layer.files:
+                # XXX: should handle whiteouts before newly added files,
+                # according to spec, even if whiteout appears later
+                tree.add(file, f'layers/{layer.number}/{file}')
+        return tree
+
+    @cached_property
+    def files(self) -> list[str]:
+        return list(self.tree.iter_files(''))
+
+    @cached_property
+    def summary(self) -> Summary:
+        return Summary(self.files, size=self.size)
+
 
 class DockerImageLayer:
 
@@ -572,10 +594,11 @@ class Summary:
     def size_summary(self) -> str:
         size = self.size
         count = len(self.files)
+        bits = []
         if size is not None:
-            return f'{fmt_size(size)}, {fmt_count(count, "files")}'
-        else:
-            return f'{fmt_count(count, "files")}'
+            bits.append(f'{fmt_size(size)} ({size:,} B)')
+        bits.append(fmt_count(count, "files"))
+        return ', '.join(bits)
 
     def format(self, prefix: str = '') -> str:
         lines = [f'{prefix}{self.size_summary}']
@@ -600,6 +623,13 @@ class SymlinkTree:
 
     def __repr__(self) -> str:
         return f'SymlinkTree({self.name!r})'
+
+    def iter_files(self, root: str) -> Iterator[str]:
+        for k, v in self.root.items():
+            if isinstance(v, SymlinkTree):
+                yield from v.iter_files(root + k + '/')
+            else:
+                yield root + k
 
     def add(self, name: str, target: str) -> None:
         if name == '.':
