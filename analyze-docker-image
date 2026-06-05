@@ -768,8 +768,10 @@ class HistoryStep:
             )
         if ' \t' in command:
             command = re.sub(r'( )(\t+)', '\\1\\\n\\2', command)
-        elif ' &&  ' in command:
+        if ' &&  ' in command:
             command = re.sub(r'( && )( +)', '\\1\\\n\\2', command)
+        if '   ' in command:
+            command = re.sub(r'([^ \n] )( +)', '\\1\\\n\\2', command)
         return command
 
     def format(self, prev_step: HistoryStep | None = None) -> str:
