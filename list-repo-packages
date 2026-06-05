@@ -119,6 +119,18 @@ class PackagesFile:
             f'{self.uri}/dists/{self.suite}/{p}/by-hash/SHA256/{self.sha256}'
         )
 
+    @property
+    def component(self) -> str:
+        head, _, tail = self.path.partition('/')
+        assert tail.startswith('binary-')
+        return head
+
+    @property
+    def arch(self) -> str:
+        head, _, tail = self.path.partition('/')
+        assert tail.startswith('binary-')
+        return tail.removeprefix('binary-').partition('/')[0]
+
     @cached_property
     def data(self) -> bytes:
         if self.size == '0':
@@ -128,7 +140,7 @@ class PackagesFile:
     @cached_property
     def packages(self) -> list[Package]:
         return [
-            Package(pkg)
+            Package(pkg, self.suite, self.component, self.arch)
             for pkg in deb822.Packages.iter_paragraphs(
                 self.data, use_apt_pkg=False
             )
@@ -138,6 +150,16 @@ class PackagesFile:
 @dataclass
 class Package:
     _pkg: deb822.Packages
+    suite: str
+    component: str
+    arch: str
+
+    def __post_init__(self) -> None:
+        if self.arch != self._pkg['Architecture']:
+            # should we warn about this?
+            # I've seen .../binary-all/Packages contain Architecture: amd64.
+            pass
+        self.arch = self._pkg['Architecture']
 
     @property
     def name(self) -> str:
@@ -155,26 +177,28 @@ class Package:
     def source_version(self) -> debian_support.Version:
         return self._pkg.source_version
 
-    @property
-    def arch(self) -> str:
-        return self._pkg['Architecture']
+
+type PackageName = str
+type Arch = str
+type Suite = str
+type Component = str
+type PackageKey = tuple[PackageName, Arch, Suite, Component]
 
 
 @dataclass
 class PackageSet:
     packages: list[Package]
 
-    # (name, arch) -> Package
-    latest: dict[tuple[str, str], Package] = field(init=False, repr=False)
+    latest: dict[PackageKey, Package] = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         self.latest = {}
         for pkg in self.packages:
-            key = (pkg.name, pkg.arch)
+            key = (pkg.name, pkg.arch, pkg.suite, pkg.component)
             missing = key not in self.latest
             newer = not missing and pkg.version > self.latest[key].version
             if missing or newer:
-                self.latest[pkg.name, pkg.arch] = pkg
+                self.latest[key] = pkg
 
     def __iter__(self) -> Iterator[Package]:
         return iter(sorted(self.latest.values(), key=attrgetter('name')))
@@ -183,13 +207,21 @@ class PackageSet:
 def main() -> None:
     args = parser.parse_args()
 
+    all_packages = []
     for suite in args.suite:
         release = ReleaseFile(args.uri, suite)
-        if len(args.suite) > 1:
-            print(f'# {release.suite}')
-        for pkg in release.package_set:
-            print(pkg.name, pkg.version, pkg.arch)
+        all_packages += release.all_packages
+    package_set = PackageSet(all_packages)
+    for pkg in package_set:
+        print(pkg.name, pkg.version, pkg.suite, pkg.component, pkg.arch)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        import pdb
+        import readline  # noqa
+        import traceback
+        traceback.print_exc()
+        pdb.post_mortem()
