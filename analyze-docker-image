@@ -144,26 +144,7 @@ def main() -> None:
     image = DockerImage(cache_file)
     output_dir.mkdir(parents=True, exist_ok=True)
     if not args.no_json:
-        extract_json_file(
-            ui, image.oci_layout, output_dir.joinpath('oci-layout.json')
-        )
-        extract_json_file(
-            ui, image.oci_index, output_dir.joinpath('oci-index.json')
-        )
-        extract_json_file(
-            ui, image.oci_manifest, output_dir.joinpath('oci-manifest.json')
-        )
-        extract_json_file(ui, image.config, output_dir.joinpath('config.json'))
-        extract_json_file(
-            ui,
-            image.docker_manifest,
-            output_dir.joinpath('docker-manifest.json'),
-        )
-        extract_json_file(
-            ui,
-            image.docker_repositories,
-            output_dir.joinpath('docker-repositories.json'),
-        )
+        extract_metadata(ui, image, output_dir)
     write_layer_history(ui, image, output_dir)
     if not args.no_extract:
         extract_layers(ui, image, output_dir)
@@ -172,10 +153,36 @@ def main() -> None:
     ui.info(f'Created {fmt_path(output_dir)}/')
 
 
+def extract_metadata(
+    ui: UI, image: DockerImage, output_dir: pathlib.Path
+) -> None:
+    extract_json_file(
+        ui, image.oci_layout, output_dir.joinpath('oci-layout.json')
+    )
+    extract_json_file(
+        ui, image.oci_index, output_dir.joinpath('oci-index.json')
+    )
+    extract_json_file(
+        ui, image.oci_manifest, output_dir.joinpath('oci-manifest.json')
+    )
+    extract_json_file(
+        ui, image.config, output_dir.joinpath('config.json')
+    )
+    extract_json_file(
+        ui, image.docker_manifest, output_dir.joinpath('docker-manifest.json')
+    )
+    extract_json_file(
+        ui,
+        image.docker_repositories,
+        output_dir.joinpath('docker-repositories.json'),
+    )
+
+
 def extract_json_file(
     ui: UI, data: dict | list, output_path: pathlib.Path
 ) -> None:
-    pprint_json(ui, data, file=output_path.open('w'))
+    with output_path.open('w') as f:
+        pprint_json(ui, data, file=f)
 
 
 def extract_layers(
