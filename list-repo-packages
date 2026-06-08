@@ -22,9 +22,10 @@ from dataclasses import dataclass, field
 from functools import cached_property
 from io import BytesIO
 from operator import attrgetter
-from typing import Iterator
+from typing import Any, Iterator
 
 from debian import deb822, debian_support
+
 
 CACHE_DIR = pathlib.Path('~/.cache/list-repo-packages').expanduser()
 
@@ -34,6 +35,11 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("uri")
 parser.add_argument("suite", nargs='+')
+parser.add_argument(
+    "--hyperlink",
+    action='store_true',
+    help='link package versions to downloadable package files',
+)
 
 group = parser.add_mutually_exclusive_group()
 group.add_argument(
@@ -60,6 +66,14 @@ group.add_argument(
 
 def warn(msg) -> None:
     print(msg, file=sys.stderr)
+
+
+def urlify(text: Any, link: str) -> str:
+    return f'\033]8;;{link}\033\\{text}\033]8;;\033\\'
+
+
+def do_not_urlify(text: Any, link: str) -> str:
+    return text
 
 
 def fetch(url: str) -> bytes:
@@ -198,7 +212,7 @@ class PackagesFile:
     @cached_property
     def packages(self) -> list[Package]:
         return [
-            Package(pkg, self.suite, self.component, self.arch)
+            Package(pkg, self.uri, self.suite, self.component, self.arch)
             for pkg in deb822.Packages.iter_paragraphs(
                 self.data, use_apt_pkg=False
             )
@@ -208,6 +222,7 @@ class PackagesFile:
 @dataclass
 class Package:
     _pkg: deb822.Packages
+    uri: str
     suite: str
     component: str
     arch: str
@@ -240,6 +255,14 @@ class Package:
     @property
     def source_version(self) -> debian_support.Version:
         return self._pkg.source_version
+
+    @property
+    def filename(self) -> str:
+        return self._pkg['Filename']
+
+    @property
+    def url(self) -> str:
+        return f'{self.uri}/{self.filename}'
 
 
 type PackageName = str
@@ -282,6 +305,8 @@ class PackageSet:
 def main() -> None:
     args = parser.parse_args()
 
+    maybe_urlify = urlify if args.hyperlink else do_not_urlify
+
     all_packages = []
     for suite in args.suite:
         release = ReleaseFile(args.uri, suite)
@@ -292,7 +317,7 @@ def main() -> None:
             for pkg in package_set:
                 print(
                     pkg.name,
-                    pkg.version,
+                    maybe_urlify(pkg.version, pkg.url),
                     pkg.suite + '/' + pkg.component,
                     pkg.arch,
                 )
@@ -315,7 +340,7 @@ def main() -> None:
                             ' ',
                             pkg.suite + '/' + pkg.component,
                             pkg.arch,
-                            pkg.version,
+                            maybe_urlify(pkg.version, pkg.url),
                         )
 
 
