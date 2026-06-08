@@ -41,6 +41,7 @@ group.add_argument(
     action="store_const",
     dest='action',
     const='list-packages',
+    default='list-packages',
     help=(
         "List the newest available version of each package for each suite,"
         " component, and architecture"
@@ -185,6 +186,7 @@ class Package:
         if self.arch != arch:
             # should we warn about this?
             # I've seen .../binary-all/Packages contain Architecture: amd64.
+            # and other weirdness
             if arch != 'all':
                 warn(
                     f'Architecture mismatch for {self.name} {self.version}'
