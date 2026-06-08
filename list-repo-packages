@@ -177,7 +177,7 @@ class Package:
 
     @property
     def version(self) -> debian_support.Version:
-        return self._pkg['Version']
+        return self._pkg.get_version()
 
     @property
     def source(self) -> str | None:
@@ -211,7 +211,14 @@ class PackageSet:
                 self.latest[key] = pkg
 
     def __iter__(self) -> Iterator[Package]:
-        return iter(sorted(self.latest.values(), key=attrgetter('name')))
+        return iter(
+            sorted(
+                self.latest.values(),
+                key=attrgetter(
+                    'name', 'version', 'suite', 'component', 'arch'
+                ),
+            )
+        )
 
 
 def main() -> None:
