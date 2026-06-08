@@ -17,6 +17,7 @@ import argparse
 import pathlib
 import sys
 import urllib.request
+from contextlib import suppress
 from dataclasses import dataclass, field
 from functools import cached_property
 from io import BytesIO
@@ -24,7 +25,6 @@ from operator import attrgetter
 from typing import Iterator
 
 from debian import deb822, debian_support
-
 
 CACHE_DIR = pathlib.Path('~/.cache/list-repo-packages').expanduser()
 
@@ -64,17 +64,46 @@ def warn(msg) -> None:
 
 def fetch(url: str) -> bytes:
     with urllib.request.urlopen(url) as fp:
-        return fp.read()
-
-
-def fetch_cached(url: str, key: str) -> bytes:
+        data = fp.read()
+    # write-only "cache", for debugging
+    key = url2filename(url)
     cache_file = CACHE_DIR.joinpath(key)
-    if cache_file.exists():
-        return cache_file.read_bytes()
-    data = fetch(url)
+    assert '/' not in key
+    assert '..' not in key
     cache_file.parent.mkdir(parents=True, exist_ok=True)
     cache_file.with_suffix('.new').write_bytes(data)
     cache_file.with_suffix('.new').rename(cache_file)
+    return data
+
+
+def url2filename(url: str) -> str:
+    return url.partition(':')[-1].lstrip('/').replace('/', '_')
+
+
+def fetch_cached(url: str, key: str, symlink: str | None = None) -> bytes:
+    assert '/' not in key
+    assert '..' not in key
+    cache_file = CACHE_DIR.joinpath(key)
+    if cache_file.exists():
+        data = cache_file.read_bytes()
+    else:
+        data = fetch(url)
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        cache_file.with_suffix('.new').write_bytes(data)
+        cache_file.with_suffix('.new').rename(cache_file)
+    if symlink:
+        symlink_name = url2filename(symlink)
+        assert '/' not in symlink_name
+        assert '..' not in symlink_name
+        symlink_file = CACHE_DIR.joinpath(symlink_name)
+        if not (
+            symlink_file.exists()
+            and symlink_file.is_symlink()
+            and symlink_file.readlink() == cache_file.name
+        ):
+            with suppress(FileNotFoundError):
+                symlink_file.unlink()
+            symlink_file.symlink_to(cache_file.name)
     return data
 
 
@@ -162,7 +191,9 @@ class PackagesFile:
     def data(self) -> bytes:
         if self.size == '0':
             return b''
-        return fetch_cached(self.url_by_hash, self.sha256)
+        return fetch_cached(
+            self.url_by_hash, self.sha256, symlink=self.url_by_name
+        )
 
     @cached_property
     def packages(self) -> list[Package]:
