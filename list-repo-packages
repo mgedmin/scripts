@@ -35,6 +35,27 @@ parser = argparse.ArgumentParser(
 parser.add_argument("uri")
 parser.add_argument("suite", nargs='+')
 
+group = parser.add_mutually_exclusive_group()
+group.add_argument(
+    "--list-packages",
+    action="store_const",
+    dest='action',
+    const='list-packages',
+    help=(
+        "List the newest available version of each package for each suite,"
+        " component, and architecture"
+    ),
+)
+group.add_argument(
+    "--compare-suites",
+    action="store_const",
+    dest='action',
+    const='compare-suites',
+    help=(
+        "When a package is available in multiple suites, compare the versions"
+    ),
+)
+
 
 def warn(msg) -> None:
     print(msg, file=sys.stderr)
@@ -200,6 +221,7 @@ class PackageSet:
     packages: list[Package]
 
     latest: dict[PackageKey, Package] = field(init=False, repr=False)
+    by_name: dict[PackageName, list[Package]] = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         self.latest = {}
@@ -209,6 +231,9 @@ class PackageSet:
             newer = not missing and pkg.version > self.latest[key].version
             if missing or newer:
                 self.latest[key] = pkg
+        self.by_name = {}
+        for pkg in self:
+            self.by_name.setdefault(pkg.name, []).append(pkg)
 
     def __iter__(self) -> Iterator[Package]:
         return iter(
@@ -229,8 +254,36 @@ def main() -> None:
         release = ReleaseFile(args.uri, suite)
         all_packages += release.all_packages
     package_set = PackageSet(all_packages)
-    for pkg in package_set:
-        print(pkg.name, pkg.version, pkg.suite + '/' + pkg.component, pkg.arch)
+    match args.action:
+        case 'list-packages':
+            for pkg in package_set:
+                print(
+                    pkg.name,
+                    pkg.version,
+                    pkg.suite + '/' + pkg.component,
+                    pkg.arch,
+                )
+        case 'compare-suites':
+            package_names = sorted(package_set.by_name)
+            for name in package_names:
+                suites = {
+                    pkg.suite + '/' + pkg.component
+                    for pkg in package_set.by_name[name]
+                }
+                if len(suites) > 1:
+                    print(name)
+                    for pkg in sorted(
+                        package_set.by_name[name],
+                        key=attrgetter(
+                            'version', 'suite', 'component', 'arch'
+                        ),
+                    ):
+                        print(
+                            ' ',
+                            pkg.suite + '/' + pkg.component,
+                            pkg.arch,
+                            pkg.version,
+                        )
 
 
 if __name__ == "__main__":
