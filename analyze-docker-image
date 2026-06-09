@@ -133,10 +133,17 @@ def main() -> None:
     cache_file = CACHE_DIR.joinpath(args.image + '.tar')
     cache_file.parent.mkdir(parents=True, exist_ok=True)
     if cache_file.exists():
-        size = cache_file.stat().st_size
         ui.info(f'Image already cached in {fmt_path(cache_file)}'
                 f' ({fmt_size(size)})')
-        if args.update_cache:
+        current_digest = info[0]['Id']  # "sha256:..."
+        cached_digest = DockerImage(cache_file).config_digest
+        if current_digest != cached_digest:
+            ui.info('Cache is out of date, updating')
+            update_cache = True
+        else:
+            size = cache_file.stat().st_size
+            update_cache = args.update_cache
+        if update_cache:
             ui.info('Updating cached image')
             save_image_to_cache(ui, args.image, cache_file, size)
     else:
@@ -416,11 +423,15 @@ class DockerImage:
         return self.get_json_from_digest(self.oci_manifest_digest)
 
     @cached_property
+    def config_digest(self) -> str:
+        return self.oci_manifest['config']['digest']
+
+    @cached_property
     def config(self) -> dict:
         # we could do
         #   return self.get_json(self.docker_manifest[0]['Config'])
         # or
-        return self.get_json_from_digest(self.oci_manifest['config']['digest'])
+        return self.get_json_from_digest(self.config_digest)
 
     @cached_property
     def architecture(self) -> str:
