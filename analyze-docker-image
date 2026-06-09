@@ -85,6 +85,13 @@ parser.add_argument(
     help='skip creating the rootfs symlink tree',
     action='store_true',
 )
+parser.add_argument(
+    "--only",
+    help=(
+        'select what to extract (json,layers,rootfs,history,all); default: all'
+    ),
+    default='all',
+)
 
 parser.add_argument(
     "--debug",
@@ -108,6 +115,24 @@ class UI:
 
 def main() -> None:
     args = parser.parse_args()
+
+    what_to_extract = set(map(str.strip, args.only.split(',')))
+    what_to_extract.discard('')
+    possible_values = {'json', 'layers', 'rootfs', 'history'}
+    badvalues = what_to_extract - possible_values - {'all'}
+    if badvalues:
+        parser.error(
+            f'unknown arguments passed to --only:'
+            f' {",".join(sorted(badvalues))}'
+        )
+    if not what_to_extract or 'all' in what_to_extract:
+        what_to_extract = possible_values
+    if args.no_json:
+        what_to_extract.discard('json')
+    if args.no_extract:
+        what_to_extract.discard('layers')
+    if args.no_rootfs:
+        what_to_extract.discard('rootfs')
 
     ui = UI(debug=args.debug)
 
@@ -151,12 +176,13 @@ def main() -> None:
 
     image = DockerImage(cache_file)
     output_dir.mkdir(parents=True, exist_ok=True)
-    if not args.no_json:
+    if 'json' in what_to_extract:
         extract_metadata(ui, image, output_dir)
-    write_layer_history(ui, image, output_dir)
-    if not args.no_extract:
+    if 'history' in what_to_extract:
+        write_layer_history(ui, image, output_dir)
+    if 'layers' in what_to_extract:
         extract_layers(ui, image, output_dir)
-    if not args.no_rootfs:
+    if 'rootfs' in what_to_extract:
         create_merged_rootfs(ui, image, output_dir)
     ui.info(f'Created {fmt_path(output_dir)}/')
 
