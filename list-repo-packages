@@ -47,7 +47,11 @@ parser.add_argument(
     help='limit output to named packages (comma-separated)',
 )
 parser.add_argument(
-    "--hyperlink",
+    "-a", "--architectures",
+    help='limit output to listed architectures (comma-separated)',
+)
+parser.add_argument(
+    "--hyperlinks",
     action='store_true',
     help='link package versions to downloadable package files',
 )
@@ -317,8 +321,9 @@ def main() -> None:
     args = parser.parse_args()
 
     packages = set((args.packages or '').split(',')) - {''}
+    architectures = set((args.architectures or '').split(',')) - {''}
 
-    maybe_urlify = urlify if args.hyperlink else do_not_urlify
+    maybe_urlify = urlify if args.hyperlinks else do_not_urlify
 
     all_packages = []
     for suite in args.suite:
@@ -329,6 +334,8 @@ def main() -> None:
         case 'list-packages':
             for pkg in package_set:
                 if packages and pkg.name not in packages:
+                    continue
+                if architectures and pkg.arch not in architectures:
                     continue
                 print(
                     pkg.name,
@@ -345,6 +352,7 @@ def main() -> None:
                 suites = {
                     pkg.suite + '/' + pkg.component
                     for pkg in package_set.by_name[name]
+                    if not architectures or pkg.arch in architectures
                 }
                 if len(suites) > 1:
                     print(name)
@@ -354,6 +362,8 @@ def main() -> None:
                             'version', 'suite', 'component', 'arch'
                         ),
                     ):
+                        if architectures and pkg.arch not in architectures:
+                            continue
                         print(
                             ' ',
                             pkg.suite + '/' + pkg.component,
