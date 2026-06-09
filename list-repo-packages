@@ -28,6 +28,13 @@ from debian import deb822, debian_support
 
 
 CACHE_DIR = pathlib.Path('~/.cache/list-repo-packages').expanduser()
+# Cache directory contains
+# - Packages files named by their SHA256 hash
+# - Symlinks to Packages files named after the URL without scheme with slashes
+#   converted to underscores (like the filenames in /var/lib/apt/lists)
+# - InRelease files named after the URL without scheme with slashes converted
+#   to underscores (like the filenames in /var/lib/apt/lists), which are
+#   written but never read.
 
 
 parser = argparse.ArgumentParser(
@@ -35,6 +42,10 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("uri")
 parser.add_argument("suite", nargs='+')
+parser.add_argument(
+    "-p", "--packages",
+    help='limit output to named packages (comma-separated)',
+)
 parser.add_argument(
     "--hyperlink",
     action='store_true',
@@ -305,6 +316,8 @@ class PackageSet:
 def main() -> None:
     args = parser.parse_args()
 
+    packages = set((args.packages or '').split(',')) - {''}
+
     maybe_urlify = urlify if args.hyperlink else do_not_urlify
 
     all_packages = []
@@ -315,6 +328,8 @@ def main() -> None:
     match args.action:
         case 'list-packages':
             for pkg in package_set:
+                if packages and pkg.name not in packages:
+                    continue
                 print(
                     pkg.name,
                     maybe_urlify(pkg.version, pkg.url),
@@ -322,7 +337,10 @@ def main() -> None:
                     pkg.arch,
                 )
         case 'compare-suites':
-            package_names = sorted(package_set.by_name)
+            if packages:
+                package_names = sorted(set(package_set.by_name) & packages)
+            else:
+                package_names = sorted(package_set.by_name)
             for name in package_names:
                 suites = {
                     pkg.suite + '/' + pkg.component
