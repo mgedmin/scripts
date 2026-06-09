@@ -43,6 +43,11 @@ parser = argparse.ArgumentParser(
 parser.add_argument("uri")
 parser.add_argument("suite", nargs='+')
 parser.add_argument(
+    "-v", "--verbose",
+    help='provide more information',
+    action='store_true',
+)
+parser.add_argument(
     "-p", "--packages",
     help='limit output to named packages (comma-separated)',
 )
@@ -51,7 +56,7 @@ parser.add_argument(
     help='limit output to listed architectures (comma-separated)',
 )
 parser.add_argument(
-    "--hyperlinks",
+    "-l", "--hyperlinks",
     action='store_true',
     help='link package versions to downloadable package files',
 )
@@ -279,6 +284,11 @@ class Package:
     def url(self) -> str:
         return f'{self.uri}/{self.filename}'
 
+    @property
+    def control_data(self) -> Iterator[tuple[str, str]]:
+        for k, v in self._pkg.items():
+            yield k, str(v)
+
 
 type PackageName = str
 type Arch = str
@@ -343,6 +353,16 @@ def main() -> None:
                     pkg.suite + '/' + pkg.component,
                     pkg.arch,
                 )
+                if args.verbose:
+                    for k, v in pkg.control_data:
+                        space = ' '
+                        if not v or v.startswith('\n'):
+                            space = ''
+                        if k == 'Filename':
+                            v = maybe_urlify(v, pkg.url)
+                        v = v.replace('\n', '\n  ')
+                        print(f'  {k}:{space}{v}')
+                    print()
         case 'compare-suites':
             if packages:
                 package_names = sorted(set(package_set.by_name) & packages)
