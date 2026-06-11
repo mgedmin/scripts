@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#   "pyinstaller",
+#   "pyinstaller",      # works with version 6.20.0
 #   "python-debian",
 # ]
 # ///
