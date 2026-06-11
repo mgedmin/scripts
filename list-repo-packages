@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import pathlib
+import subprocess
 import sys
 import urllib.request
 from contextlib import suppress
@@ -25,7 +26,6 @@ from operator import attrgetter
 from typing import Any, Iterator
 
 from debian import deb822, debian_support
-
 
 CACHE_DIR = pathlib.Path('~/.cache/list-repo-packages').expanduser()
 # Cache directory contains
@@ -45,6 +45,13 @@ parser.add_argument("suite", nargs='+')
 parser.add_argument(
     "-v", "--verbose",
     help='provide more information',
+    action='store_true',
+)
+parser.add_argument(
+    "-n", "--dry-run",
+    help=(
+        "(when combined with --download) print the URL instead of downloading"
+    ),
     action='store_true',
 )
 parser.add_argument(
@@ -85,6 +92,13 @@ group.add_argument(
     help=(
         "When a package is available in multiple suites, compare the versions"
     ),
+)
+group.add_argument(
+    "-d", "--download",
+    action="store_const",
+    dest='action',
+    const='download',
+    help="Download the latest version of the package",
 )
 
 
@@ -320,6 +334,9 @@ class PackageSet:
         for pkg in self:
             self.by_name.setdefault(pkg.name, []).append(pkg)
 
+    def get_newest(self, name: str) -> Package:
+        return max(self.by_name[name], key=attrgetter('version'))
+
     def __iter__(self) -> Iterator[Package]:
         return iter(
             sorted(
@@ -400,6 +417,14 @@ def main() -> None:
                             pkg.arch,
                             maybe_urlify(pkg.version, pkg.url),
                         )
+        case 'download':
+            if not packages:
+                parser.error('Please specify -p PACKAGE_NAME')
+            for name in packages:
+                pkg = package_set.get_newest(name)
+                print(maybe_urlify(pkg.url, pkg.url))
+                if not args.dry_run:
+                    subprocess.run(['wget', pkg.url])
 
 
 if __name__ == "__main__":
