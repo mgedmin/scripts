@@ -1,0 +1,91 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#   "pyinstaller",
+# ]
+# ///
+"""
+Usage:
+  compare-pyinstaller-bundles file1 file2
+
+Compares the set of libraries and modules included in executables produced by
+pyinstaller --onefile.
+"""
+
+import argparse
+
+from PyInstaller.archive.readers import CArchiveReader
+
+
+parser = argparse.ArgumentParser(
+    description=(
+        "Compare the set of files included in pyinstaller-produced bundles"
+    ),
+)
+parser.add_argument("file1")
+parser.add_argument("file2", nargs='?')
+
+
+def read_bundle(filename: str) -> set[str]:
+    archive = CArchiveReader(filename)
+    return set(archive.toc.keys())
+
+
+def read_nested_bundle(filename: str, inner_filename: str) -> set[str]:
+    parent_archive = CArchiveReader(filename)
+    archive = parent_archive.open_embedded_archive(inner_filename)
+    return set(archive.toc.keys())
+
+
+def print_set(title: str, items: set[str]) -> None:
+    if not items:
+        return
+    print(title)
+    for item in sorted(items):
+        print(f'  {item}')
+
+
+def main():
+    args = parser.parse_args()
+    bundle1 = read_bundle(args.file1)
+    if not args.file2:
+        # just print the names of files and exit
+        for name in sorted(bundle1):
+            print(name)
+    else:
+        bundle2 = read_bundle(args.file2)
+        if bundle1 != bundle2:
+            print_set(f"Only in {args.file1}:", bundle1 - bundle2)
+            print_set(f"Only in {args.file2}:", bundle2 - bundle1)
+        else:
+            # as if this would ever happen
+            print("Both bundles have the same files")
+        pyz_files1 = {name for name in bundle1 if name.endswith('.pyz')}
+        pyz_files2 = {name for name in bundle2 if name.endswith('.pyz')}
+        if len(pyz_files1) == len(pyz_files2) == 1:
+            [filename1] = pyz_files1
+            [filename2] = pyz_files2
+            modules1 = read_nested_bundle(args.file1, filename1)
+            modules2 = read_nested_bundle(args.file2, filename2)
+            if bundle1 != bundle2:
+                print_set(
+                    f"Only in {args.file1}/{filename1}:", modules1 - modules2
+                )
+                print_set(
+                    f"Only in {args.file2}/{filename2}:", modules2 - modules1
+                )
+            else:
+                # as if this would ever happen
+                print("Both nested bundles have the same modules")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        import pdb
+        import readline  # noqa
+        import traceback
+        traceback.print_exc()
+        pdb.post_mortem()
