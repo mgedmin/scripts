@@ -264,6 +264,7 @@ class ReleaseFile:
             for p in self._release['SHA256']
             if p['name'].endswith('/Packages.gz')
             and self.architecture_filter.allows(arch_of_path(p['name']))
+            and '/debian-installer/' not in p['name']
         ]
 
     @cached_property
