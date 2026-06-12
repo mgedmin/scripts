@@ -24,7 +24,8 @@ import shutil
 import sys
 import tempfile
 from functools import cached_property
-from typing import IO, Any, Collection
+from types import TracebackType
+from typing import IO, Collection
 
 from debian.debfile import DebFile
 from PyInstaller.archive.readers import CArchiveReader
@@ -51,7 +52,12 @@ class ArchiveReader:
     def __enter__(self) -> ArchiveReader:
         return self
 
-    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType,
+    ) -> None:
         pass
 
     @cached_property
@@ -97,7 +103,12 @@ class DebArchiveReader:
     def __enter__(self) -> DebArchiveReader:
         return self
 
-    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType,
+    ) -> None:
         self.deb.close()
         if self.temp_file:
             self.temp_file.close()
