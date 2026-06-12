@@ -23,9 +23,10 @@ from dataclasses import dataclass, field
 from functools import cached_property
 from io import BytesIO
 from operator import attrgetter
-from typing import Any, Iterator
+from typing import Iterator
 
 from debian import deb822, debian_support
+
 
 CACHE_DIR = pathlib.Path('~/.cache/list-repo-packages').expanduser()
 # Cache directory contains
@@ -102,21 +103,46 @@ group.add_argument(
 )
 
 
-def warn(msg) -> None:
-    print(msg, file=sys.stderr)
+@dataclass
+class UI:
+    verbose: bool = True
+    hyperlinks: bool = None
+
+    def info(self, msg: str) -> None:
+        if self.verbose:
+            print(msg, file=sys.stderr)
+
+    def warn(self, msg: str) -> None:
+        print(msg, file=sys.stderr)
+
+    def fatal(self, msg: str) -> None:
+        sys.exit(str(msg))
+
+    def url(self, url: str) -> str:
+        return self.maybe_urlify(url, url)
+
+    def maybe_urlify(self, text: object, link: str = None) -> str:
+        if self.hyperlinks:
+            return urlify(text, link)
+        else:
+            return text
 
 
-def urlify(text: Any, link: str) -> str:
+ui = UI()
+
+
+def urlify(text: object, link: str) -> str:
     return f'\033]8;;{link}\033\\{text}\033]8;;\033\\'
 
 
-def do_not_urlify(text: Any, link: str) -> str:
-    return text
-
-
 def fetch(url: str) -> bytes:
-    with urllib.request.urlopen(url) as fp:
-        data = fp.read()
+    ui.info(f"Get: {ui.url(url)}")
+    try:
+        with urllib.request.urlopen(url) as fp:
+            data = fp.read()
+    except urllib.error.HTTPError as e:
+        ui.fatal(f'{ui.url(url)}: {e}')
+
     # write-only "cache", for debugging
     key = url2filename(url)
     cache_file = CACHE_DIR.joinpath(key)
@@ -137,6 +163,7 @@ def fetch_cached(url: str, key: str, symlink: str | None = None) -> bytes:
     assert '..' not in key
     cache_file = CACHE_DIR.joinpath(key)
     if cache_file.exists():
+        ui.info(f"Hit: {url}")
         data = cache_file.read_bytes()
     else:
         data = fetch(url)
@@ -272,7 +299,7 @@ class Package:
             # I've seen .../binary-all/Packages contain Architecture: amd64.
             # and other weirdness
             if arch != 'all':
-                warn(
+                ui.warn(
                     f'Architecture mismatch for {self.name} {self.version}'
                     f' in {self.suite}/{self.component}: {self.arch} != {arch}'
                 )
@@ -350,12 +377,12 @@ class PackageSet:
 
 def main() -> None:
     args = parser.parse_args()
+    ui.verbose = args.verbose
+    ui.hyperlinks = args.hyperlinks
 
     packages = set((args.packages or '').split(',')) - {''}
     architectures = set((args.architectures or '').split(',')) - {''}
     components = set((args.components or '').split(',')) - {''}
-
-    maybe_urlify = urlify if args.hyperlinks else do_not_urlify
 
     all_packages = []
     for suite in args.suite:
@@ -373,7 +400,7 @@ def main() -> None:
                     continue
                 print(
                     pkg.name,
-                    maybe_urlify(pkg.version, pkg.url),
+                    ui.maybe_urlify(pkg.version, pkg.url),
                     pkg.suite + '/' + pkg.component,
                     pkg.arch,
                 )
@@ -383,7 +410,7 @@ def main() -> None:
                         if not v or v.startswith('\n'):
                             space = ''
                         if k == 'Filename':
-                            v = maybe_urlify(v, pkg.url)
+                            v = ui.maybe_urlify(v, pkg.url)
                         v = v.replace('\n', '\n  ')
                         print(f'  {k}:{space}{v}')
                     print()
@@ -415,14 +442,14 @@ def main() -> None:
                             ' ',
                             pkg.suite + '/' + pkg.component,
                             pkg.arch,
-                            maybe_urlify(pkg.version, pkg.url),
+                            ui.maybe_urlify(pkg.version, pkg.url),
                         )
         case 'download':
             if not packages:
                 parser.error('Please specify -p PACKAGE_NAME')
             for name in packages:
                 pkg = package_set.get_newest(name)
-                print(maybe_urlify(pkg.url, pkg.url))
+                print(ui.url(pkg.url))
                 if not args.dry_run:
                     subprocess.run(['wget', pkg.url])
 
