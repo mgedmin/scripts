@@ -14,6 +14,7 @@ Does not verify GPG signatures.
 from __future__ import annotations
 
 import argparse
+import gzip
 import pathlib
 import subprocess
 import sys
@@ -30,7 +31,7 @@ from debian import deb822, debian_support
 
 CACHE_DIR = pathlib.Path('~/.cache/list-repo-packages').expanduser()
 # Cache directory contains
-# - Packages files named by their SHA256 hash
+# - gzipped Packages files named by their SHA256 hash
 # - Symlinks to Packages files named after the URL without scheme with slashes
 #   converted to underscores (like the filenames in /var/lib/apt/lists)
 # - InRelease files named after the URL without scheme with slashes converted
@@ -136,12 +137,13 @@ def urlify(text: object, link: str) -> str:
 
 
 def fetch(url: str) -> bytes:
-    ui.info(f"Get: {ui.url(url)}")
     try:
         with urllib.request.urlopen(url) as fp:
             data = fp.read()
     except urllib.error.HTTPError as e:
         ui.fatal(f'{ui.url(url)}: {e}')
+    else:
+        ui.info(f"Get: {ui.url(url)}")
 
     # write-only "cache", for debugging
     key = url2filename(url)
@@ -212,6 +214,9 @@ class ReleaseFile:
 
     @cached_property
     def packages_files(self) -> list[PackagesFile]:
+        # At first I was looking for Packages, but archive.ubuntu.com
+        # claims to have those in the InRelease, but actually they don't.
+        # Only Packages.gz and Packages.xz are available.
         return [
             PackagesFile(
                 self.uri,
@@ -221,7 +226,7 @@ class ReleaseFile:
                 size=p["size"],
             )
             for p in self._release['SHA256']
-            if p['name'].endswith('/Packages')
+            if p['name'].endswith('/Packages.gz')
         ]
 
     @cached_property
@@ -252,7 +257,7 @@ class PackagesFile:
 
     @property
     def url_by_hash(self) -> str:
-        p = self.path.removesuffix('/Packages')
+        p = self.path.rpartition('/')[0]
         return (
             f'{self.uri}/dists/{self.suite}/{p}/by-hash/SHA256/{self.sha256}'
         )
@@ -270,12 +275,19 @@ class PackagesFile:
         return tail.removeprefix('binary-').partition('/')[0]
 
     @cached_property
-    def data(self) -> bytes:
+    def raw_data(self) -> bytes:
         if self.size == '0':
             return b''
         return fetch_cached(
             self.url_by_hash, self.sha256, symlink=self.url_by_name
         )
+
+    @cached_property
+    def data(self) -> bytes:
+        if self.path.endswith('.gz'):
+            return gzip.decompress(self.raw_data)
+        else:
+            return self.raw_data
 
     @cached_property
     def packages(self) -> list[Package]:
