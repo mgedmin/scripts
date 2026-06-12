@@ -136,7 +136,9 @@ def urlify(text: object, link: str) -> str:
     return f'\033]8;;{link}\033\\{text}\033]8;;\033\\'
 
 
-def fetch(url: str, pretty_url: str | None = None) -> bytes:
+def fetch(
+    url: str, pretty_url: str | None = None, write_cache: bool = True
+) -> bytes:
     ui.info(f"Get: {ui.maybe_urlify(pretty_url or url, url)}")
     try:
         with urllib.request.urlopen(url) as fp:
@@ -145,13 +147,14 @@ def fetch(url: str, pretty_url: str | None = None) -> bytes:
         ui.fatal(f'{ui.url(url)}: {e}')
 
     # write-only "cache", for debugging
-    key = url2filename(url)
-    cache_file = CACHE_DIR.joinpath(key)
-    assert '/' not in key
-    assert '..' not in key
-    cache_file.parent.mkdir(parents=True, exist_ok=True)
-    cache_file.with_suffix('.new').write_bytes(data)
-    cache_file.with_suffix('.new').rename(cache_file)
+    if write_cache:
+        key = url2filename(url)
+        cache_file = CACHE_DIR.joinpath(key)
+        assert '/' not in key
+        assert '..' not in key
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        cache_file.with_suffix('.new').write_bytes(data)
+        cache_file.with_suffix('.new').rename(cache_file)
     return data
 
 
@@ -167,7 +170,7 @@ def fetch_cached(url: str, key: str, symlink: str | None = None) -> bytes:
         ui.info(f"Hit: {ui.maybe_urlify(symlink or url, url)}")
         data = cache_file.read_bytes()
     else:
-        data = fetch(url, pretty_url=symlink)
+        data = fetch(url, pretty_url=symlink, write_cache=False)
         cache_file.parent.mkdir(parents=True, exist_ok=True)
         cache_file.with_suffix('.new').write_bytes(data)
         cache_file.with_suffix('.new').rename(cache_file)
