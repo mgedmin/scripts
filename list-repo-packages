@@ -191,6 +191,9 @@ class ReleaseFile:
     uri: str
     suite: str
 
+    def __post_init__(self) -> None:
+        self.uri = self.uri.rstrip('/')
+
     @property
     def url(self) -> str:
         return f'{self.uri}/dists/{self.suite}/InRelease'
