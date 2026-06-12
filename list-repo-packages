@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from functools import cached_property
 from io import BytesIO
 from operator import attrgetter
-from typing import Iterator
+from typing import Iterable, Iterator
 
 from debian import deb822, debian_support
 
@@ -107,7 +107,7 @@ group.add_argument(
 @dataclass
 class UI:
     verbose: bool = True
-    hyperlinks: bool = None
+    hyperlinks: bool = False
 
     def info(self, msg: str) -> None:
         if self.verbose:
@@ -122,11 +122,11 @@ class UI:
     def url(self, url: str) -> str:
         return self.maybe_urlify(url, url)
 
-    def maybe_urlify(self, text: object, link: str = None) -> str:
+    def maybe_urlify(self, text: object, link: str) -> str:
         if self.hyperlinks:
             return urlify(text, link)
         else:
-            return text
+            return str(text)
 
 
 ui = UI()
@@ -136,14 +136,13 @@ def urlify(text: object, link: str) -> str:
     return f'\033]8;;{link}\033\\{text}\033]8;;\033\\'
 
 
-def fetch(url: str) -> bytes:
+def fetch(url: str, pretty_url: str | None = None) -> bytes:
+    ui.info(f"Get: {ui.maybe_urlify(pretty_url or url, url)}")
     try:
         with urllib.request.urlopen(url) as fp:
             data = fp.read()
     except urllib.error.HTTPError as e:
         ui.fatal(f'{ui.url(url)}: {e}')
-    else:
-        ui.info(f"Get: {ui.url(url)}")
 
     # write-only "cache", for debugging
     key = url2filename(url)
@@ -165,10 +164,10 @@ def fetch_cached(url: str, key: str, symlink: str | None = None) -> bytes:
     assert '..' not in key
     cache_file = CACHE_DIR.joinpath(key)
     if cache_file.exists():
-        ui.info(f"Hit: {url}")
+        ui.info(f"Hit: {ui.maybe_urlify(symlink or url, url)}")
         data = cache_file.read_bytes()
     else:
-        data = fetch(url)
+        data = fetch(url, pretty_url=symlink)
         cache_file.parent.mkdir(parents=True, exist_ok=True)
         cache_file.with_suffix('.new').write_bytes(data)
         cache_file.with_suffix('.new').rename(cache_file)
@@ -188,10 +187,47 @@ def fetch_cached(url: str, key: str, symlink: str | None = None) -> bytes:
     return data
 
 
+def arch_of_path(path: str) -> str:
+    """Determine the architecture for a Packages file
+
+        >>> arch_of_path('main/binary-amd64/Packages.gz')
+        'amd64'
+
+    """
+    segments = path.split('/')
+    assert segments[-2].startswith('binary-')
+    return segments[-2].removeprefix('binary-')
+
+
+@dataclass
+class Filter:
+    allowed: set[str] = field(default_factory=set)
+
+    @classmethod
+    def from_str(self, values: str | None) -> Filter:
+        allowed = set((values or '').split(',')) - {''}
+        return Filter(allowed)
+
+    def __bool__(self) -> bool:
+        return bool(self.allowed)
+
+    def __iter__(self) -> Iterator[str]:
+        yield from self.allowed
+
+    def allows(self, value: str) -> bool:
+        if not self.allowed:
+            return True
+        return value in self.allowed
+
+    def filter(self, values: Iterable[str]) -> Iterator[str]:
+        return filter(self.allows, values)
+
+
 @dataclass
 class ReleaseFile:
     uri: str
     suite: str
+    architecture_filter: Filter = field(default_factory=Filter)
 
     def __post_init__(self) -> None:
         self.uri = self.uri.rstrip('/')
@@ -227,6 +263,7 @@ class ReleaseFile:
             )
             for p in self._release['SHA256']
             if p['name'].endswith('/Packages.gz')
+            and self.architecture_filter.allows(arch_of_path(p['name']))
         ]
 
     @cached_property
@@ -395,23 +432,25 @@ def main() -> None:
     ui.verbose = args.verbose
     ui.hyperlinks = args.hyperlinks
 
-    packages = set((args.packages or '').split(',')) - {''}
-    architectures = set((args.architectures or '').split(',')) - {''}
-    components = set((args.components or '').split(',')) - {''}
+    packages = Filter.from_str(args.packages)
+    architectures = Filter.from_str(args.architectures)
+    components = Filter.from_str(args.components)
 
     all_packages = []
     for suite in args.suite:
-        release = ReleaseFile(args.uri, suite)
+        release = ReleaseFile(
+            args.uri, suite, architecture_filter=architectures
+        )
         all_packages += release.all_packages
     package_set = PackageSet(all_packages)
     match args.action:
         case 'list-packages':
             for pkg in package_set:
-                if packages and pkg.name not in packages:
+                if not packages.allows(pkg.name):
                     continue
-                if architectures and pkg.arch not in architectures:
+                if not architectures.allows(pkg.arch):
                     continue
-                if components and pkg.component not in components:
+                if not components.allows(pkg.component):
                     continue
                 print(
                     pkg.name,
@@ -430,16 +469,13 @@ def main() -> None:
                         print(f'  {k}:{space}{v}')
                     print()
         case 'compare-suites':
-            if packages:
-                package_names = sorted(set(package_set.by_name) & packages)
-            else:
-                package_names = sorted(package_set.by_name)
+            package_names = sorted(packages.filter(package_set.by_name))
             for name in package_names:
                 suites = {
                     pkg.suite + '/' + pkg.component
                     for pkg in package_set.by_name[name]
-                    if (not architectures or pkg.arch in architectures)
-                    and (not components or pkg.component in components)
+                    if architectures.allows(pkg.arch)
+                    and components.allows(pkg.component)
                 }
                 if len(suites) > 1:
                     print(name)
@@ -449,9 +485,9 @@ def main() -> None:
                             'version', 'suite', 'component', 'arch'
                         ),
                     ):
-                        if architectures and pkg.arch not in architectures:
+                        if not architectures.allows(pkg.arch):
                             continue
-                        if components and pkg.component not in components:
+                        if not components.allows(pkg.component):
                             continue
                         print(
                             ' ',
