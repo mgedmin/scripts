@@ -6,7 +6,7 @@ Watches the file pointer of an opened file on Linux.  Use it to provide a
 progress bar to a command that doesn't have one, assuming the program reads
 this file from start to end without jumping around.
 
-Copyright (c) 2011 Marius Gedminas <marius@gedmin.as>
+Copyright (c) 2011,2026 Marius Gedminas <marius@gedmin.as>
 
 Licence: GPL v2 or later
 """
@@ -14,6 +14,7 @@ import os
 import time
 import optparse
 import sys
+import shlex
 import subprocess
 import string
 
@@ -55,7 +56,7 @@ def format_arg(arg):
     if all(c in safe_chars for c in arg):
         return arg
     else:
-        return "'%s'" % arg.encode('string-escape')
+        return shlex.quote(arg)
 
 
 def format_argv(argv):
