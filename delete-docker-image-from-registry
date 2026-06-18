@@ -5,7 +5,7 @@
 # based on https://stackoverflow.com/a/43786939/110151
 
 usage="usage: $0 [-v] [-r registry] image tag [tag ...]"
-registry=registry.vaultit.org
+registry=artifactory.draeger.com
 image=
 tags=()
 verbose=0
@@ -63,13 +63,15 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+image=${image#"$registry"/}  # strip registry prefix from image name
+
 if [ -z "$image" ]; then
     echo "$usage" 1>&2
     exit 1
 fi
 
 if [ "${#tags[@]}" -eq 0 ]; then
-    error "No tags specified, maybe run list-docker-tags $image to see what are available?"
+    error "No tags specified, maybe run list-docker-tags -r $registry $image to see what are available?"
     exit 1
 fi
 
