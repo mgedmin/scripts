@@ -107,9 +107,10 @@ fi
 
 for tag in "${tags[@]}"; do
     debug "checking $tag"
-    curl -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
-         ${auth:+-H "Authorization: Basic $auth"} \
-         -I -s https://"$registry"/v2/"$image"/manifests/"$tag" \
-         | grep -i ^docker-content-digest: \
-         | sed -e "s/^[^:]*: *//; s/\\s*$/  $tag/"
+    digest=$(curl -sS -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+                  ${auth:+-H "Authorization: Basic $auth"} \
+                  -o /dev/null \
+                  -w '%header{Docker-Content-Digest}' \
+                  https://"$registry"/v2/"$image"/manifests/"$tag")
+    printf "%s  %s\n" "$digest" "$tag"
 done
