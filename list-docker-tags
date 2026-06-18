@@ -97,4 +97,4 @@ if [ "$errors" != "null" ]; then
     printf "%s" "$errors" 1>&2
     exit 1
 fi
-jq -r '.tags' <<<"$res" | sort --version-sort
+jq -r '.tags[]' <<<"$res" | sort --version-sort
