@@ -87,6 +87,16 @@ group.add_argument(
     ),
 )
 group.add_argument(
+    "--list-all-versions",
+    action="store_const",
+    dest='action',
+    const='list-versions',
+    help=(
+        "List all available versions of each package for each suite,"
+        " component, and architecture"
+    ),
+)
+group.add_argument(
     "--compare-suites",
     action="store_const",
     dest='action',
@@ -200,6 +210,12 @@ def arch_of_path(path: str) -> str:
     segments = path.split('/')
     assert segments[-2].startswith('binary-')
     return segments[-2].removeprefix('binary-')
+
+
+def uniq[T](items: list[T]) -> list[T]:
+    """Remove repeated elements from a list"""
+    prev = None
+    return [(prev := item) for item in items if item != prev]
 
 
 @dataclass
@@ -430,6 +446,13 @@ class PackageSet:
             )
         )
 
+    @cached_property
+    def all_packages(self) -> list[Package]:
+        return uniq(sorted(
+            self.packages,
+            key=attrgetter('name', 'version', 'suite', 'component', 'arch'),
+        ))
+
 
 def main() -> None:
     args = parser.parse_args()
@@ -448,8 +471,12 @@ def main() -> None:
         all_packages += release.all_packages
     package_set = PackageSet(all_packages)
     match args.action:
-        case 'list-packages':
-            for pkg in package_set:
+        case 'list-packages' | 'list-versions':
+            for pkg in (
+                package_set
+                if args.action == 'list-packages'
+                else package_set.all_packages
+            ):
                 if not packages.allows(pkg.name):
                     continue
                 if not architectures.allows(pkg.arch):
