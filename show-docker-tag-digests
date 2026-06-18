@@ -111,5 +111,5 @@ for tag in "${tags[@]}"; do
          ${auth:+-H "Authorization: Basic $auth"} \
          -I -s https://"$registry"/v2/"$image"/manifests/"$tag" \
          | grep -i ^docker-content-digest: \
-         | sed -e "s/^[^:]*:/$tag:/"
+         | sed -e "s/^[^:]*: *//; s/\\s*$/  $tag/"
 done
