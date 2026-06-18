@@ -85,6 +85,8 @@ else
     fi
 fi
 
+image=${image#"$registry"/}  # strip registry prefix from image name
+
 info "Checking $registry for $image tags"
 [ "$verbose" -ge 2 ] && set -x
 res=$(curl -s -S -H "Accept: application/json" \
