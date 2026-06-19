@@ -1,0 +1,8 @@
+#!/bin/sh
+pid=${1:?usage: show-environment-of PID}
+if ! test -e /proc/"$pid"/environ; then
+    echo "no process $pid found in /proc" 1>&2
+    exit 1
+else
+    tr '\0' '\n' < /proc/"$pid"/environ
+fi
