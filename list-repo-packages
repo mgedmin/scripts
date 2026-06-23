@@ -263,9 +263,16 @@ class ReleaseFile:
     def _release(self) -> deb822.Release:
         release = deb822.Release(BytesIO(self.data))
         assert release['Suite'] == self.suite
-        assert release['Acquire-By-Hash'] == 'yes'
         assert 'SHA256' in release
         return release
+
+    @cached_property
+    def acquire_by_hash(self) -> bool:
+        if self._release.get('Acquire-By-Hash') != 'yes':
+            ui.warn(f"{self.url} doesn't have Acquire-By-Hash: yes")
+            return False
+        else:
+            return True
 
     @cached_property
     def packages_files(self) -> list[PackagesFile]:
@@ -279,6 +286,7 @@ class ReleaseFile:
                 path=p["name"],
                 sha256=p["sha256"],
                 size=p["size"],
+                acquire_by_hash=self.acquire_by_hash,
             )
             for p in self._release['SHA256']
             if p['name'].endswith('/Packages.gz')
@@ -308,6 +316,8 @@ class PackagesFile:
     sha256: str = field(kw_only=True, repr=False)
     size: str = field(kw_only=True, repr=False)
 
+    acquire_by_hash: bool
+
     @property
     def url_by_name(self) -> str:
         return f'{self.uri}/dists/{self.suite}/{self.path}'
@@ -335,9 +345,12 @@ class PackagesFile:
     def raw_data(self) -> bytes:
         if self.size == '0':
             return b''
-        return fetch_cached(
-            self.url_by_hash, self.sha256, symlink=self.url_by_name
-        )
+        if self.acquire_by_hash:
+            return fetch_cached(
+                self.url_by_hash, self.sha256, symlink=self.url_by_name
+            )
+        else:
+            return fetch(self.url_by_name)
 
     @cached_property
     def data(self) -> bytes:
