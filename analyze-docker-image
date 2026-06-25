@@ -32,6 +32,7 @@ See https://github.com/opencontainers/image-spec/ for the spec.
 from __future__ import annotations
 
 import argparse
+import ast
 import datetime
 import io
 import json
@@ -384,6 +385,15 @@ def save_image_to_cache(
     )
 
 
+def unquote(s: str) -> str:
+    # https://www.freedesktop.org/software/systemd/man/latest/os-release.html
+    # has a Python example for parsing /etc/os-release, and that example uses
+    # ast.literal_eval() to unquote and handle backslashes.
+    if s and s[0] in ('"', "'"):
+        return ast.literal_eval(s)
+    return s
+
+
 @dataclass
 class DockerImage:
 
@@ -561,6 +571,15 @@ class DockerImageLayer:
         # I will get an error during seek.
         return tarfile.open(fileobj=io.BytesIO(self.tarfile_in_memory))
 
+    def get_contents(self, filename: str) -> bytes:
+        with self.open() as tf:
+            fp = tf.extractfile(filename)
+            if fp is None:
+                # This happens when the tar member is a directory or a device
+                # node
+                raise tarfile.ReadError(f'{filename} is not a regular file')
+            return fp.read()
+
     @cached_property
     def files(self) -> list[str]:
         with self.open() as tf:
@@ -568,7 +587,7 @@ class DockerImageLayer:
 
     @cached_property
     def summary(self) -> Summary:
-        return Summary(self.files, size=self.size)
+        return Summary(self.files, size=self.size, layer=self)
 
 
 def files_without_parents(files: Iterable[str]) -> list[str]:
@@ -582,14 +601,12 @@ def files_without_parents(files: Iterable[str]) -> list[str]:
 @dataclass
 class Summary:
 
-    files: list[str]
+    files: list[str] = field(default_factory=list)
     size: int | None = None
+    layer: DockerImageLayer | None = None
 
-    def __init__(
-        self, files: Iterable[str] = (), *, size: int | None = None
-    ) -> None:
-        self.size = size
-        self.files = files_without_parents(files)
+    def __post_init__(self) -> None:
+        self.files = files_without_parents(self.files)
 
     @property
     def size_summary(self) -> str:
@@ -609,7 +626,29 @@ class Summary:
             where = os.path.commonpath(self.files)
             if where:
                 lines[-1] += f' in {where}'
+        if 'etc/os-release' in self.files and self.layer:
+            os_release = OSRelease.from_docker_layer(self.layer)
+            lines.append(f'{prefix}etc/os-release says {os_release}')
         return '\n'.join(lines)
+
+
+@dataclass
+class OSRelease:
+
+    items: dict[str, str] = field(default_factory=dict)
+
+    @classmethod
+    def from_docker_layer(cls, layer: DockerImageLayer) -> OSRelease:
+        contents = layer.get_contents('etc/os-release').decode()
+        items = {}
+        for line in contents.splitlines():
+            if not line.startswith('#'):
+                key, _, value = line.partition('=')
+                items[key] = unquote(value)
+        return cls(items)
+
+    def __str__(self) -> str:
+        return self.items.get('PRETTY_NAME') or '(unknown)'
 
 
 @dataclass
