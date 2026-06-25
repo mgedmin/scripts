@@ -285,8 +285,14 @@ def fmt_timestamp(ts: datetime.datetime) -> str:
 
 
 def fmt_timedelta(delta: datetime.timedelta) -> str:
-    if delta.days:
+    if delta.days >= 365:
+        return fmt_count(delta.days // 365, 'years')
+    elif delta.days:
         return fmt_count(delta.days, 'days')
+    elif delta.seconds >= 3600:
+        return fmt_count(delta.seconds // 3600, 'hours')
+    elif delta.seconds >= 60:
+        return fmt_count(delta.seconds // 60, 'minutes')
     elif delta.seconds:
         return fmt_count(delta.seconds, 'seconds')
     elif delta.microseconds:
@@ -854,7 +860,7 @@ class HistoryStep:
         parts = []
         if prev_step:
             delta = self.timestamp - prev_step.timestamp
-            if delta > datetime.timedelta(days=1):
+            if delta > datetime.timedelta(hours=1):
                 parts.append(f"\n# ----- {fmt_timedelta(delta)} later -----\n")
                 parts.append(self.header)
             elif self.header != prev_step.header:
