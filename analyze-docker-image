@@ -223,6 +223,7 @@ def extract_json_file(
 def extract_layers(
     ui: UI, image: DockerImage, output_dir: pathlib.Path
 ) -> None:
+    rmtree_if_exists(output_dir.joinpath('layers'))
     for layer in image.layers:
         with layer.open() as tf:
             count = len(tf.getnames())
@@ -262,6 +263,7 @@ def filter_existing(
 def create_merged_rootfs(
     ui: UI, image: DockerImage, output_dir: pathlib.Path
 ) -> None:
+    rmtree_if_exists(output_dir.joinpath('rootfs'))
     image.tree.materialize(ui, output_dir.joinpath('rootfs'))
 
 
@@ -274,6 +276,17 @@ def write_layer_history(
         ui.output(image.history.format(), file=fp)
     if ui.debug:
         ui.info('')
+
+
+def rmtree_if_exists(path: pathlib.Path) -> None:
+
+    def ignore_file_not_found(fn, p, exc) -> None:
+        if p == path and isinstance(exc, FileNotFoundError):
+            pass
+        else:
+            raise
+
+    shutil.rmtree(path, onexc=ignore_file_not_found)
 
 
 def is_empty_directory(path: pathlib.Path) -> bool:
