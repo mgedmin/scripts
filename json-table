@@ -1,0 +1,55 @@
+#!/usr/bin/python3
+"""
+Read a list of JSON records from stdin, format them as a table.
+"""
+
+import argparse
+import json
+import sys
+from collections import defaultdict
+
+
+parser = argparse.ArgumentParser(description=__doc__.strip())
+parser.add_argument("filename", nargs='?', metavar="filename.json")
+
+
+class Error(SystemExit):
+    pass
+
+
+def main():
+    args = parser.parse_args()
+    if not args.filename or args.filename == '-':
+        if sys.stdin.isatty():
+            parser.error('refusing to read from a terminal')
+        records = json.load(sys.stdin)
+    else:
+        with open(args.filename) as f:
+            records = json.load(f)
+
+    if not isinstance(records, list):
+        raise Error("json data is not a list")
+    if not records:
+        print("mo data")
+        return
+    fields = defaultdict(int)
+    for n, record in enumerate(records):
+        if not isinstance(record, dict):
+            raise Error(f"Item [{n}] is not an object")
+        for k, v in record.items():
+            fields[k] = max(fields[k], len(str(v)))
+
+    for k, w in fields.items():
+        fields[k] = max(w, len(k))
+
+    header = " ".join(k.ljust(w) for k, w in fields.items())
+    underline = " ".join("-" * w for k, w in fields.items())
+    print(header)
+    print(underline)
+    for record in records:
+        row = " ".join(str(record.get(k)).ljust(w) for k, w in fields.items())
+        print(row)
+
+
+if __name__ == "__main__":
+    main()
