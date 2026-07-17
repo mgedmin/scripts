@@ -14,16 +14,21 @@ parser.add_argument("filename", nargs='?', metavar="filename.json")
 parser.add_argument(
     "-o",
     "--column-order",
-    metavar="FIELD1,FIELD2,...",
+    metavar="COL1,COL2,...",
     help="comma-separated list of field names for reordering columns",
 )
-
+parser.add_argument(
+    "-r",
+    "--rename-columns",
+    metavar="COL1=FIELD1,COL2=FIELD2,...",
+    help="comma-separated list of column names and field names for them",
+)
 parser.add_argument(
     "-s",
     "--sort",
-    metavar="[,-]FIELD1,[-]FIELD2,...",
+    metavar="[,-]COL1,[-]COL2,...",
     help=(
-        "comma-separated list of field names for sorting rows"
+        "comma-separated list of column names for sorting rows"
         " (a - prefix reverses the order)"
     ),
 )
@@ -48,37 +53,55 @@ def main():
     if not records:
         print("mo data")
         return
-    fields = defaultdict(lambda: len('None'))
+
+    # mapping of column names to maximum widths
+    # initialize all to 4 in case some rows have missing values
+    columns = defaultdict(lambda: len('None'))
     if args.column_order:
-        for f in map(str.strip, args.column_order.split(',')):
-            if f:
-                fields[f]  # autovivify
+        for c in map(str.strip, args.column_order.split(',')):
+            if c:
+                columns[c]  # autovivify
+    field2col = {}
+    col2field = {}
+    if args.rename_columns:
+        for cf in args.rename_columns.split(","):
+            col, _, field = cf.partition('=')
+            col = col.strip()
+            field = field.strip()
+            field2col[field] = col
+            col2field[col] = field
     for n, record in enumerate(records):
         if not isinstance(record, dict):
             raise Error(f"Item [{n}] is not an object")
         for k, v in record.items():
-            fields[k] = max(fields[k], len(str(v)))
-    for k, w in fields.items():
-        fields[k] = max(w, len(k))
+            c = field2col.get(k, k)
+            columns[c] = max(columns[c], len(str(v)))
+    for c, w in columns.items():
+        columns[c] = max(w, len(c))
 
     if args.sort:
-        sort_fields = [f.strip() for f in args.sort.split(',')]
-        for field in sort_fields[::-1]:
-            if not field:
+        for c in reversed(args.sort.split(',')):
+            c = c.strip()
+            if not c:
                 continue
-            reverse = field.startswith('-')
-            field = field.removeprefix('-')
+            reverse = c.startswith('-')
+            c = c.removeprefix('-')
+            field = col2field.get(c, c)
             records.sort(
                 key=lambda r: (type(r.get(field)), r.get(field)),
                 reverse=reverse,
             )
 
-    header = " ".join(k.ljust(w) for k, w in fields.items())
-    underline = " ".join("-" * w for k, w in fields.items())
+    sep = "  "
+    header = sep.join(c.ljust(w) for c, w in columns.items())
+    underline = sep.join("-" * w for c, w in columns.items())
     print(header)
     print(underline)
     for record in records:
-        row = " ".join(str(record.get(k)).ljust(w) for k, w in fields.items())
+        row = sep.join(
+            str(record.get(col2field.get(c, c))).ljust(w)
+            for c, w in columns.items()
+        )
         print(row)
 
 
