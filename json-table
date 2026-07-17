@@ -11,6 +11,22 @@ from collections import defaultdict
 
 parser = argparse.ArgumentParser(description=__doc__.strip())
 parser.add_argument("filename", nargs='?', metavar="filename.json")
+parser.add_argument(
+    "-o",
+    "--column-order",
+    metavar="FIELD1,FIELD2,...",
+    help="comma-separated list of field names for reordering columns",
+)
+
+parser.add_argument(
+    "-s",
+    "--sort",
+    metavar="[,-]FIELD1,[-]FIELD2,...",
+    help=(
+        "comma-separated list of field names for sorting rows"
+        " (a - prefix reverses the order)"
+    ),
+)
 
 
 class Error(SystemExit):
@@ -32,15 +48,30 @@ def main():
     if not records:
         print("mo data")
         return
-    fields = defaultdict(int)
+    fields = defaultdict(lambda: len('None'))
+    if args.column_order:
+        for f in map(str.strip, args.column_order.split(',')):
+            if f:
+                fields[f]  # autovivify
     for n, record in enumerate(records):
         if not isinstance(record, dict):
             raise Error(f"Item [{n}] is not an object")
         for k, v in record.items():
             fields[k] = max(fields[k], len(str(v)))
-
     for k, w in fields.items():
         fields[k] = max(w, len(k))
+
+    if args.sort:
+        sort_fields = [f.strip() for f in args.sort.split(',')]
+        for field in sort_fields[::-1]:
+            if not field:
+                continue
+            reverse = field.startswith('-')
+            field = field.removeprefix('-')
+            records.sort(
+                key=lambda r: (type(r.get(field)), r.get(field)),
+                reverse=reverse,
+            )
 
     header = " ".join(k.ljust(w) for k, w in fields.items())
     underline = " ".join("-" * w for k, w in fields.items())
