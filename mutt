@@ -1,8 +1,11 @@
 #!/bin/bash
 where=~/src/neomutt
-where_po=~/src/neomutt-lt/po
 where_mo=~/.local/share/locale/lt/LC_MESSAGES
+where_po=~/src/neomutt-lt/po
 
+if ! test -d "$where_po"; then
+    where_po="$where/po"
+fi
 
 # https://clang.llvm.org/docs/AddressSanitizer.html#suppressing-memory-leaks
 export LSAN_OPTIONS=suppressions=$HOME/.lsan.supp
