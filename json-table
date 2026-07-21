@@ -34,8 +34,17 @@ parser.add_argument(
 )
 
 
+NULL = 'null'
+
+
 class Error(SystemExit):
     pass
+
+
+def value2str(value):
+    if value is None:
+        return NULL
+    return str(value)
 
 
 def main():
@@ -56,7 +65,7 @@ def main():
 
     # mapping of column names to maximum widths
     # initialize all to 4 in case some rows have missing values
-    columns = defaultdict(lambda: len('None'))
+    columns = defaultdict(lambda: len(NULL))
     if args.column_order:
         for c in map(str.strip, args.column_order.split(',')):
             if c:
@@ -75,7 +84,7 @@ def main():
             raise Error(f"Item [{n}] is not an object")
         for k, v in record.items():
             c = field2col.get(k, k)
-            columns[c] = max(columns[c], len(str(v)))
+            columns[c] = max(columns[c], len(value2str(v)))
     for c, w in columns.items():
         columns[c] = max(w, len(c))
 
@@ -99,7 +108,7 @@ def main():
     print(underline)
     for record in records:
         row = sep.join(
-            str(record.get(col2field.get(c, c))).ljust(w)
+            value2str(record.get(col2field.get(c, c))).ljust(w)
             for c, w in columns.items()
         )
         print(row)
