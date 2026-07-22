@@ -8,6 +8,7 @@ import enum
 import json
 import os
 import sys
+from abc import abstractproperty
 from collections import defaultdict
 
 
@@ -39,7 +40,7 @@ parser.add_argument(
 NULL = 'null'
 
 
-class Colors(enum.StrEnum):
+class Color(enum.StrEnum):
     NONE = ''
     BLACK = '30'
     RED = '31'
@@ -74,36 +75,59 @@ class Colors(enum.StrEnum):
 
 
 class Theme:
+    @abstractproperty
+    def TITLE(self) -> Color: ...
+
+    @abstractproperty
+    def SEPARATOR(self) -> Color: ...
+
+    @abstractproperty
+    def STRING_VALUE(self) -> Color: ...
+
+    @abstractproperty
+    def NUMERIC_VALUE(self) -> Color: ...
+
+    @abstractproperty
+    def NULL_VALUE(self) -> Color: ...
+
+    @abstractproperty
+    def OTHER_VALUE(self) -> Color: ...
+
     def title(self, s: str, width: int | None = None) -> str:
         return self.TITLE.wrap(s, width=width)
 
     def separator(self, s: str, width: int | None = None) -> str:
         return self.SEPARATOR.wrap(s, width=width)
 
-    def str(self, s: object, width: int | None = None) -> str:
+    def string_value(self, s: object, width: int | None = None) -> str:
         return self.STRING_VALUE.wrap(s, width=width)
 
-    def num(self, s: object, width: int | None = None) -> str:
+    def numeric_value(self, s: object, width: int | None = None) -> str:
         return self.NUMERIC_VALUE.wrap(s, width=width)
 
     def null(self, s: object = NULL, width: int | None = None) -> str:
         return self.NULL_VALUE.wrap(s, width=width)
 
+    def other_value(self, s: object, width: int | None = None) -> str:
+        return self.OTHER_VALUE.wrap(s, width=width)
+
 
 class ColorfulTheme(Theme):
-    TITLE = Colors.BRIGHT_BLUE
-    SEPARATOR = Colors.BRIGHT_BLUE
-    STRING_VALUE = Colors.GREEN
-    NUMERIC_VALUE = Colors.GREY
-    NULL_VALUE = Colors.DARK_GREY
+    TITLE = Color.BRIGHT_BLUE
+    SEPARATOR = Color.BRIGHT_BLUE
+    STRING_VALUE = Color.GREEN
+    NUMERIC_VALUE = Color.GREY
+    NULL_VALUE = Color.DARK_GREY
+    OTHER_VALUE = Color.GREY
 
 
 class PlainTheme(Theme):
-    TITLE = Colors.NONE
-    SEPARATOR = Colors.NONE
-    STRING_VALUE = Colors.NONE
-    NUMERIC_VALUE = Colors.NONE
-    NULL_VALUE = Colors.NONE
+    TITLE = Color.NONE
+    SEPARATOR = Color.NONE
+    STRING_VALUE = Color.NONE
+    NUMERIC_VALUE = Color.NONE
+    NULL_VALUE = Color.NONE
+    OTHER_VALUE = Color.NONE
 
 
 class Error(SystemExit):
@@ -117,14 +141,11 @@ def value2str(
         case None:
             return theme.null(width=width)
         case str():
-            return theme.str(value, width=width)
+            return theme.string_value(value, width=width)
         case int() | float():
-            return theme.num(value, width=width)
+            return theme.numeric_value(value, width=width)
         case _:
-            if width is not None:
-                return str(value).ljust(width)
-            else:
-                return str(value)
+            return theme.other_value(value, width=width)
 
 
 def main():
