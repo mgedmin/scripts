@@ -4,7 +4,9 @@ Read a list of JSON records from stdin, format them as a table.
 """
 
 import argparse
+import enum
 import json
+import os
 import sys
 from collections import defaultdict
 
@@ -37,17 +39,102 @@ parser.add_argument(
 NULL = 'null'
 
 
+class Colors(enum.StrEnum):
+    NONE = ''
+    BLACK = '30'
+    RED = '31'
+    GREEN = '32'
+    YELLOW = '33'
+    BLUE = '34'
+    PURPLE = '35'
+    CYAN = '36'
+    GREY = '37'
+    DARK_GREY = f'1;{BLACK}'
+    BRIGHT_RED = f'1;{RED}'
+    BRIGHT_GREEN = f'1;{GREEN}'
+    BRIGHT_BLUE = f'1;{BLUE}'
+    WHITE = f'1;{GREY}'
+
+    def ansi(self) -> str:
+        if not self.value:
+            return ''
+        return f'\x1B[{self.value}m'
+
+    def reset(self) -> str:
+        return '\x1B[m'
+
+    def wrap(self, s: object, width: int | None = None) -> str:
+        if width is not None:
+            s = str(s).ljust(width)
+        else:
+            s = str(s)
+        if not self.value:
+            return s
+        return f'{self.ansi()}{s}{self.reset()}'
+
+
+class Theme:
+    def title(self, s: str, width: int | None = None) -> str:
+        return self.TITLE.wrap(s, width=width)
+
+    def separator(self, s: str, width: int | None = None) -> str:
+        return self.SEPARATOR.wrap(s, width=width)
+
+    def str(self, s: object, width: int | None = None) -> str:
+        return self.STRING_VALUE.wrap(s, width=width)
+
+    def num(self, s: object, width: int | None = None) -> str:
+        return self.NUMERIC_VALUE.wrap(s, width=width)
+
+    def null(self, s: object = NULL, width: int | None = None) -> str:
+        return self.NULL_VALUE.wrap(s, width=width)
+
+
+class ColorfulTheme(Theme):
+    TITLE = Colors.BRIGHT_BLUE
+    SEPARATOR = Colors.BRIGHT_BLUE
+    STRING_VALUE = Colors.GREEN
+    NUMERIC_VALUE = Colors.GREY
+    NULL_VALUE = Colors.DARK_GREY
+
+
+class PlainTheme(Theme):
+    TITLE = Colors.NONE
+    SEPARATOR = Colors.NONE
+    STRING_VALUE = Colors.NONE
+    NUMERIC_VALUE = Colors.NONE
+    NULL_VALUE = Colors.NONE
+
+
 class Error(SystemExit):
     pass
 
 
-def value2str(value):
-    if value is None:
-        return NULL
-    return str(value)
+def value2str(
+    value: object, theme: Theme = PlainTheme(), width: int | None = None
+) -> str:
+    match value:
+        case None:
+            return theme.null(width=width)
+        case str():
+            return theme.str(value, width=width)
+        case int() | float():
+            return theme.num(value, width=width)
+        case _:
+            if width is not None:
+                return str(value).ljust(width)
+            else:
+                return str(value)
 
 
 def main():
+    if (
+        os.getenv('FORCE_COLOR')
+        or sys.stdout.isatty() and not os.getenv('NO_COLOR')
+    ):
+        theme = ColorfulTheme()
+    else:
+        theme = PlainTheme()
     args = parser.parse_args()
     if not args.filename or args.filename == '-':
         if sys.stdin.isatty():
@@ -60,7 +147,7 @@ def main():
     if not isinstance(records, list):
         raise Error("json data is not a list")
     if not records:
-        print("mo data")
+        print(theme.null("no data"))
         return
 
     # mapping of column names to maximum widths
@@ -104,11 +191,11 @@ def main():
     sep = "  "
     header = sep.join(c.ljust(w) for c, w in columns.items())
     underline = sep.join("-" * w for c, w in columns.items())
-    print(header)
-    print(underline)
+    print(theme.title(header))
+    print(theme.separator(underline))
     for record in records:
         row = sep.join(
-            value2str(record.get(col2field.get(c, c))).ljust(w)
+            value2str(record.get(col2field.get(c, c)), theme, width=w)
             for c, w in columns.items()
         )
         print(row)
