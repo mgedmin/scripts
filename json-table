@@ -35,7 +35,25 @@ parser.add_argument(
     "-o",
     "--column-order",
     metavar="COL1,COL2,...",
-    help="comma-separated list of field names for reordering columns",
+    help=(
+        "comma-separated list of columns for changing display order"
+        " (columns not listed here will be added in order of appearance)"
+    ),
+)
+parser.add_argument(
+    "-H",
+    "--hide-columns",
+    metavar="COL1,COL2,...",
+    help="comma-separated list of columns to remove from output",
+)
+parser.add_argument(
+    "-O",
+    "--only-columns",
+    metavar="COL1,COL2,...",
+    help=(
+        "comma-separated list of columns to display"
+        " (columns not listed here will be removed from output)"
+    ),
 )
 parser.add_argument(
     "-s",
@@ -96,6 +114,15 @@ def main():
 
     args = parser.parse_args()
 
+    if args.only_columns and args.column_order:
+        parser.error(
+            "--only-columns and --column-order are mutually exclusive"
+        )
+    if args.only_columns and args.hide_columns:
+        parser.error(
+            "--only-columns and --hide-columns are mutually exclusive"
+        )
+
     if not args.filename or args.filename == '-':
         if sys.stdin.isatty():
             parser.error('refusing to read from a terminal')
@@ -128,9 +155,18 @@ def main():
     # mapping of column names to maximum widths
     # initialize all to 4 in case some rows have missing values
     columns = {}
-    if args.column_order:
-        for c in map(str.strip, args.column_order.split(',')):
+    hide_columns = set()
+    if args.hide_columns:
+        for c in map(str.strip, args.hide_columns.split(',')):
             if c:
+                hide_columns.add(c)
+    if args.only_columns:
+        for c in map(str.strip, args.only_columns.split(',')):
+            if c:
+                columns[c] = None
+    elif args.column_order:
+        for c in map(str.strip, args.column_order.split(',')):
+            if c and c not in hide_columns:
                 columns[c] = None
     field2col = {}
     col2field = {}
@@ -147,7 +183,8 @@ def main():
             sys.exit(1)
         for k, v in record.items():
             c = field2col.get(k, k)
-            columns[c] = None
+            if not args.only_columns and c not in hide_columns:
+                columns[c] = None
 
     if args.sort:
         for c in reversed(args.sort.split(',')):
