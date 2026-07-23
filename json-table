@@ -162,7 +162,6 @@ def main():
     # initialize all to 4 in case some rows have missing values
     columns = {}
     min_width = {}
-    max_width = {}
     hide_columns = set()
     if args.hide_columns:
         for c in map(str.strip, args.hide_columns.split(',')):
