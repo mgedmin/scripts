@@ -159,7 +159,6 @@ def main():
         return
 
     # mapping of column names to maximum widths
-    # initialize all to 4 in case some rows have missing values
     columns = {}
     min_width = {}
     hide_columns = set()
