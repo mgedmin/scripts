@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """
-Read a list of JSON records from stdin, format them as a table.
+Read a JSON list of records from stdin or file, format them as a table.
 """
 
 import argparse
@@ -15,16 +15,16 @@ from functools import partial, partialmethod
 parser = argparse.ArgumentParser(description=__doc__.strip())
 parser.add_argument("filename", nargs='?', metavar="filename.json")
 parser.add_argument(
-    "-o",
-    "--column-order",
-    metavar="COL1,COL2,...",
-    help="comma-separated list of field names for reordering columns",
-)
-parser.add_argument(
     "-r",
     "--rename-columns",
     metavar="COL1=FIELD1,COL2=FIELD2,...",
     help="comma-separated list of column names and field names for them",
+)
+parser.add_argument(
+    "-o",
+    "--column-order",
+    metavar="COL1,COL2,...",
+    help="comma-separated list of field names for reordering columns",
 )
 parser.add_argument(
     "-s",
