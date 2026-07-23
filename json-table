@@ -1,16 +1,26 @@
-#!/usr/bin/python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "rich>=15.0.0",
+# ]
+# ///
+
 """
 Read a JSON list of records from stdin or file, format them as a table.
 """
 
 import argparse
-import enum
 import json
-import os
 import pathlib
 import sys
-from collections import defaultdict
-from functools import partial, partialmethod
+
+from rich import box
+from rich.console import Console
+from rich.style import StyleType
+from rich.table import Table
+from rich.text import Text, TextType
+from rich.theme import Theme
 
 
 parser = argparse.ArgumentParser(description=__doc__.strip())
@@ -38,118 +48,54 @@ parser.add_argument(
 )
 
 
+SIMPLE_ASCII = box.Box(
+    "    \n"
+    "    \n"
+    " -  \n"
+    "    \n"
+    "    \n"
+    " -  \n"
+    "    \n"
+    "    \n"
+)
+
+
 NULL = 'null'
 
 
-class Color(enum.StrEnum):
-    NONE = ''
-    BLACK = '30'
-    RED = '31'
-    GREEN = '32'
-    YELLOW = '33'
-    BLUE = '34'
-    PURPLE = '35'
-    CYAN = '36'
-    GREY = '37'
-    DARK_GREY = f'1;{BLACK}'
-    BRIGHT_RED = f'1;{RED}'
-    BRIGHT_GREEN = f'1;{GREEN}'
-    BRIGHT_YELLOW = f'1;{YELLOW}'
-    BRIGHT_BLUE = f'1;{BLUE}'
-    BRIGHT_PURPLE = f'1;{PURPLE}'
-    BRIGHT_CYAN = f'1;{CYAN}'
-    WHITE = f'1;{GREY}'
-
-    def ansi(self) -> str:
-        if not self.value:
-            return ''
-        return f'\x1B[{self.value}m'
-
-    def reset(self) -> str:
-        return '\x1B[m'
-
-    def wrap(self, s: object, width: int | None = None) -> str:
-        if width is not None:
-            s = str(s).ljust(width)
-        else:
-            s = str(s)
-        if not self.value:
-            return s
-        return f'{self.ansi()}{s}{self.reset()}'
+THEME = Theme({
+    'title': 'bright_blue',
+    'separator': 'bright_blue',
+    'string_value': 'green',
+    'numeric_value': 'white',
+    'null_value': 'bright_black',
+    'other_value': 'white',
+    'error': 'red',
+})
 
 
-class ThemeColor(enum.StrEnum):
-    TITLE = 'title'
-    SEPARATOR = 'separator'
-    STRING_VALUE = 'string_value'
-    NUMERIC_VALUE = 'numeric_value'
-    NULL_VALUE = 'null_value'
-    OTHER_VALUE = 'other_value'
-    ERROR = 'error'
-
-
-class Theme:
-    _colors: dict[ThemeColor, Color] = {}
-
-    def _format(
-        self, _attr: ThemeColor, obj: object, /, width: int | None = None
-    ) -> str:
-        return self._colors.get(_attr, Color.NONE).wrap(obj, width=width)
-
-    _formatter = partial(partialmethod, _format)
-
-    title = _formatter(ThemeColor.TITLE)
-    separator = _formatter(ThemeColor.SEPARATOR)
-    string_value = _formatter(ThemeColor.STRING_VALUE)
-    numeric_value = _formatter(ThemeColor.NUMERIC_VALUE)
-    null = _formatter(ThemeColor.NULL_VALUE)
-    other_value = _formatter(ThemeColor.OTHER_VALUE)
-    error = _formatter(ThemeColor.ERROR)
-
-
-class ColorfulTheme(Theme):
-    _colors = {
-        ThemeColor.TITLE: Color.BRIGHT_BLUE,
-        ThemeColor.SEPARATOR: Color.BRIGHT_BLUE,
-        ThemeColor.STRING_VALUE: Color.GREEN,
-        ThemeColor.NUMERIC_VALUE: Color.GREY,
-        ThemeColor.NULL_VALUE: Color.DARK_GREY,
-        ThemeColor.OTHER_VALUE: Color.GREY,
-        ThemeColor.ERROR: Color.RED,
-    }
-
-
-class PlainTheme(Theme):
-    pass
-
-
-class Error(SystemExit):
-    pass
-
-
-def value2str(
-    value: object, theme: Theme = PlainTheme(), width: int | None = None
-) -> str:
+def value2str(value: object) -> TextType:
     match value:
         case None:
-            return theme.null(NULL, width=width)
+            return Text(NULL, style='null_value')
         case str():
-            return theme.string_value(value, width=width)
+            return Text(value, style='string_value')
         case int() | float():
-            return theme.numeric_value(value, width=width)
+            return Text(str(value), style='numeric_value')
         case _:
-            return theme.other_value(value, width=width)
+            return Text(str(value), style='other_value')
+
+
+def print_error(msg: str, style: StyleType = 'error') -> None:
+    console = Console(theme=THEME, stderr=True)
+    console.print(Text(msg, style='error'))
 
 
 def main():
-    if (
-        os.getenv('FORCE_COLOR')
-        or sys.stdout.isatty() and not os.getenv('NO_COLOR')
-    ):
-        theme = ColorfulTheme()
-    else:
-        theme = PlainTheme()
+    console = Console(theme=THEME)
+
     args = parser.parse_args()
+
     if not args.filename or args.filename == '-':
         if sys.stdin.isatty():
             parser.error('refusing to read from a terminal')
@@ -158,32 +104,34 @@ def main():
         data = pathlib.Path(args.filename).read_text()
 
     if not data:
-        print(theme.error("input is empty"), file=sys.stderr)
+        print_error("input is empty")
         sys.exit(1)
+
     try:
         records = json.loads(data)
     except json.JSONDecodeError as e:
-        print(theme.error(f"JSON parse error: {e}"), file=sys.stderr)
+        print_error(f"JSON parse error: {e}")
         lines = data.splitlines()
-        if e.lineno < len(lines):
-            print(lines[e.lineno], file=sys.stderr)
-            print(f'{"^":{e.colno}}', file=sys.stderr)
+        if 1 <= e.lineno <= len(lines):
+            print_error(lines[e.lineno - 1])
+            print_error(f'{"^":>{e.colno}}')
         sys.exit(1)
 
     if not isinstance(records, list):
-        print(theme.error("JSON data is not a list"), file=sys.stderr)
+        print_error("JSON data is not a list")
         sys.exit(1)
+
     if not records:
-        print(theme.null("no data"))
+        console.print(Text("no data", style='null_value'))
         return
 
     # mapping of column names to maximum widths
     # initialize all to 4 in case some rows have missing values
-    columns = defaultdict(lambda: len(NULL))
+    columns = {}
     if args.column_order:
         for c in map(str.strip, args.column_order.split(',')):
             if c:
-                columns[c]  # autovivify
+                columns[c] = None
     field2col = {}
     col2field = {}
     if args.rename_columns:
@@ -195,13 +143,11 @@ def main():
             col2field[col] = field
     for n, record in enumerate(records):
         if not isinstance(record, dict):
-            print(theme.error("Item [{n}] is not an object"), file=sys.stderr)
+            print_error("Item [{n}] is not an object")
             sys.exit(1)
         for k, v in record.items():
             c = field2col.get(k, k)
-            columns[c] = max(columns[c], len(value2str(v)))
-    for c, w in columns.items():
-        columns[c] = max(w, len(c))
+            columns[c] = None
 
     if args.sort:
         for c in reversed(args.sort.split(',')):
@@ -216,17 +162,25 @@ def main():
                 reverse=reverse,
             )
 
-    sep = "  "
-    header = sep.join(c.ljust(w) for c, w in columns.items())
-    underline = sep.join("-" * w for c, w in columns.items())
-    print(theme.title(header))
-    print(theme.separator(underline))
+    table = Table(
+        box=SIMPLE_ASCII,
+        show_edge=False,
+        pad_edge=False,
+        header_style='title',
+        border_style='separator',
+        padding=(0, 1, 0, 0),
+    )
+    for column in columns:
+        table.add_column(column)
+
     for record in records:
-        row = sep.join(
-            value2str(record.get(col2field.get(c, c)), theme, width=w)
-            for c, w in columns.items()
+        table.add_row(
+            *(
+                value2str(record.get(col2field.get(c, c)))
+                for c in columns
+            )
         )
-        print(row)
+    console.print(table)
 
 
 if __name__ == "__main__":
