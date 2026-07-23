@@ -64,6 +64,12 @@ parser.add_argument(
         " (a - prefix reverses the order)"
     ),
 )
+parser.add_argument(
+    "-W",
+    "--no-wrap",
+    action='store_true',
+    help="truncate table cells instead of wrapping",
+)
 
 
 SIMPLE_ASCII = box.Box(
@@ -155,6 +161,7 @@ def main():
     # mapping of column names to maximum widths
     # initialize all to 4 in case some rows have missing values
     columns = {}
+    min_width = {}
     hide_columns = set()
     if args.hide_columns:
         for c in map(str.strip, args.hide_columns.split(',')):
@@ -185,6 +192,12 @@ def main():
             c = field2col.get(k, k)
             if not args.only_columns and c not in hide_columns:
                 columns[c] = None
+            if args.no_wrap:
+                s = value2str(v)
+                if '\n' not in s:
+                    min_width[c] = max(min_width.get(c, 0), min(40, len(s)))
+    for c in columns:
+        min_width[c] = max(min_width.get(c, 0), len(c))
 
     if args.sort:
         for c in reversed(args.sort.split(',')):
@@ -207,8 +220,8 @@ def main():
         border_style='separator',
         padding=(0, 1, 0, 0),
     )
-    for column in columns:
-        table.add_column(column)
+    for c in columns:
+        table.add_column(c, no_wrap=args.no_wrap, min_width=min_width.get(c))
 
     for record in records:
         table.add_row(
