@@ -162,6 +162,7 @@ def main():
     # initialize all to 4 in case some rows have missing values
     columns = {}
     min_width = {}
+    max_width = {}
     hide_columns = set()
     if args.hide_columns:
         for c in map(str.strip, args.hide_columns.split(',')):
@@ -196,8 +197,13 @@ def main():
                 s = value2str(v)
                 if '\n' not in s:
                     min_width[c] = max(min_width.get(c, 0), min(40, len(s)))
+
+    available_space = console.width
     for c in columns:
+        is_sensible = 0 < min_width.get(c, 0) < 40
         min_width[c] = max(min_width.get(c, 0), len(c))
+        if is_sensible:
+            available_space -= min_width[c] - 2
 
     if args.sort:
         for c in reversed(args.sort.split(',')):
@@ -221,7 +227,12 @@ def main():
         padding=(0, 1, 0, 0),
     )
     for c in columns:
-        table.add_column(c, no_wrap=args.no_wrap, min_width=min_width.get(c))
+        table.add_column(
+            c,
+            no_wrap=args.no_wrap,
+            min_width=min_width.get(c),
+            max_width=available_space,
+        )
 
     for record in records:
         table.add_row(
