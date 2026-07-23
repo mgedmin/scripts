@@ -191,7 +191,7 @@ def main():
             c = c.removeprefix('-')
             field = col2field.get(c, c)
             records.sort(
-                key=lambda r: (type(r.get(field)), r.get(field)),
+                key=lambda r: (str(type(r.get(field))), r.get(field)),
                 reverse=reverse,
             )
 
