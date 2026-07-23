@@ -7,6 +7,7 @@ import argparse
 import enum
 import json
 import os
+import pathlib
 import sys
 from collections import defaultdict
 from functools import partial, partialmethod
@@ -53,7 +54,10 @@ class Color(enum.StrEnum):
     DARK_GREY = f'1;{BLACK}'
     BRIGHT_RED = f'1;{RED}'
     BRIGHT_GREEN = f'1;{GREEN}'
+    BRIGHT_YELLOW = f'1;{YELLOW}'
     BRIGHT_BLUE = f'1;{BLUE}'
+    BRIGHT_PURPLE = f'1;{PURPLE}'
+    BRIGHT_CYAN = f'1;{CYAN}'
     WHITE = f'1;{GREY}'
 
     def ansi(self) -> str:
@@ -81,6 +85,7 @@ class ThemeColor(enum.StrEnum):
     NUMERIC_VALUE = 'numeric_value'
     NULL_VALUE = 'null_value'
     OTHER_VALUE = 'other_value'
+    ERROR = 'error'
 
 
 class Theme:
@@ -99,6 +104,7 @@ class Theme:
     numeric_value = _formatter(ThemeColor.NUMERIC_VALUE)
     null = _formatter(ThemeColor.NULL_VALUE)
     other_value = _formatter(ThemeColor.OTHER_VALUE)
+    error = _formatter(ThemeColor.ERROR)
 
 
 class ColorfulTheme(Theme):
@@ -109,6 +115,7 @@ class ColorfulTheme(Theme):
         ThemeColor.NUMERIC_VALUE: Color.GREY,
         ThemeColor.NULL_VALUE: Color.DARK_GREY,
         ThemeColor.OTHER_VALUE: Color.GREY,
+        ThemeColor.ERROR: Color.RED,
     }
 
 
@@ -146,13 +153,26 @@ def main():
     if not args.filename or args.filename == '-':
         if sys.stdin.isatty():
             parser.error('refusing to read from a terminal')
-        records = json.load(sys.stdin)
+        data = sys.stdin.read()
     else:
-        with open(args.filename) as f:
-            records = json.load(f)
+        data = pathlib.Path(args.filename).read_text()
+
+    if not data:
+        print(theme.error("input is empty"), file=sys.stderr)
+        sys.exit(1)
+    try:
+        records = json.loads(data)
+    except json.JSONDecodeError as e:
+        print(theme.error(f"JSON parse error: {e}"), file=sys.stderr)
+        lines = data.splitlines()
+        if e.lineno < len(lines):
+            print(lines[e.lineno], file=sys.stderr)
+            print(f'{"^":{e.colno}}', file=sys.stderr)
+        sys.exit(1)
 
     if not isinstance(records, list):
-        raise Error("json data is not a list")
+        print(theme.error("JSON data is not a list"), file=sys.stderr)
+        sys.exit(1)
     if not records:
         print(theme.null("no data"))
         return
@@ -175,7 +195,8 @@ def main():
             col2field[col] = field
     for n, record in enumerate(records):
         if not isinstance(record, dict):
-            raise Error(f"Item [{n}] is not an object")
+            print(theme.error("Item [{n}] is not an object"), file=sys.stderr)
+            sys.exit(1)
         for k, v in record.items():
             c = field2col.get(k, k)
             columns[c] = max(columns[c], len(value2str(v)))
