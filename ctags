@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 if [ -d .git ] && ! grep -q '^tags$' .git/info/exclude; then
     echo tags >> .git/info/exclude
 fi
@@ -10,21 +10,22 @@ elif [ -x /usr/bin/ctags-universal ]; then
     ctags=/usr/bin/ctags-universal
 fi
 
+# exuberant-ctags dunno-which-version generates 'i' kind for "from module
+# import name", IIRC?  And I exclude that with --python-kinds=-i from ~/.ctags.
+#
 # universal-ctags 5.9 generates 'x' kind for "from module import name"
-# but doesn't mention the 'x' kind in --list-kinds=python
 # universal-ctags 6.2 generates 'Y' kind for those imports
-# and properly documents the 'Y' kind in --list-kinds=python
 # if you try to pass --kinds-python=-x/-Y for the wrong ctags version, it complains
 #   "Warning: Unsupported kind: 'x' for --kinds-python option"
 # or
 #   "Warning: Unsupported kind: 'Y' for --kinds-python option"
 # and I don't like that, so let's autodetect.
 if $ctags --list-kinds=python | grep -q ^Y; then
-    bad_kind=Y
+    bad_kind=(--kinds-python=-Y)
+elif $ctags --list-kinds=python | grep -q ^x; then
+    bad_kind=(--kinds-python=-x)
 else
-    bad_kind=x
+    bad_kind=()
 fi
 
-# exuberant-ctags doesn't support --kinds-python, only --python-kinds but I'm
-# too tired to fix that properly
-exec $ctags --kinds-python=-$bad_kind "$@"
+exec $ctags "${bad_kind[@]}" "$@"
