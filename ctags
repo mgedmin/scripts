@@ -6,6 +6,8 @@ fi
 ctags=/usr/bin/ctags
 if [ -x ~/src/ctags/ctags ]; then
     ctags=~/src/ctags/ctags
+elif [ -x /usr/bin/ctags-universal ]; then
+    ctags=/usr/bin/ctags-universal
 fi
 
 # universal-ctags 5.9 generates 'x' kind for "from module import name"
@@ -23,4 +25,6 @@ else
     bad_kind=x
 fi
 
+# exuberant-ctags doesn't support --kinds-python, only --python-kinds but I'm
+# too tired to fix that properly
 exec $ctags --kinds-python=-$bad_kind "$@"
