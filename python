@@ -4,10 +4,18 @@ py_ver=${py_ver:-3}  # python == python3 yay! if you want 2.7, use python2
 py_prefix=~/opt/python${py_ver/./}
 
 if [ -x /usr/bin/python"$py_ver" ]; then
+    # things installed with sudo apt-get install
     exec /usr/bin/python"$py_ver" "$@"
+elif [ -x ~/.local/bin/python"$py_ver" ]; then
+    # things installed with uv python install
+    exec ~/.local/bin/python"$py_ver" "$@"
 elif [ -x "$py_prefix"/bin/python"$py_ver" ]; then
+    # things installed with ./rebuild-python
     exec "$py_prefix"/bin/python"$py_ver" "$@"
 elif [ -x /data/data/com.termux/files/usr/bin/python"$py_ver" ]; then
+    # termux puts /usr in a special place for Android reasons;
+    # the python itself is installed with apt-get install
+    # (no sudo on termux, no root for non-jailbroken Android users)
     exec /data/data/com.termux/files/usr/bin/python"$py_ver" "$@"
 else
     printf 'python%s not installed, try\n\n' "$py_ver"
