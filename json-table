@@ -92,6 +92,7 @@ THEME = Theme({
     'separator': 'bright_blue',
     'string_value': 'green',
     'numeric_value': 'white',
+    'bool_value': 'white',
     'null_value': 'bright_black',
     'other_value': 'white',
     'error': 'red',
@@ -104,6 +105,8 @@ def value2str(value: object) -> TextType:
             return Text(NULL, style='null_value')
         case str():
             return Text(value, style='string_value')
+        case bool():
+            return Text(str(value).lower(), style='bool_value')
         case int() | float():
             return Text(str(value), style='numeric_value')
         case _:
