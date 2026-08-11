@@ -195,7 +195,8 @@ def main():
             col2field[col] = field
     for n, record in enumerate(records):
         if not isinstance(record, dict):
-            print_error("Item [{n}] is not an object")
+            print_error(f"Item [{n}] is not an object")
+            console.print(JSON.from_data(record))
             sys.exit(1)
         for k, v in record.items():
             c = field2col.get(k, k)
