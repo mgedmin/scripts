@@ -16,10 +16,11 @@ import pathlib
 import sys
 
 from rich import box
-from rich.console import Console
+from rich.console import Console, RenderableType
+from rich.json import JSON
 from rich.style import StyleType
 from rich.table import Table
-from rich.text import Text, TextType
+from rich.text import Text
 from rich.theme import Theme
 
 
@@ -89,26 +90,32 @@ NULL = 'null'
 
 THEME = Theme({
     'title': 'bright_blue',
+    'json.key': 'bright_blue',
     'separator': 'bright_blue',
-    'string_value': 'green',
-    'numeric_value': 'white',
-    'bool_value': 'white',
-    'null_value': 'bright_black',
+    'json.str': 'green',
+    'json.number': 'white',
+    'json.bool_true': 'white',
+    'json.bool_false': 'white',
+    'json.null': 'bright_black',
     'other_value': 'white',
     'error': 'red',
 })
 
 
-def value2str(value: object) -> TextType:
+def value2str(value: object) -> RenderableType:
     match value:
         case None:
-            return Text(NULL, style='null_value')
+            return Text(NULL, style='json.null')
+        case True:
+            return Text('true', style='json.bool_true')
+        case False:
+            return Text('false', style='json.bool_false')
         case str():
-            return Text(value, style='string_value')
-        case bool():
-            return Text(str(value).lower(), style='bool_value')
+            return Text(value, style='json.str')
         case int() | float():
-            return Text(str(value), style='numeric_value')
+            return Text(str(value), style='json.number')
+        case list() | dict():
+            return JSON.from_data(value)
         case _:
             return Text(str(value), style='other_value')
 
@@ -195,9 +202,11 @@ def main():
             if not args.only_columns and c not in hide_columns:
                 columns[c] = None
             if args.no_wrap:
-                s = value2str(v)
-                if '\n' not in s:
-                    min_width[c] = max(min_width.get(c, 0), min(40, len(s)))
+                match value2str(v):
+                    case str(s) | Text(s) if '\n' not in s:
+                        min_width[c] = max(
+                            min_width.get(c, 0), min(40, len(s))
+                        )
 
     available_space = console.width
     for c in columns:
