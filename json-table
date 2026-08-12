@@ -203,8 +203,8 @@ def main():
             if not args.only_columns and c not in hide_columns:
                 columns[c] = None
             if args.no_wrap:
-                match value2str(v):
-                    case str(s) | Text(s) if '\n' not in s:
+                match s := value2str(v):
+                    case str() | Text() if '\n' not in s:
                         min_width[c] = max(
                             min_width.get(c, 0), min(40, len(s))
                         )
