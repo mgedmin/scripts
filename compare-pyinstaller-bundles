@@ -56,7 +56,7 @@ class ArchiveReader:
         self,
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
-        traceback: TracebackType,
+        traceback: TracebackType | None,
     ) -> None:
         pass
 
@@ -107,7 +107,7 @@ class DebArchiveReader:
         self,
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
-        traceback: TracebackType,
+        traceback: TracebackType | None,
     ) -> None:
         self.deb.close()
         if self.temp_file:

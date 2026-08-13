@@ -29,7 +29,7 @@ def probably_list(p: str) -> bool:
     return False
 
 
-def print_list(p: str) -> str:
+def print_list(p: str) -> None:
     lines = p.splitlines()
     for line in lines:
         print(

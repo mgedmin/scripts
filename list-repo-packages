@@ -18,6 +18,7 @@ import gzip
 import pathlib
 import subprocess
 import sys
+import urllib.error
 import urllib.request
 from contextlib import suppress
 from dataclasses import dataclass, field
