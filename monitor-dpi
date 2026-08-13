@@ -213,7 +213,7 @@ def main():
             monitors = get_xrandr_output()
         except subprocess.CalledProcessError as e:
             print(e.stderr, file=sys.stderr)
-            sys.exit(e)
+            sys.exit(str(e))
         for idx, m in enumerate(monitors):
             if idx > 0:
                 print()
