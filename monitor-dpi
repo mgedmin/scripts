@@ -59,9 +59,10 @@ class PhysicalSize(typing.NamedTuple):
 
     def dpi(self, pixel_size: PixelSize) -> DpiInfo:
         w, h = pixel_size
-        hdpi = w * MM_PER_INCH / self.w_mm
-        vdpi = h * MM_PER_INCH / self.h_mm
-        ddpi = math.hypot(w, h) * MM_PER_INCH / math.hypot(self.w_mm, self.h_mm)
+        hdpi = w * MM_PER_INCH / self.w_mm if self.w_mm else 0
+        vdpi = h * MM_PER_INCH / self.h_mm if self.h_mm else 0
+        d_mm = math.hypot(self.w_mm, self.h_mm)
+        ddpi = math.hypot(w, h) * MM_PER_INCH / d_mm if d_mm else 0
         return DpiInfo(hdpi, vdpi, ddpi)
 
 
