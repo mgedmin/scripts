@@ -26,6 +26,7 @@ import math
 import optparse
 import re
 import subprocess
+import sys
 import typing
 from typing import Iterable, List
 
@@ -208,7 +209,11 @@ def main():
                     " '%prog 1280 800 331 207'.")
     opts, args = parser.parse_args()
     if len(args) == 0:
-        monitors = get_xrandr_output()
+        try:
+            monitors = get_xrandr_output()
+        except subprocess.CalledProcessError as e:
+            print(e.stderr, file=sys.stderr)
+            sys.exit(e)
         for idx, m in enumerate(monitors):
             if idx > 0:
                 print()
