@@ -29,7 +29,7 @@ import re
 import typing
 from typing import Iterable, List
 
-__version__ = '3.0'
+__version__ = '3.0.1'
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
 __url__ = 'https://github.com/mgedmin/scripts/blob/master/monitor-dpi'
 __licence__ = 'GPLv2+'
@@ -212,7 +212,7 @@ def main():
     if len(args) > 4:
         parser.error("too many arguments")
     try:
-        pixel_size = PhysicalSize(float(args[0]), float(args[1]))
+        pixel_size = PixelSize(int(args[0]), int(args[1]))
         if len(args) == 3:
             diagonal_size = DiagonalSize(float(args[2]))
             report_diag(pixel_size, diagonal_size)
