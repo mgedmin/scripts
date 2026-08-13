@@ -24,12 +24,13 @@ Examples:
 """
 import math
 import optparse
-import os
 import re
+import subprocess
 import typing
 from typing import Iterable, List
 
-__version__ = '3.0.1'
+
+__version__ = '3.1.0'
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
 __url__ = 'https://github.com/mgedmin/scripts/blob/master/monitor-dpi'
 __licence__ = 'GPLv2+'
@@ -147,7 +148,13 @@ def get_xrandr_output() -> List[MonitorInfo]:
 
     Spawns xrandr to query the running X server.  Works only on Linux.
     """
-    return list(parse_xrandr_output(os.popen('xrandr')))
+    return list(
+        parse_xrandr_output(
+            subprocess.run(
+                'xrandr', check=True, capture_output=True, text=True
+            ).stdout.splitlines()
+        )
+    )
 
 
 def report_mm(pixel_size: PixelSize, physical_size: PhysicalSize) -> None:
