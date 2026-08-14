@@ -163,7 +163,8 @@ def main() -> None:
         ui.info(f'Image already cached in {fmt_path(cache_file)}'
                 f' ({fmt_size(size)})')
         current_digest = info[0]['Id']  # "sha256:..."
-        cached_digest = DockerImage(cache_file).config_digest
+        with DockerImage(cache_file) as image:
+            cached_digest = image.config_digest
         if current_digest != cached_digest:
             ui.info('Cache is out of date, updating')
             update_cache = True
@@ -176,17 +177,17 @@ def main() -> None:
     else:
         save_image_to_cache(ui, args.image, cache_file, size)
 
-    image = DockerImage(cache_file)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    if 'json' in what_to_extract:
-        extract_metadata(ui, image, output_dir)
-    if 'history' in what_to_extract:
-        write_layer_history(ui, image, output_dir)
-    if 'layers' in what_to_extract:
-        extract_layers(ui, image, output_dir)
-    if 'rootfs' in what_to_extract:
-        create_merged_rootfs(ui, image, output_dir)
-    ui.info(f'Created {fmt_path(output_dir)}/')
+    with DockerImage(cache_file) as image:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        if 'json' in what_to_extract:
+            extract_metadata(ui, image, output_dir)
+        if 'history' in what_to_extract:
+            write_layer_history(ui, image, output_dir)
+        if 'layers' in what_to_extract:
+            extract_layers(ui, image, output_dir)
+        if 'rootfs' in what_to_extract:
+            create_merged_rootfs(ui, image, output_dir)
+        ui.info(f'Created {fmt_path(output_dir)}/')
 
 
 def extract_metadata(
@@ -285,7 +286,7 @@ def rmtree_if_exists(path: pathlib.Path) -> None:
         if p == path and isinstance(exc, FileNotFoundError):
             pass
         else:
-            raise
+            raise  # ruff: ignore[PLE0704]
 
     shutil.rmtree(path, onexc=ignore_file_not_found)
 
@@ -421,16 +422,14 @@ class DockerImage:
 
     def __init__(self, tar_path: pathlib.Path) -> None:
         self.tar_path = tar_path
-        self.tarfile = tarfile.open(tar_path)
-
-    def close(self) -> None:
-        self.tarfile.close()
+        self.tarfile = None
 
     def __enter__(self) -> Self:
+        self.tarfile = tarfile.open(self.tar_path)
         return self
 
     def __exit__(self, *args) -> None:
-        self.close()
+        self.tarfile.close()
 
     def blob_filename(self, digest: str) -> str:
         alg, colon, ref = digest.partition(':')
@@ -438,6 +437,9 @@ class DockerImage:
         return f'blobs/{alg}/{ref}'
 
     def open_member(self, filename: str) -> IO[bytes]:
+        assert (
+            self.tarfile
+        ), 'use a context manager, e.g. with DockerImage(...) as ...:'
         fp = self.tarfile.extractfile(filename)
         if fp is None:
             # This happens when the tar member is a directory or a device node
