@@ -21,12 +21,15 @@ import time
 
 def lsof(filename):
     pid = fd = None
-    pipe = subprocess.Popen(['lsof', '-Fpf', filename], stdout=subprocess.PIPE)
-    for line in pipe.stdout:
-        if line.startswith(b'p'):
-            pid = int(line[1:])
-        elif line.startswith(b'f'):
-            fd = int(line[1:])
+    with subprocess.Popen(
+        ['lsof', '-Fpf', filename], stdout=subprocess.PIPE
+    ) as pipe:
+        assert pipe.stdout is not None
+        for line in pipe.stdout:
+            if line.startswith(b'p'):
+                pid = int(line[1:])
+            elif line.startswith(b'f'):
+                fd = int(line[1:])
     return pid, fd
 
 
@@ -103,7 +106,7 @@ def do_print(str):
 
 def do_main():
     parser = optparse.OptionParser(usage='%prog {pid fd|filename}')
-    opts, args = parser.parse_args()
+    _opts, args = parser.parse_args()
     if len(args) < 1:
         parser.error("not enough arguments")
     if len(args) > 2:

@@ -18,17 +18,20 @@ def hex2char(s):
 
 
 def grep_charmap(grep, charmap, regex):
-    pipe = subprocess.Popen(
+    with subprocess.Popen(
         [grep, '-hi', '-e', regex, charmap],
-        stdout=subprocess.PIPE, encoding='UTF-8')
-    rx = re.compile(r'<U([0-9A-Fa-f]{4}|[0-9A-Fa-f]{8})>')
-    for line in pipe.stdout:
-        print(
-            rx.sub(
-                lambda m: f'{printable(hex2char(m[1]))}\t{m[0]}',
-                line,
-            ).rstrip()
-        )
+        stdout=subprocess.PIPE,
+        encoding='UTF-8',
+    ) as pipe:
+        rx = re.compile(r'<U([0-9A-Fa-f]{4}|[0-9A-Fa-f]{8})>')
+        assert pipe.stdout
+        for line in pipe.stdout:
+            print(
+                rx.sub(
+                    lambda m: f'{printable(hex2char(m[1]))}\t{m[0]}',
+                    line,
+                ).rstrip()
+            )
 
 
 def grep_unicodedata(regex):
