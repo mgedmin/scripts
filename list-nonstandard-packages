@@ -18,9 +18,11 @@ package_count = 0
 for package in cache:
     if (
         package.is_installed
+        and package.candidate
         and package.candidate.origins[0].origin != "Ubuntu"
     ):
         package_origin = package.candidate.origins[0]
+        # ruff: ignore[E501]
         print(
             package.name,
             # See https://apt-team.pages.debian.net/python-apt/library/apt.package.html#apt.package.Origin

@@ -94,6 +94,7 @@ def parse_xrandr_output(output: Iterable[str]) -> Iterable[MonitorInfo]:
     Returns an iterable of tuples (name, w_px, h_px, w_mm, h_mm), one for each
     connected monitor.
     """
+    # ruff: disable[E501]
     # xrandr output example:
     #
     #   Screen 0: minimum 8 x 8, current 2646 x 1177, maximum 32767 x 32767
@@ -128,6 +129,7 @@ def parse_xrandr_output(output: Iterable[str]) -> Iterable[MonitorInfo]:
     #   VIRTUAL1 disconnected (normal left inverted right x axis y axis)
     #
     # NB: some of the lines originally had trailing whitespace.
+    # ruff: enable[E501]
     rx = re.compile(r'^(?P<name>.+) connected( primary)?'
                     r' (?P<w_px>\d+)x(?P<h_px>\d+)\+\d+\+\d+ \(.*\)'
                     r' (?P<w_mm>\d+)mm x (?P<h_mm>\d+)mm')
@@ -209,7 +211,7 @@ def main():
                     " height in milimeters).\n\n"
                     "Examples: '%prog 1024 768 14.1',"
                     " '%prog 1280 800 331 207'.")
-    opts, args = parser.parse_args()
+    _opts, args = parser.parse_args()
     if len(args) == 0:
         try:
             monitors = get_xrandr_output()
