@@ -10,15 +10,15 @@ Summarize log files.
 import doctest
 import errno
 import fileinput
-import os
 import re
+import subprocess
 import sys
 
 
 def mkrule(rx, replacement):
     r"""Build a function that replaces a given regexp.
 
-        >>> strip_whitespace = mkrule('\s+', '')
+        >>> strip_whitespace = mkrule(r'\s+', '')
         >>> strip_whitespace('hello, world\t!')
         'hello,world!'
 
@@ -109,13 +109,20 @@ def summarize(input, output=sys.stdout):
 
 def main():
     test()
-    pager = os.popen('less -S -M', 'w')
+    if sys.stdin.isatty() and (len(sys.argv) < 2 or sys.argv[1] == '-'):
+        sys.exit(
+            "usage: summarize.py filename ...\n"
+            "       summarize.py < filename"
+        )
     try:
-        summarize(fileinput.input(), pager)
+        with subprocess.Popen(
+            ['less', '-S', '-M'], stdin=subprocess.PIPE, text=True
+        ) as pager, fileinput.input() as f:
+            summarize(f, pager.stdin)
     except OSError as e:
         if e.errno != errno.EPIPE:
             print(e, file=sys.stderr)
-    pager.close()
+            sys.exit(1)
 
 
 def test():
