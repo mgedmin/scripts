@@ -117,7 +117,7 @@ class DebArchiveReader:
     @cached_property
     def archive(self) -> ArchiveReader:
         assert self.pyinstaller_file is not None
-        self.temp_file = tempfile.NamedTemporaryFile(
+        self.temp_file = tempfile.NamedTemporaryFile(  # ruff: ignore[SIM115]
             prefix='compare-pyinstaller-bundles-'
         )
         shutil.copyfileobj(
