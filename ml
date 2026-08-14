@@ -8,6 +8,7 @@ Wrapper for Debian's mailcheck package that produces more concise output.
 import itertools
 import os
 import shutil
+import subprocess
 import sys
 
 
@@ -71,7 +72,7 @@ def short_mailbox_names(mailboxes):
     mailboxes = list(mailboxes)  # deal with iterators properly
     if mailboxes:
         prefix = os.path.dirname(mailboxes[0][0])
-        for mailbox, x, y in mailboxes:
+        for mailbox, _new, _saved in mailboxes:
             while not mailbox.startswith(prefix):
                 prefix = os.path.dirname(prefix)
                 if os.path.dirname(prefix) == prefix:  # root
@@ -159,7 +160,10 @@ def main(argv=sys.argv):
     """Main function."""
     if '--test' in argv:
         sys.exit(test())
-    print_info(short_mailbox_names(parse_mailcheck(os.popen('mailcheck'))))
+    with subprocess.Popen(
+        'mailcheck', stdout=subprocess.PIPE, text=True
+    ) as pipe:
+        print_info(short_mailbox_names(parse_mailcheck(pipe.stdout)))
 
 
 def test():
