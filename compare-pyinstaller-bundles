@@ -23,9 +23,10 @@ import argparse
 import shutil
 import sys
 import tempfile
+from collections.abc import Collection
 from functools import cached_property
 from types import TracebackType
-from typing import IO, Collection
+from typing import IO, Self
 
 from debian.debfile import DebFile
 from PyInstaller.archive.readers import CArchiveReader
@@ -49,7 +50,7 @@ class ArchiveReader:
         # track I could switch to parsing the output of subprocess.run(['uvx',
         # '--from', 'pyinstaller', 'pyi-archive_viewer', '-br', filename])
 
-    def __enter__(self) -> ArchiveReader:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
@@ -100,7 +101,7 @@ class DebArchiveReader:
         self.deb = DebFile(filename)
         self.temp_file: IO[bytes] | None = None
 
-    def __enter__(self) -> DebArchiveReader:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
