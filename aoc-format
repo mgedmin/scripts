@@ -14,9 +14,9 @@ Expects input text as standard input, outputs to standard output.
 """
 
 import argparse
+import re
 import sys
 import textwrap
-import re
 
 
 LIST_PREFIX = re.compile('^    ([A-Z]|[0-9]+[:.]|[0-9]+.*[.]$)')
@@ -24,9 +24,7 @@ LIST_PREFIX = re.compile('^    ([A-Z]|[0-9]+[:.]|[0-9]+.*[.]$)')
 
 def probably_list(p: str) -> bool:
     lines = p.splitlines()
-    if all(LIST_PREFIX.match(line) for line in lines):
-        return True
-    return False
+    return all(LIST_PREFIX.match(line) for line in lines)
 
 
 def print_list(p: str) -> None:

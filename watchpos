@@ -10,13 +10,13 @@ Copyright (c) 2011,2026 Marius Gedminas <marius@gedmin.as>
 
 Licence: GPL v2 or later
 """
-import os
-import time
 import optparse
-import sys
+import os
 import shlex
-import subprocess
 import string
+import subprocess
+import sys
+import time
 
 
 def lsof(filename):
@@ -163,7 +163,7 @@ def main():
     try:
         do_main()
     except KeyboardInterrupt:
-        print("")
+        print()
 
 
 if __name__ == '__main__':

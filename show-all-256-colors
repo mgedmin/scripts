@@ -71,8 +71,8 @@ COLORS = [
     for b in [0] + list(range(95, 256, 40))
 ] + [
     # 24 greyscale levels
-    '#%02x%02x%02x' % (l, l, l)
-    for l in range(8, 248, 10)
+    '#%02x%02x%02x' % (i, i, i)
+    for i in range(8, 248, 10)
 ]
 
 
@@ -97,7 +97,7 @@ def main():
                                    reset_seq))
     else:
         for block in layout:
-            print("")
+            print()
             for row in block:
                 fg_bar = ''.join(color_bar(fg_seq, color, '') for color in row)
                 bg_bar = ''.join(color_bar(bg_seq, color, ' ')

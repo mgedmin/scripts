@@ -1,9 +1,14 @@
 #!/usr/bin/python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#   "lxml",
+# ]
+# ///
 # or you could run xmllint --format ${filename:-"-"}
-import sys
 import argparse
 import functools
-
+import sys
 
 # sudo apt install python3-lxml
 from lxml import etree

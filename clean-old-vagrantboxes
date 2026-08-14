@@ -1,8 +1,9 @@
 #!/usr/bin/python3
+import argparse
 import itertools
 import subprocess
-from typing import Dict, Iterable, List, NamedTuple
-import argparse
+from collections.abc import Iterable
+from typing import NamedTuple
 
 
 __version__ = '0.2'
@@ -15,7 +16,7 @@ class BoxInfo(NamedTuple):
     version: str
 
 
-def list_boxes() -> List[str]:
+def list_boxes() -> list[str]:
     return subprocess.check_output(
         ['vagrant', 'box', 'list'], text=True).splitlines()
 
@@ -27,7 +28,7 @@ def parse_boxes(boxes: Iterable[str]) -> Iterable[BoxInfo]:
         yield BoxInfo(box, provider.strip('(,'), version.strip(')'))
 
 
-def recent_boxes(boxes: Iterable[BoxInfo]) -> Dict[str, BoxInfo]:
+def recent_boxes(boxes: Iterable[BoxInfo]) -> dict[str, BoxInfo]:
     latest = {}
     # we assume that newer boxes show up later!
     for box in boxes:

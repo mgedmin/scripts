@@ -5,6 +5,7 @@ Check multiple mailboxes/maildirs for mail.
 Wrapper for Debian's mailcheck package that produces more concise output.
 """
 
+import itertools
 import os
 import shutil
 import sys
@@ -35,7 +36,7 @@ def parse_mailcheck(lines):
         words = left.split()
         mailbox = right.strip()
         new = saved = 0
-        for a, b in zip(words, words[1:]):
+        for a, b in itertools.pairwise(words):
             if b == 'new' and a.isdigit():
                 new = int(a)
             if b == 'saved' and a.isdigit():

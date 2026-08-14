@@ -3,16 +3,16 @@
 Summarize log files.
 """
 
-# Missing features:
+# Missing features, compared to the Perl version:
 #   - iptables normalization
 #   - logcheck email message support (skip rfc822 headers and logcheck titles)
 
-import re
-import os
-import sys
-import errno
 import doctest
+import errno
 import fileinput
+import os
+import re
+import sys
 
 
 def mkrule(rx, replacement):
@@ -112,7 +112,7 @@ def main():
     pager = os.popen('less -S -M', 'w')
     try:
         summarize(fileinput.input(), pager)
-    except IOError as e:
+    except OSError as e:
         if e.errno != errno.EPIPE:
             print(e, file=sys.stderr)
     pager.close()

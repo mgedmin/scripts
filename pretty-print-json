@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-import sys
-import json
 import argparse
 import functools
+import json
+import sys
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '1.1'
+__version__ = '1.1.1'
 
 
 def main():

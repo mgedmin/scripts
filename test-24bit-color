@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 # Loosely based on https://gist.github.com/XVilka/8346728
 
-import sys
 import shutil
+import sys
+
 
 bg_color = '\033[48;2;{r};{g};{b}m'
 reset = '\033[m'

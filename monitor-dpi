@@ -28,10 +28,10 @@ import re
 import subprocess
 import sys
 import typing
-from typing import Iterable, List
+from collections.abc import Iterable
 
 
-__version__ = '3.1.0'
+__version__ = '3.1.1'
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
 __url__ = 'https://github.com/mgedmin/scripts/blob/master/monitor-dpi'
 __licence__ = 'GPLv2+'
@@ -141,7 +141,7 @@ def parse_xrandr_output(output: Iterable[str]) -> Iterable[MonitorInfo]:
             )
 
 
-def get_xrandr_output() -> List[MonitorInfo]:
+def get_xrandr_output() -> list[MonitorInfo]:
     """Determine the sizes of connected monitors.
 
     Returns a list of tuples (name, pixel_size, physical_size) for each
@@ -177,9 +177,11 @@ def report_name(name: str, pixel_size: PixelSize) -> None:
 def report_size(physical_size: PhysicalSize) -> None:
     """Report the diagonal size of a monitor in inches."""
     d = '%.1f' % physical_size.diagonal_inches
-    if d.endswith('.0'):
-        d = d[:-2]
-    print(f"Monitor size: {d} inches ({physical_size.w_mm} mm x {physical_size.h_mm} mm)")
+    d = d.removesuffix('.0')
+    print(
+        f"Monitor size: {d} inches"
+        f" ({physical_size.w_mm} mm x {physical_size.h_mm} mm)"
+    )
 
 
 def report_dpi(dpi: DpiInfo) -> None:

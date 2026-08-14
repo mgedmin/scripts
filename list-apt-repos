@@ -5,11 +5,12 @@ import pathlib
 import re
 import sys
 from collections import defaultdict
-from typing import Iterable, Sequence, NamedTuple, List, TextIO
+from collections.abc import Iterable, Sequence
+from typing import NamedTuple, TextIO
 
 
-__version__ = '1.1'
-__date__ = '2026-04-10'
+__version__ = '1.1.1'
+__date__ = '2026-08-14'
 
 
 def warn(msg: str) -> None:
@@ -97,7 +98,7 @@ def simplify_url(url: str) -> str:
     return url
 
 
-def column_widths(matrix: List[List[str]]) -> List[int]:
+def column_widths(matrix: list[list[str]]) -> list[int]:
     widths = []  # type: List[int]
     for row in matrix:
         for idx, cell in enumerate(row):

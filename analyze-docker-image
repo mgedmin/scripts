@@ -44,9 +44,10 @@ import shutil
 import subprocess
 import sys
 import tarfile
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import IO, Any, Iterable, Iterator, Self, TextIO
+from typing import IO, Any, Self, TextIO
 
 
 CACHE_DIR = pathlib.Path('~/.cache/docker-images').expanduser()

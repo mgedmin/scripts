@@ -20,12 +20,12 @@ import subprocess
 import sys
 import urllib.error
 import urllib.request
+from collections.abc import Iterable, Iterator
 from contextlib import suppress
 from dataclasses import dataclass, field
 from functools import cached_property
 from io import BytesIO
 from operator import attrgetter
-from typing import Iterable, Iterator
 
 from debian import deb822, debian_support
 
