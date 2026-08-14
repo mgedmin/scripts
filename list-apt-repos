@@ -71,7 +71,7 @@ def parse_sources_file(source_list: pathlib.Path) -> Iterable[RepoInfo]:
             yield from parse_sources(fp)
         else:
             # can't happen
-            assert f'Unrecognized filename: {source_list}'
+            raise NotImplementedError(f'Unrecognized filename: {source_list}')
 
 
 PPA_PREFIXES = [
