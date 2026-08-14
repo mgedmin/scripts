@@ -3,6 +3,7 @@
 # requires-python = ">=3.10"
 # dependencies = [
 #   "lxml",
+#   "lxml-stubs",
 # ]
 # ///
 # or you could run xmllint --format ${filename:-"-"}
