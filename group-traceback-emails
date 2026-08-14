@@ -27,13 +27,14 @@ Zilch is https://github.com/bbangert/zilch
 
 import email
 import email.generator
+import email.message
 import hashlib
 import os
 import re
 import sys
 
 
-__version__ = '1.1.2'
+__version__ = '1.1.3'
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
 __licence__ = 'GPL'
 __url__ = (
@@ -127,6 +128,7 @@ def main():
     msg = email.message_from_file(sys.stdin)
     if msg.is_multipart():
         for part in msg.get_payload(decode=False):
+            assert isinstance(part, email.message.Message)
             part_text = part.get_payload(decode=True)
             if part_text:
                 tb = extract_traceback_from_body(part_text)
