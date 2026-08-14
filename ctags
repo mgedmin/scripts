@@ -5,6 +5,8 @@ fi
 
 ctags=/usr/bin/ctags
 if [ -x ~/src/ctags/ctags ]; then
+    # I'm building universal ctags from source because the packaged version in
+    # Ubuntu 26.04 doesn't understand Python's `type T = ...` syntax.
     ctags=~/src/ctags/ctags
 elif [ -x /usr/bin/ctags-universal ]; then
     ctags=/usr/bin/ctags-universal
