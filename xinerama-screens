@@ -1,19 +1,26 @@
 #!/usr/bin/python3
+import sys
+
 import gi
 
 
 gi.require_version('Gdk', '3.0')
 
-from gi.repository import Gdk  # type: ignore  # noqa
+
+from gi.repository import Gdk  # noqa
 
 
-def main():
+def main() -> None:
     display = Gdk.Display.get_default()
+    if display is None:
+        sys.exit("No display available")
     n = display.get_n_monitors()
     for i in range(n):
         rect = display.get_monitor(i).get_geometry()
-        print("Monitor %d: %dx%d at (%d, %d)" % (i, rect.width, rect.height,
-                                                 rect.x, rect.y))
+        print(
+            "Monitor %d: %dx%d at (%d, %d)"
+            % (i, rect.width, rect.height, rect.x, rect.y)
+        )
 
 
 if __name__ == '__main__':
