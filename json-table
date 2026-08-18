@@ -18,7 +18,7 @@ import sys
 from rich import box
 from rich.console import Console, RenderableType
 from rich.json import JSON
-from rich.style import StyleType
+from rich.style import NULL_STYLE, Style, StyleType
 from rich.table import Table
 from rich.text import Text
 from rich.theme import Theme
@@ -71,6 +71,11 @@ parser.add_argument(
     action='store_true',
     help="truncate table cells instead of wrapping",
 )
+parser.add_argument(
+    "--row-style",
+    metavar="COL",
+    help="column to use for row styles",
+)
 
 
 SIMPLE_ASCII = box.Box(
@@ -83,9 +88,6 @@ SIMPLE_ASCII = box.Box(
     "    \n"
     "    \n"
 )
-
-
-NULL = 'null'
 
 
 THEME = Theme({
@@ -102,27 +104,37 @@ THEME = Theme({
 })
 
 
-def value2str(value: object) -> RenderableType:
+def styled_text(
+    text: str, base_style: str, style_override: Style
+) -> RenderableType:
+    style = THEME.styles[base_style]
+    if style_override:
+        style += style_override
+    return Text(text, style=style)
+
+
+def value2str(value: object, style: Style = NULL_STYLE) -> RenderableType:
     match value:
         case None:
-            return Text(NULL, style='json.null')
+            return styled_text('null', 'json.null', style)
         case True:
-            return Text('true', style='json.bool_true')
+            return styled_text('true', 'json.bool_true', style)
         case False:
-            return Text('false', style='json.bool_false')
+            return styled_text('false', 'json.bool_false', style)
         case str():
-            return Text(value, style='json.str')
+            return styled_text(value, 'json.str', style)
         case int() | float():
-            return Text(str(value), style='json.number')
+            return styled_text(str(value), 'json.number', style)
         case list() | dict():
             return JSON.from_data(value)
         case _:
-            return Text(str(value), style='other_value')
+            # can't happen probably
+            return styled_text(str(value), 'other_value', style)
 
 
 def print_error(msg: str, style: StyleType = 'error') -> None:
     console = Console(theme=THEME, stderr=True)
-    console.print(Text(msg, style='error'))
+    console.print(Text(msg, style=style))
 
 
 def main():
@@ -245,12 +257,17 @@ def main():
             max_width=available_space,
         )
 
+    style = NULL_STYLE
+    style_field = col2field.get(args.row_style, args.row_style)
     for record in records:
+        if style_field:
+            style = Style.parse(record.get(style_field))
         table.add_row(
             *(
-                value2str(record.get(col2field.get(c, c)))
+                value2str(record.get(col2field.get(c, c)), style)
                 for c in columns
-            )
+            ),
+            style=style
         )
     console.print(table)
 
