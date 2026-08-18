@@ -76,6 +76,11 @@ parser.add_argument(
     metavar="COL",
     help="column to use for row styles",
 )
+parser.add_argument(
+    "--hyperlink",
+    metavar="COL",
+    help="column to use for hyperlinks",
+)
 
 
 SIMPLE_ASCII = box.Box(
@@ -110,7 +115,7 @@ def styled_text(
     style = THEME.styles[base_style]
     if style_override:
         style += style_override
-    return Text(text, style=style)
+    return Text.styled(text, style=style)
 
 
 def value2str(value: object, style: Style = NULL_STYLE) -> RenderableType:
@@ -259,13 +264,18 @@ def main():
 
     style = NULL_STYLE
     style_field = col2field.get(args.row_style, args.row_style)
+    hyperlink_field = col2field.get(args.hyperlink, args.hyperlink)
     for record in records:
         if style_field:
             style = Style.parse(record.get(style_field))
+        values = [record.get(col2field.get(c, c)) for c in columns]
+        styles = [style] * len(columns)
+        if hyperlink_field and styles:
+            styles[0] = styles[0].update_link(record.get(hyperlink_field))
         table.add_row(
             *(
-                value2str(record.get(col2field.get(c, c)), style)
-                for c in columns
+                value2str(value, style)
+                for value, style in zip(values, styles)
             ),
             style=style
         )
