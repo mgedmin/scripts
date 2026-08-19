@@ -266,7 +266,7 @@ def main():
     )
     for c in columns:
         table.add_column(
-            c,
+            Text(c, justify='left'),
             no_wrap=args.no_wrap,
             min_width=min_width.get(c),
             max_width=available_space,
