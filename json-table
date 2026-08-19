@@ -57,6 +57,11 @@ parser.add_argument(
     ),
 )
 parser.add_argument(
+    "--align-right", "--right-align",
+    metavar="COL1,COL2,...",
+    help="comma-separated list of columns for right-alignment",
+)
+parser.add_argument(
     "-s",
     "--sort",
     metavar="[,-]COL1,[-]COL2,...",
@@ -188,7 +193,12 @@ def main():
     # mapping of column names to maximum widths
     columns = {}
     min_width = {}
+    right_align = set()
     hide_columns = set()
+    if args.align_right:
+        for c in map(str.strip, args.align_right.split(',')):
+            if c:
+                right_align.add(c)
     if args.hide_columns:
         for c in map(str.strip, args.hide_columns.split(',')):
             if c:
@@ -260,6 +270,7 @@ def main():
             no_wrap=args.no_wrap,
             min_width=min_width.get(c),
             max_width=available_space,
+            justify='right' if c in right_align else 'left',
         )
 
     style = NULL_STYLE
