@@ -30,7 +30,7 @@ def main():
 
     for line in itertools.islice(sys.stdin, 0, n_head):
         print(line, end="", flush=True)
-    line = next(sys.stdin)
+    line = next(sys.stdin, "")
     if line:
         print('...')
         buffer = deque(maxlen=n_tail)
