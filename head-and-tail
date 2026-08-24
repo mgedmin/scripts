@@ -1,0 +1,45 @@
+#!/usr/bin/python3
+# usage: some command that produces lots of output | head-and-tail [-n LINES]
+# this is especially useful for `watch "some command | head-and-tail"`
+
+import argparse
+import itertools
+import shutil
+import sys
+from collections import deque
+
+
+parser = argparse.ArgumentParser(description="show the start and end of stdin")
+parser.add_argument(
+    "-n",
+    "--lines",
+    metavar="N",
+    type=int,
+    help="maximum number of lines to output (default: $LINES - 2)",
+)
+
+
+def main():
+    args = parser.parse_args()
+    if args.lines is None:
+        args.lines = shutil.get_terminal_size().lines - 2
+    if sys.stdin.isatty():
+        parser.error("stdin is a terminal")
+    n_head = args.lines // 2
+    n_tail = args.lines - n_head - 1
+
+    for line in itertools.islice(sys.stdin, 0, n_head):
+        print(line, end="", flush=True)
+    line = next(sys.stdin)
+    if line:
+        print('...')
+        buffer = deque(maxlen=n_tail)
+        buffer.append(line)
+        for line in sys.stdin:
+            buffer.append(line)
+        for line in buffer:
+            print(line, end="")
+
+
+if __name__ == "__main__":
+    main()
