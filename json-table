@@ -12,6 +12,7 @@ Read a JSON list of records from stdin or file, format them as a table.
 
 import argparse
 import json
+import os
 import pathlib
 import sys
 
@@ -148,6 +149,10 @@ def print_error(msg: str, style: StyleType = 'error') -> None:
 
 
 def main():
+    # https://no-hyperlinks.org/, except I'm not sure how to force rich to
+    # support FORCE_HYPERLINKS.
+    hyperlinks_allowed = not os.getenv('NO_HYPERLINKS')
+
     console = Console(theme=THEME)
 
     args = parser.parse_args()
@@ -281,7 +286,7 @@ def main():
             style = Style.parse(record.get(style_field))
         values = [record.get(col2field.get(c, c)) for c in columns]
         styles = [style] * len(columns)
-        if hyperlink_field and styles:
+        if hyperlinks_allowed and hyperlink_field and styles:
             styles[0] = styles[0].update_link(record.get(hyperlink_field))
         table.add_row(
             *(
