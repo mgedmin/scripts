@@ -32,6 +32,7 @@ def main():
         print(line, end="", flush=True)
     line = next(sys.stdin, "")
     if line:
+        first_skipped = line
         buffer = deque(maxlen=n_tail)
         buffer.append(line)
         n = 1
@@ -39,9 +40,10 @@ def main():
             buffer.append(line)
             n += 1
         n_skipped = n - len(buffer)
-        if n_skipped > 0:
-            s = "s" if n_skipped != 1 else ""
-            print(f"... {n_skipped} line{s} skipped ...")
+        if n_skipped == 1:
+            print(first_skipped, end="")
+        elif n_skipped > 1:
+            print(f"... {n_skipped} lines skipped ...")
         for line in buffer:
             print(line, end="")
 
