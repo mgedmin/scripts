@@ -15,6 +15,8 @@ import json
 import os
 import pathlib
 import sys
+from collections.abc import Callable
+from typing import Any
 
 from rich import box
 from rich.console import Console, RenderableType
@@ -148,6 +150,38 @@ def print_error(msg: str, style: StyleType = 'error') -> None:
     console.print(Text(msg, style=style))
 
 
+def sort_value(value: Any) -> tuple[str, Any]:
+    match value:
+        case bool():
+            return ('bool', value)
+        case int() | float():
+            return ('number', value)
+        case str():
+            return ('str', value)
+        case None:
+            return ('null', value)
+        case list():
+            return ('list', [sort_value(v) for v in value])
+        case dict():
+            return (
+                'dict',
+                [(k, sort_value(v)) for k, v in sorted(value.items())],
+            )
+        case _:
+            # I don't think this is possible
+            return (str(type(value)), value)
+
+
+def universal_sort_key(
+    field: str,
+) -> Callable[[dict[str, Any]], tuple[str, Any]]:
+
+    def sort_key(record: dict[str, Any]) -> tuple[str, Any]:
+        return sort_value(record.get(field))
+
+    return sort_key
+
+
 def main():
     # https://no-hyperlinks.org/, except I'm not sure how to force rich to
     # support FORCE_HYPERLINKS.
@@ -257,7 +291,7 @@ def main():
             c = c.removeprefix('-')
             field = col2field.get(c, c)
             records.sort(
-                key=lambda r: (str(type(r.get(field))), r.get(field)),
+                key=universal_sort_key(field),
                 reverse=reverse,
             )
 
