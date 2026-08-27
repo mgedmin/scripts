@@ -11,10 +11,12 @@ parser = argparse.ArgumentParser(
 # argparse.REMAINDER is not documented :/
 # https://stackoverflow.com/questions/6488752/dont-parse-options-after-the-last-positional-argument/6671440#6671440
 parser.add_argument(
-    'command', nargs=argparse.REMAINDER, help='command to execute'
+    'command', nargs=argparse.REMAINDER,
+    help='command to execute'
 )
 parser.add_argument(
-    "-n", metavar='SECONDS', help='seconds to wait between updates'
+    "-n", "--interval", metavar='SECONDS',
+    help='seconds to wait between updates',
 )
 
 
@@ -25,7 +27,11 @@ def main() -> None:
     else:
         command = shlex.join(args.command)
     env = os.environ | {'FORCE_COLOR': '1', 'NO_HYPERLINKS': '1'}
-    os.execlpe("watch", "-c", command + ' | head-and-tail', env)
+    argv = ['watch', '-c']
+    if args.interval is not None:
+        argv += ['-n', str(args.interval)]
+    argv += [command + '| head-and-tail']
+    os.execvpe(argv[0], argv, env)
 
 
 if __name__ == "__main__":
