@@ -1,29 +1,32 @@
-#!/bin/bash
+#!/usr/bin/python3
 # like watch, but better
+import argparse
+import os
+import shlex
 
-usage="usage: wwatch [-n SECONDS] command"
-command=()
-args=()
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --help)
-            echo "$usage"
-            exit
-            ;;
-        -n)
-            args+=(-n "$2")
-            shift
-            ;;
-        *)
-            break
-            ;;
-    esac
-    shift
-done
+parser = argparse.ArgumentParser(
+    description="watch the output of a command change"
+)
+# argparse.REMAINDER is not documented :/
+# https://stackoverflow.com/questions/6488752/dont-parse-options-after-the-last-positional-argument/6671440#6671440
+parser.add_argument(
+    'command', nargs=argparse.REMAINDER, help='command to execute'
+)
+parser.add_argument(
+    "-n", metavar='SECONDS', help='seconds to wait between updates'
+)
 
-command+=("$@")
 
-export NO_HYPERLINKS=1
-export FORCE_COLOR=1
-watch -c "${args[@]}" "${command[*]} | head-and-tail"
+def main() -> None:
+    args = parser.parse_args()
+    if len(args.command) == 1:
+        command = args.command[0]
+    else:
+        command = shlex.join(args.command)
+    env = os.environ | {'FORCE_COLOR': '1', 'NO_HYPERLINKS': '1'}
+    os.execlpe("watch", "-c", command + ' | head-and-tail', env)
+
+
+if __name__ == "__main__":
+    main()
