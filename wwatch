@@ -1,0 +1,30 @@
+#!/bin/bash
+# like watch, but better
+
+usage="usage: wwatch [-n SECONDS] command"
+command=()
+args=()
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help)
+            echo "$usage"
+            exit
+            ;;
+        -n)
+            args+=(-n "$2")
+            shift
+            ;;
+        *)
+            command+=("$1")
+            break
+            ;;
+    esac
+    shift
+done
+
+command+=("$@")
+
+export NO_HYPERLINKS=1
+export FORCE_COLOR=1
+watch -c "${args[@]}" "${command[*]} | head-and-tail"
