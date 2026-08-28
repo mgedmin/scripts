@@ -1,1 +1,2 @@
 # moved to https://github.com/mgedmin/strace-process-tree
+# pipx install strace-process-tree
