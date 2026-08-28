@@ -30,7 +30,7 @@ def main() -> None:
     argv = ['watch', '-c']
     if args.interval is not None:
         argv += ['-n', str(args.interval)]
-    argv += [command + '| head-and-tail']
+    argv += [command + ' | head-and-tail']
     os.execvpe(argv[0], argv, env)
 
 
