@@ -24,7 +24,7 @@ import sys
 from collections.abc import Iterator
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, NamedTuple, Self
 
 from pygit2 import Repository
 from pygit2.enums import ObjectType, SortMode
@@ -71,19 +71,24 @@ def walk_history(repo: Repository) -> Iterator[Commit]:
     yield from repo.walk(repo.head.target, SortMode.TIME)
 
 
+class Version(NamedTuple):
+    commit: Commit
+    blob: Blob
+
+
 class Versions:
-    _oldest: dict[Oid, tuple[Commit, Blob]]
+    _oldest: dict[Oid, Version]
 
     def __init__(self) -> None:
         self._oldest = {}
 
     def add(self, commit: Commit, blob: Blob) -> None:
-        self._oldest[blob.id] = (commit, blob)
+        self._oldest[blob.id] = Version(commit, blob)
 
     def __len__(self) -> int:
         return len(self._oldest)
 
-    def all(self) -> Iterator[tuple[Commit, Blob]]:
+    def __iter__(self) -> Iterator[Versions]:
         yield from self._oldest.values()
 
     def has_blob_with_id(self, oid: Oid) -> bool:
@@ -135,10 +140,31 @@ class Target:
     def has_blob_with_id(self, oid: Oid) -> bool:
         return self.versions.has_blob_with_id(oid)
 
+    def find_closest(self, blob: Blob) -> Match | None:
+        best = None
+        for version in self.versions:
+            if blob.id == version.blob.id:
+                return Match(0, version)
+            patch = blob.diff(version.blob)
+            ctx, added, deleted = patch.line_stats
+            cost = added + deleted
+            if not best or cost < best.cost:
+                best = Match(cost, version)
+        return best
 
-def format_path(pathname: pathlib.Path) -> str:
+
+class Match(NamedTuple):
+    cost: int
+    version: Version
+
+    @property
+    def commit(self) -> Commit:
+        return self.version.commit
+
+
+def format_path(pathname: pathlib.Path | str) -> str:
     try:
-        relpath = pathname.relative_to(pathlib.Path.home())
+        relpath = pathlib.Path(pathname).relative_to(pathlib.Path.home())
         if relpath == '.':
             return '~'
         return f'~/{relpath}'
@@ -163,7 +189,7 @@ def print_versions(target: Target, all_targets: list[Target]) -> None:
         (format_path(target.fullpath), 'path'), ' has ',
         (str(len(target.versions)), 'number'), f' version{s}',
     ))
-    for commit, blob in target.versions.all():
+    for commit, blob in target.versions:
         ctime = dt.datetime.fromtimestamp(
             commit.commit_time,
             tz=dt.timezone(dt.timedelta(minutes=commit.commit_time_offset)),
@@ -182,6 +208,19 @@ def print_versions(target: Target, all_targets: list[Target]) -> None:
                 ' (shared with ', (str(n), 'number'), f' other {repositories})'
             )
         console.print(text)
+        for other in all_targets:
+            if target is other:
+                continue
+            match = other.find_closest(blob)
+            if match:
+                n = match.cost
+                s = 's' if n != 1 else ''
+                console.print(Text.assemble(
+                    '      closest match is ',
+                    (match.commit.short_id, 'commit'),
+                    ' in ', (format_path(other.repo.workdir), 'path'),
+                    ' (', (str(n), 'number'), f' line{s} changed)',
+                ))
     console.print()
 
 
