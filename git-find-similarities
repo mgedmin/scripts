@@ -7,11 +7,19 @@
 # ]
 # ///
 """
-Compare the histories of a single file in two git repositories.
+Compare the histories of a single file in two or more git repositories.
 
 Synopsis:
-    git-find-similarities file1 file2
+    git-find-similarities file1 file2 [...]
 
+The script will walk upwards to find the root of the git working tree for each
+file.  These should all be from different git repositories.
+
+The script will find all the different versions of each file (tracking
+backwards from the currently checked out version), show the commit that
+introduced it, the SHA-256 checksum of the file contents in that commit, and
+then the closest matching versions of the file in the other git repositories,
+identified by commit ID.
 """
 
 from __future__ import annotations
