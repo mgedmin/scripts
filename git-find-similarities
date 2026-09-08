@@ -17,6 +17,7 @@ Synopsis:
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import hashlib
 import pathlib
 import sys
@@ -149,6 +150,7 @@ THEME = Theme({
     'path': 'cyan',
     'number': 'green',
     'commit': 'green',
+    'time': 'bright_blue',
     'message': 'bright_yellow',
     'hash': 'blue',
 })
@@ -162,8 +164,13 @@ def print_versions(target: Target, all_targets: list[Target]) -> None:
         (str(len(target.versions)), 'number'), f' version{s}',
     ))
     for commit, blob in target.versions.all():
+        ctime = dt.datetime.fromtimestamp(
+            commit.commit_time,
+            tz=dt.timezone(dt.timedelta(minutes=commit.commit_time_offset)),
+        )
         console.print(Text.assemble(
             '  ', (commit.short_id, 'commit'),
+            ' ', (ctime.strftime('%Y-%m-%d %H:%M %z'), 'time'),
             ' ', (first_line(commit.message), 'message'),
         ))
         text = Text.assemble('    ', (sha256(blob.data), 'hash'))
