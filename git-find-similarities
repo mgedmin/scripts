@@ -21,7 +21,9 @@ import hashlib
 import pathlib
 import sys
 from collections.abc import Iterator
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
+from functools import cached_property
+from typing import TYPE_CHECKING, Self
 
 from pygit2 import Repository
 from pygit2.enums import ObjectType, SortMode
@@ -34,16 +36,16 @@ if TYPE_CHECKING:
     from pygit2 import Blob, Commit, Oid, Tree
 
 
-class Error(Exception):
-    pass
-
-
 parser = argparse.ArgumentParser(
     description=(
         "Compare the histories of a single file in two git repositories"
     ),
 )
 parser.add_argument("file", nargs='+', type=pathlib.Path)
+
+
+class Error(Exception):
+    pass
 
 
 def find_git_repo(
@@ -83,6 +85,9 @@ class Versions:
     def all(self) -> Iterator[tuple[Commit, Blob]]:
         yield from self._oldest.values()
 
+    def has_blob_with_id(self, oid: Oid) -> bool:
+        return oid in self._oldest
+
 
 def find_all_versions(
     repo: Repository, pathname: pathlib.PurePath
@@ -107,6 +112,29 @@ def first_line(message: str) -> str:
     return lines[0] if lines else ''
 
 
+@dataclass
+class Target:
+    repo: Repository
+    relpath: pathlib.PurePath
+
+    @classmethod
+    def from_filename(cls, filename: pathlib.Pathname) -> Self:
+        repo, relpath = find_git_repo(filename)
+        return cls(repo, relpath)
+
+    @property
+    def fullpath(self) -> pathlib.Path:
+        fullpath = pathlib.Path(self.repo.workdir, self.relpath)
+        return fullpath
+
+    @cached_property
+    def versions(self) -> Versions:
+        return find_all_versions(self.repo, self.relpath)
+
+    def has_blob_with_id(self, oid: Oid) -> bool:
+        return self.versions.has_blob_with_id(oid)
+
+
 def format_path(pathname: pathlib.Path) -> str:
     try:
         relpath = pathname.relative_to(pathlib.Path.home())
@@ -126,32 +154,39 @@ THEME = Theme({
 })
 
 
-def print_versions(
-    repo: Repository, pathname: pathlib.PurePath, versions: Versions
-) -> None:
+def print_versions(target: Target, all_targets: list[Target]) -> None:
     console = Console(theme=THEME)
-    fullpath = pathlib.Path(repo.workdir, pathname)
-    s = 's' if len(versions) != 1 else ''
+    s = 's' if len(target.versions) != 1 else ''
     console.print(Text.assemble(
-        (format_path(fullpath), 'path'), ' has ',
-        (str(len(versions)), 'number'), f' version{s}',
+        (format_path(target.fullpath), 'path'), ' has ',
+        (str(len(target.versions)), 'number'), f' version{s}',
     ))
-    for commit, blob in versions.all():
+    for commit, blob in target.versions.all():
         console.print(Text.assemble(
             '  ', (commit.short_id, 'commit'),
             ' ', (first_line(commit.message), 'message'),
         ))
-        console.print(Text.assemble('    ', (sha256(blob.data), 'hash')))
+        text = Text.assemble('    ', (sha256(blob.data), 'hash'))
+        targets = [t for t in all_targets if t.has_blob_with_id(blob.id)]
+        if len(targets) > 1:
+            n = len(targets) - 1
+            repositories = 'repositories' if n != 1 else 'repository'
+            text += Text.assemble(
+                ' (shared with ', (str(n), 'number'), f' other {repositories})'
+            )
+        console.print(text)
     console.print()
 
 
 def main() -> None:
     args = parser.parse_args()
     try:
-        for filename in args.file:
-            repo, path = find_git_repo(filename)
-            versions = find_all_versions(repo, path)
-            print_versions(repo, path, versions)
+        all_targets = [
+            Target.from_filename(filename)
+            for filename in args.file
+        ]
+        for target in all_targets:
+            print_versions(target, all_targets)
     except Error as e:
         sys.exit(str(e))
 
