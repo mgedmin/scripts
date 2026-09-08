@@ -1,0 +1,160 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#   "pygit2",
+#   "rich",
+# ]
+# ///
+"""
+Compare the histories of a single file in two git repositories.
+
+Synopsis:
+    git-find-similarities file1 file2
+
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import pathlib
+import sys
+from collections.abc import Iterator
+from typing import TYPE_CHECKING
+
+from pygit2 import Repository
+from pygit2.enums import ObjectType, SortMode
+from rich.console import Console
+from rich.text import Text
+from rich.theme import Theme
+
+
+if TYPE_CHECKING:
+    from pygit2 import Blob, Commit, Oid, Tree
+
+
+class Error(Exception):
+    pass
+
+
+parser = argparse.ArgumentParser(
+    description=(
+        "Compare the histories of a single file in two git repositories"
+    ),
+)
+parser.add_argument("file", nargs='+', type=pathlib.Path)
+
+
+def find_git_repo(
+    pathname: pathlib.Path,
+) -> tuple[Repository, pathlib.PurePath]:
+    for parent in pathname.parents:
+        if (candidate := parent.joinpath('.git')).exists():
+            return Repository(candidate), pathname.relative_to(parent)
+    raise Error(f'{pathname} is not inside a Git repository')
+
+
+def walk_tree(tree: Tree, path: pathlib.PurePath) -> Blob:
+    for name in path.parts:
+        assert tree.type == ObjectType.TREE
+        tree = tree[name]
+    assert tree.type == ObjectType.BLOB
+    return tree
+
+
+def walk_history(repo: Repository) -> Iterator[Commit]:
+    # newest to oldest
+    yield from repo.walk(repo.head.target, SortMode.TIME)
+
+
+class Versions:
+    _oldest: dict[Oid, tuple[Commit, Blob]]
+
+    def __init__(self) -> None:
+        self._oldest = {}
+
+    def add(self, commit: Commit, blob: Blob) -> None:
+        self._oldest[blob.id] = (commit, blob)
+
+    def __len__(self) -> int:
+        return len(self._oldest)
+
+    def all(self) -> Iterator[tuple[Commit, Blob]]:
+        yield from self._oldest.values()
+
+
+def find_all_versions(
+    repo: Repository, pathname: pathlib.PurePath
+) -> Versions:
+    versions = Versions()
+    for commit in walk_history(repo):
+        try:
+            blob = walk_tree(commit.tree, pathname)
+        except KeyError:
+            pass
+        else:
+            versions.add(commit, blob)
+    return versions
+
+
+def sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def first_line(message: str) -> str:
+    lines = message.splitlines()
+    return lines[0] if lines else ''
+
+
+def format_path(pathname: pathlib.Path) -> str:
+    try:
+        relpath = pathname.relative_to(pathlib.Path.home())
+        if relpath == '.':
+            return '~'
+        return f'~/{relpath}'
+    except ValueError:
+        return str(pathname)
+
+
+THEME = Theme({
+    'path': 'cyan',
+    'number': 'green',
+    'commit': 'green',
+    'message': 'bright_yellow',
+    'hash': 'blue',
+})
+
+
+def print_versions(
+    repo: Repository, pathname: pathlib.PurePath, versions: Versions
+) -> None:
+    console = Console(theme=THEME)
+    fullpath = pathlib.Path(repo.workdir, pathname)
+    s = 's' if len(versions) != 1 else ''
+    console.print(Text.assemble(
+        (format_path(fullpath), 'path'), ' has ',
+        (str(len(versions)), 'number'), f' version{s}',
+    ))
+    for commit, blob in versions.all():
+        console.print(Text.assemble(
+            '  ', (commit.short_id, 'commit'),
+            ' ', (first_line(commit.message), 'message'),
+        ))
+        console.print(Text.assemble('    ', (sha256(blob.data), 'hash')))
+    console.print()
+
+
+def main() -> None:
+    args = parser.parse_args()
+    try:
+        for filename in args.file:
+            repo, path = find_git_repo(filename)
+            versions = find_all_versions(repo, path)
+            print_versions(repo, path, versions)
+    except Error as e:
+        sys.exit(str(e))
+
+
+if __name__ == "__main__":
+    main()
