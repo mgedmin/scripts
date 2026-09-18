@@ -280,7 +280,7 @@ def main():
         is_sensible = 0 < min_width.get(c, 0) < 40
         min_width[c] = max(min_width.get(c, 0), len(c))
         if is_sensible:
-            available_space -= min_width[c] - 2
+            available_space -= min_width[c] + 2
 
     if args.sort:
         for c in reversed(args.sort.split(',')):
