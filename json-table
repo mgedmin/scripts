@@ -89,6 +89,11 @@ parser.add_argument(
     metavar="COL",
     help="column to use for hyperlinks",
 )
+parser.add_argument(
+    "--debug-sizing",
+    action='store_true',
+    help=argparse.SUPPRESS,
+)
 
 
 SIMPLE_ASCII = box.Box(
@@ -282,6 +287,16 @@ def main():
         if is_sensible:
             available_space -= min_width[c] + 2
 
+    if args.debug_sizing:
+        print(f'{console.width=}')
+        print(f'{available_space=}')
+        total = 0
+        for c in columns:
+            w = min_width.get(c, 0)
+            print(f'min_width[{c!r}]={w}')
+            total += w + 2
+        print(f'total_column_width={total}')
+
     if args.sort:
         for c in reversed(args.sort.split(',')):
             c = c.strip()
@@ -304,11 +319,12 @@ def main():
         padding=(0, 1, 0, 0),
     )
     for c in columns:
+        w = min_width.get(c, 0)
         table.add_column(
             Text(c, justify='left'),
             no_wrap=args.no_wrap,
-            min_width=min_width.get(c),
-            max_width=available_space,
+            min_width=w,
+            max_width=max(w, available_space),
             justify='right' if c in right_align else 'left',
         )
 
