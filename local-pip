@@ -1,7 +1,0 @@
-#!/bin/sh
-
-# create a virtualenv automatically
-test -x ~/.venv/bin/pip || virtualenv -q --system-site-packages ~/.venv
-
-# install stuff there
-~/.venv/bin/pip "$@"
