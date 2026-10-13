@@ -115,7 +115,7 @@ b935253877b703d29b1b11f79e66944f1f88adb8a76f871abf765d4de9d25f8a  pypy3.6-v7.3.3
 
 pypy_url=${pypy_urls[$py_ver]:?"don't know where to get a pypy$py_ver"}
 pypy_filename=${pypy_url##*/}
-pypy_name=${pypy_filename%.tar.bz2}
+pypy_name=${pypy_filename%.tar.*}
 pypy_binary=pypy3
 [[ $py_ver == 2.7 ]] && pypy_binary=pypy
 
@@ -129,10 +129,13 @@ install_pypy() {
 
 if [[ $1 = --install ]]; then
     install_pypy || exit 1
-elif [ -x ~/opt/"${pypy_name}/bin/${pypy_binary}" ]; then
-    exec ~/opt/"${pypy_name}/bin/${pypy_binary}" "$@"
 elif [ -x /usr/bin/"pypy${py_suffix}" ]; then
     exec /usr/bin/"pypy${py_suffix}" "$@"
+elif [ -x ~/.local/bin/"pypy${py_ver}" ]; then
+    # things installed with uv python install
+    exec ~/.local/bin/"pypy${py_ver}" "$@"
+elif [ -x ~/opt/"${pypy_name}/bin/${pypy_binary}" ]; then
+    exec ~/opt/"${pypy_name}/bin/${pypy_binary}" "$@"
 else
     cat 1>&2 <<.
 To install ${pypy_name} please do
