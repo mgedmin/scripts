@@ -1,0 +1,139 @@
+#!/usr/bin/python3
+"""
+Uninstall old uv-manager Python bugfix releases.
+
+Workaround until https://github.com/astral-sh/uv/issues/15805 gets fixed.
+"""
+
+import argparse
+import re
+import shutil
+import subprocess
+from dataclasses import dataclass, field
+
+
+parser = argparse.ArgumentParser(
+    description="remove outdated uv python versions"
+)
+parser.add_argument(
+    "-v", "--verbose", action="count", default=1, dest='verbosity',
+    help="be more verbose"
+)
+parser.add_argument(
+    "-q", "--quiet", action="store_const", const=0, dest='verbosity',
+    help="be less verbose"
+)
+parser.add_argument(
+    "-n",
+    "--dry-run",
+    action="store_true",
+    help="show what would be done, don't actually do it",
+)
+
+
+def has_uv() -> bool:
+    return bool(shutil.which('uv'))
+
+
+@dataclass(frozen=True, order=True)
+class PythonVersion:
+    full_version: str  # 'cpython-3.15.0-linux-x86_64-gnu'
+
+    @property
+    def minor_version(self) -> str:
+        rx = re.compile(r'^(\S+-\d+\.\d+)')
+        if m := rx.match(self.full_version):
+            version = m[0]
+            if '+freethreaded' in self.full_version:
+                version += 't'
+            return version
+        raise ValueError('could not understand version ({self.full_version!r})')
+
+
+def list_managed_versions() -> list[PythonVersion]:
+    res = subprocess.run(
+        ['uv', 'python', 'list', '--managed-python', '--only-installed'],
+        capture_output=True, text=True, check=True,
+    )
+    versions = []
+    for line in res.stdout.splitlines():
+        if line.startswith(('cpython-', 'pypy-')):
+            v = PythonVersion(line.split()[0])
+            # Deduplicate because uv lists the same version multiple times,
+            # once for every PATH entry.  Deduplication assumes the output is
+            # ordered.
+            if not versions or v != versions[-1]:
+                versions.append(v)
+    return versions
+
+
+def uninstall_python(v: PythonVersion) -> None:
+    subprocess.run(
+        ['uv', 'python', 'uninstall', v.full_version],
+        check=True,
+    )
+
+
+@dataclass
+class OutputFormatter:
+    verbosity: int = 1
+
+    def info(self, msg: str) -> None:
+        if self.verbosity >= 1:
+            print(msg)
+
+    def debug(self, msg: str) -> None:
+        if self.verbosity >= 2:
+            print(msg)
+
+
+@dataclass
+class FindResult:
+    keep: set[PythonVersion] = field(default_factory=set)
+    delete: set[PythonVersion] = field(default_factory=set)
+
+
+def find_outdated(
+    versions: list[PythonVersion], *, out: OutputFormatter
+) -> FindResult:
+    seen: set[str] = set()
+    keep: set[PythonVersion] = set()
+    delete: set[PythonVersion] = set()
+
+    for v in versions:
+        # The logic assumes uv output is sorted and newer versions come first.
+        if v.minor_version in seen:
+            if v in keep:
+                out.info(f'ehh duplicate?  keeping {v.full_version}')
+            else:
+                out.debug(f'will delete {v.full_version}')
+                delete.add(v)
+        else:
+            seen.add(v.minor_version)
+            out.info(f'keeping {v.full_version}')
+            keep.add(v)
+
+    if keep & delete:
+        out.info("ehh how come we're in two minds about some versions???")
+        for v in sorted(keep & delete):
+            out.info(f'keeping {v.full_version}')
+        delete.difference_update(keep)
+    return FindResult(keep, delete)
+
+
+def main():
+    args = parser.parse_args()
+    if not has_uv():
+        print('uv is not installed')
+        return
+    out = OutputFormatter(args.verbosity)
+    res = find_outdated(list_managed_versions(), out=out)
+    for v in sorted(res.delete):
+        if args.dry_run:
+            print(f'would remove {v.full_version}')
+        else:
+            uninstall_python(v)
+
+
+if __name__ == "__main__":
+    main()
