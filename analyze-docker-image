@@ -6,7 +6,7 @@
 """Tool to analyze Docker images.
 
 Usage:
-  analyze-docker-image image:tag outdir/
+  analyze-docker-image [--pull] image:tag outdir/
 
 This will use `docker save` to dump the container as an OCI image into a file
 in ~/.cache/, and then create
@@ -61,6 +61,11 @@ parser.add_argument(
     "output_dir",
     nargs='?',
     help='directory to contain the extracted image contents',
+)
+parser.add_argument(
+    "--pull",
+    help='pull the image',
+    action='store_true',
 )
 parser.add_argument(
     "-u", "--update-cache",
@@ -137,6 +142,9 @@ def main() -> None:
         what_to_extract.discard('rootfs')
 
     ui = UI(debug=args.debug)
+
+    if args.pull:
+        docker_pull(ui, args.image)
 
     info = docker_inspect(ui, args.image)
     if not info:
@@ -391,6 +399,12 @@ def pipe_to_file(
 def json_from_pipe(ui: UI, command: list[str]) -> dict:
     ui.info(f'Running {fmt_command(command)}')
     return json.loads(subprocess.run(command, capture_output=True).stdout)
+
+
+def docker_pull(ui: UI, image_name: str) -> None:
+    command = ['docker', 'pull', '--', image_name]
+    ui.info(f'Running {fmt_command(command)}')
+    subprocess.run(command)
 
 
 def docker_inspect(ui: UI, image_name: str) -> dict:
