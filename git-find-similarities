@@ -35,7 +35,7 @@ from functools import cached_property
 from typing import TYPE_CHECKING, NamedTuple, Self
 
 from pygit2 import Repository
-from pygit2.enums import ObjectType, SortMode
+from pygit2.enums import SortMode
 from rich.console import Console
 from rich.text import Text
 from rich.theme import Theme
