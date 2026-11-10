@@ -443,7 +443,8 @@ class DockerImage:
         return self
 
     def __exit__(self, *args) -> None:
-        self.tarfile.close()
+        if self.tarfile:
+            self.tarfile.close()
 
     def blob_filename(self, digest: str) -> str:
         alg, colon, ref = digest.partition(':')
