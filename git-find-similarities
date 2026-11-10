@@ -67,11 +67,12 @@ def find_git_repo(
 
 
 def walk_tree(tree: Tree, path: pathlib.PurePath) -> Blob:
+    obj: Tree | Blob = tree
     for name in path.parts:
-        assert tree.type == ObjectType.TREE
-        tree = tree[name]
-    assert tree.type == ObjectType.BLOB
-    return tree
+        assert isinstance(obj, Tree)
+        obj = tree[name]
+    assert isinstance(obj, Blob)
+    return obj
 
 
 def walk_history(repo: Repository) -> Iterator[Commit]:
@@ -96,7 +97,7 @@ class Versions:
     def __len__(self) -> int:
         return len(self._oldest)
 
-    def __iter__(self) -> Iterator[Versions]:
+    def __iter__(self) -> Iterator[Version]:
         yield from self._oldest.values()
 
     def has_blob_with_id(self, oid: Oid) -> bool:
@@ -132,7 +133,7 @@ class Target:
     relpath: pathlib.PurePath
 
     @classmethod
-    def from_filename(cls, filename: pathlib.Pathname) -> Self:
+    def from_filename(cls, filename: pathlib.Path) -> Self:
         repo, relpath = find_git_repo(filename)
         return cls(repo, relpath)
 
@@ -225,8 +226,6 @@ def print_versions(target: Target, all_targets: list[Target]) -> None:
                 continue
             match = other.find_closest(blob)
             if match:
-                n = match.cost
-                s = 's' if n != 1 else ''
                 console.print(Text.assemble(
                     '      closest match is ',
                     (match.commit.short_id, 'commit'),
